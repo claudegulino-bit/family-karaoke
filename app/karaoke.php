@@ -153,11 +153,11 @@ if (!$KAR_LOCAL) {
       </select>
       <input id="kar-search" type="text" placeholder="Search songs, pitch, CSG, names…" oninput="karRender()" style="font-family:inherit;flex:1;min-width:150px;background:#121620;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
       <button type="button" onclick="karYtGo()" title="Opens YouTube in the next tab — browse, copy a song's link, then click back to this tab and paste it" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px">▶ YouTube</button>
-      <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The Up Next queue — who sings next, in order" style="font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">🎶 Up Next <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
-      <button type="button" onclick="karDlToggle()" id="kar-dl-btn" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">⬇ Downloads</button>
-      <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" style="font-family:inherit;background:#1e293b;border:1px solid rgba(192,132,252,.45);color:#c084fc;transition:background .12s,border-color .12s,box-shadow .12s;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">📱</span> Guest QR</button>
+      <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The Up Next queue — who sings next, in order" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">🎶 Up Next <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
+      <button type="button" onclick="karDlToggle()" id="kar-dl-btn" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">⬇ Downloads</button>
+      <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(192,132,252,.45);color:#c084fc;transition:background .12s,border-color .12s,box-shadow .12s;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">📱</span> Guest QR</button>
       <button type="button" onclick="location.reload()" title="Reload the song lists from the server (after a download or rename)" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">🔄</span> Refresh</button>
-      <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px"><span style="font-size:15px">📖</span> Guide</button>
+      <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px"><span style="font-size:15px">📖</span> Guide</button>
     </div>
     <div id="kar-guide-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:16px 22px;max-height:calc(100vh - 220px);overflow-y:auto">
       <div style="display:flex;align-items:center;gap:10px">
@@ -1111,15 +1111,15 @@ if (!$KAR_LOCAL) {
     // btn = its header button · col/bd = how it looks at rest · rgb = its own accent,
     // used for the lit fill, border and halo · lit = the bright text colour when open.
     var KAR_PANELS = {
-      'kar-guide-panel': { btn:'kar-guide-btn', col:'#94a3b8', bd:'#334155',                rgb:'110,231,183', lit:'#a7f3d0' },
-      'kar-dl-panel':    { btn:'kar-dl-btn',    col:'#94a3b8', bd:'#334155',                rgb:'96,165,250',  lit:'#bfdbfe' },
-      'kar-q-panel':     { btn:'kar-q-btn',     col:'#D2AD6C', bd:'rgba(210,173,108,.45)',  rgb:'210,173,108', lit:'#f3d9a4' },
-      'kar-qr-panel':    { btn:'kar-qr-btn',    col:'#c084fc', bd:'rgba(192,132,252,.45)',  rgb:'192,132,252', lit:'#e9d5ff' }
+      'kar-guide-panel': { btn:'kar-guide-btn', col:'#94a3b8', bd:'#334155',               rgb:'110,231,183', bg:'#1f3d35', lit:'#a7f3d0' },
+      'kar-dl-panel':    { btn:'kar-dl-btn',    col:'#94a3b8', bd:'#334155',               rgb:'96,165,250',  bg:'#22344f', lit:'#bfdbfe' },
+      'kar-q-panel':     { btn:'kar-q-btn',     col:'#D2AD6C', bd:'rgba(210,173,108,.45)', rgb:'210,173,108', bg:'#3b3324', lit:'#f3d9a4' },
+      'kar-qr-panel':    { btn:'kar-qr-btn',    col:'#c084fc', bd:'rgba(192,132,252,.45)', rgb:'192,132,252', bg:'#362a4d', lit:'#e9d5ff' }
     };
     function karBtnLight(pid, on){
       var p = KAR_PANELS[pid], b = p && document.getElementById(p.btn);
       if (!b) return;
-      b.style.background  = on ? 'rgba(' + p.rgb + ',.22)' : '#1e293b';
+      b.style.background  = on ? p.bg : '#1e293b';
       b.style.borderColor = on ? 'rgb(' + p.rgb + ')'      : p.bd;
       b.style.color       = on ? p.lit                     : p.col;
       b.style.boxShadow   = on ? '0 0 0 3px rgba(' + p.rgb + ',.20)' : 'none';
