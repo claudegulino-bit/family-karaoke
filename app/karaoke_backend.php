@@ -349,9 +349,16 @@ function kar_play(string $song, int $pitch): array {
         $args[] = '--script=' . $lua;
         $args[] = '--script-opts=casai-pitch=' . $pitch;
     }
-    // NOT fullscreen: his TV is shared — words on one side, the song list on the
+    // NOT fullscreen: the screen is shared — words on one side, the song list on the
     // other. F toggles fullscreen when the whole screen is wanted.
     $args[] = '--geometry=55%x70%-0+60';
+    // ⚠ ON TOP, and this is not a preference — it is the difference between a words
+    // screen and no words screen. mpv is started by a background service, and macOS
+    // does not let a background service bring a window to the front, so the words open
+    // BEHIND whatever browser is showing the song list: playing, invisible, and looking
+    // like a fault. Set "words_on_top": false in the config to turn it off.
+    $cfg = kar_cfg();
+    if (!array_key_exists('words_on_top', $cfg) || $cfg['words_on_top']) $args[] = '--ontop';
     $args[] = '--osd-font-size=48';
     $args[] = $path;
     $cmd = implode(' ', array_map('escapeshellarg', $args)) . ' >/dev/null 2>&1 & echo $!';
