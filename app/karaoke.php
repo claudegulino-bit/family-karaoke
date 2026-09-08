@@ -178,17 +178,17 @@ if (!$KAR_LOCAL) {
         $_karCards = [];
         if ($KAR_LOCAL) $_karCards[] = ['setup', '1 · Setting up the Mac', 'Once only — the songs folder, the player, and putting it on another Mac.'];
         else            $_karCards[] = ['setup', '1 · Setting up the Mac', 'Once only — naming the Mac, the songs folder, and the player.'];
-        $_karCards[] = ['sing',  '2 · Sing a song',            'Find it, play it, and set the key.'];
+        $_karCards[] = ['sing',  '2 · Play a song',            'Find it, play it, and set the key.'];
         $_karCards[] = ['while', '3 · While it is playing',    'The gold bar: key, speed, start and stop.'];
-        $_karCards[] = ['party', '4 · Running a party',        'The singing queue, guests\' phones, and new songs.'];
-        $_karCards[] = ['songs', '5 · Looking after the songs','Best lists, what arrived lately, renaming and removing.'];
+        $_karCards[] = ['party', '4 · Party controls',         'The singing queue, guests\' phones, and new songs.'];
+        $_karCards[] = ['songs', '5 · Managing songs',         'Best lists, new arrivals, renaming and removing.'];
         // The three party panels each get a card of their own. Their words live HERE and
         // nowhere else — the floating "?" beside each panel borrows this same text rather
         // than keeping a second copy that would quietly drift out of step with it.
         $_karCards[] = ['upnext',    '6 · Up Next',   'The singing queue, and what scheduling fairness does.'];
         $_karCards[] = ['downloads', '7 · Downloads', 'Bringing songs in from YouTube.'];
         $_karCards[] = ['guestqr',   '8 · Guest QR',  'Guests asking for songs from their own phones.'];
-        if ($KAR_LOCAL) $_karCards[] = ['update','9 · Keeping it up to date', 'Getting the newest version. Your songs are never touched.'];
+        if ($KAR_LOCAL) $_karCards[] = ['update','9 · Software updates',      'Installing the newest version. Your songs are never touched.'];
         foreach ($_karCards as [$_k, $_t, $_d]): ?>
         <button type="button" id="kar-gc-<?= $_k ?>" onclick="karGuideOpen('<?= $_k ?>')" style="font-family:inherit;text-align:left;background:#1a2130;border:1px solid #334155;border-radius:9px;padding:11px 13px;cursor:pointer">
           <span style="display:block;color:#D2AD6C;font-size:13.5px;font-weight:800"><?= h($_t) ?></span>
@@ -224,7 +224,7 @@ if (!$KAR_LOCAL) {
         </div>
 
         <div class="kar-gs" id="kar-gs-sing" style="display:none">
-          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Sing a song</h3>
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Play a song</h3>
           <ul style="margin:0;padding-left:20px">
             <li><b>Find it</b> — type anything in the search box: the artist, the title, or the name of whoever sings it.</li>
             <li><b>Press ▶ Play</b> — it plays on the Mac. On that Mac's keyboard, <b>F</b> makes it full screen and <b>Q</b> closes it.</li>
@@ -245,7 +245,7 @@ if (!$KAR_LOCAL) {
         </div>
 
         <div class="kar-gs" id="kar-gs-party" style="display:none">
-          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Running a party</h3>
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Party controls</h3>
           <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Three buttons at the top do the work. Each has a card of its own below with the whole of it.</p>
           <ul style="margin:0;padding-left:20px">
             <li><b>🎶 Up Next</b> — the singing queue. Click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on a song to add someone to it, then keep pressing <b>▶ Next singer</b> all night. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
@@ -256,7 +256,7 @@ if (!$KAR_LOCAL) {
         </div>
 
         <div class="kar-gs" id="kar-gs-songs" style="display:none">
-          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Looking after the songs</h3>
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Managing songs</h3>
           <ul style="margin:0;padding-left:20px">
             <li><b>⭐ is each person's own list</b> — pick their name in the dropdown at the top, then click the stars on their songs.</li>
             <li><b>🆕 New</b> holds everything that arrived in the last month, so you never have to remember what came in last night. Its <b>Duplicate</b> column warns you when a song looks like one you already own.</li>
@@ -293,7 +293,7 @@ if (!$KAR_LOCAL) {
         </div>
         <?php if ($KAR_LOCAL): ?>
         <div class="kar-gs" id="kar-gs-update" style="display:none">
-          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Keeping it up to date</h3>
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Software updates</h3>
           <p style="margin:0 0 8px">When the karaoke has been improved, this fetches it. <b>Your songs, your settings, everyone's lists and every saved key are left exactly as they are</b> — only the program itself is replaced.</p>
           <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Update the karaoke</button>
           <div id="kar-upd-state" style="display:none;margin-top:8px;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;line-height:1.6"></div>
