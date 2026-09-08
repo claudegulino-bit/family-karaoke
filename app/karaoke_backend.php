@@ -55,6 +55,20 @@ function kar_is_local(): bool {
     return $v;
 }
 
+/**
+ * "N units ago", in whichever dialect this install speaks. The standalone edition is
+ * SQLite and casAI is MariaDB, and a cutoff written in one is a fatal error in the
+ * other — this is the one place that difference is allowed to live.
+ * $unit is a bare word: minutes / hours / days.
+ */
+function kar_ago(int $n, string $unit): string {
+    $n = max(0, $n);
+    $unit = strtolower(preg_replace('/[^a-z]/i', '', $unit));
+    if (!in_array($unit, ['minutes', 'hours', 'days'], true)) $unit = 'hours';
+    if (kar_is_local()) return "datetime('now','localtime','-$n $unit')";
+    return 'NOW() - INTERVAL ' . $n . ' ' . strtoupper(rtrim($unit, 's'));
+}
+
 function kar_cfg(): array {
     global $_kar_cfg;
     if ($_kar_cfg !== null) return $_kar_cfg;
@@ -183,6 +197,19 @@ const KAR_SCHEMA = [
         note     TEXT DEFAULT NULL,
         requested_at TEXT DEFAULT (datetime('now','localtime')),
         done_at  TEXT DEFAULT NULL)",
+    // A guest searching YouTube from their phone. The page cannot run yt-dlp itself
+    // (on casAI it is not even the same machine), so the search is a request the Mac
+    // answers — exactly like a play or a download. Results are a JSON blob; the row is
+    // disposable and swept after a few hours.
+    "CREATE TABLE IF NOT EXISTS karaoke_searches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        query        TEXT NOT NULL,
+        requested_by TEXT DEFAULT NULL,
+        status       TEXT NOT NULL DEFAULT 'Pending',
+        results      TEXT DEFAULT NULL,
+        note         TEXT DEFAULT NULL,
+        requested_at TEXT DEFAULT (datetime('now','localtime')),
+        done_at      TEXT DEFAULT NULL)",
     "CREATE TABLE IF NOT EXISTS karaoke_settings (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
     // Removals have to be remembered, not just done. Two Macs merge their lists by
     // taking the union of what each one has — so without a record of "this was taken
@@ -472,6 +499,120 @@ function kar_dedup_matches(string $title): array {
 // Guest access — the QR points at THIS Mac on the house Wi-Fi
 // ---------------------------------------------------------------------------
 
+/**
+ * A guest's FIRST name, and nothing else — the singer list is a list of first names,
+ * so a guest who types their full name still becomes just the first word and the
+ * dropdown stays tidy. Everything unsafe for a filename is stripped on the way.
+ */
+function kar_first_name(string $raw): string {
+    $n = trim(preg_replace('/\s+/u', ' ', $raw));
+    $n = preg_replace('#[/\\:*?"<>|%]#u', '', $n);   // % too: it breaks a yt-dlp -o template
+    $n = trim(explode(' ', $n)[0] ?? '');
+    return mb_substr($n, 0, 20);
+}
+
+/**
+ * Is somebody already singing under this name at this party? Only the live queue and the
+ * last few hours of activity count — a name nobody is using is handed straight over, so
+ * the real Mike is still Mike every time he walks in.
+ */
+function kar_name_busy(PDO $db, string $n): bool {
+    if ($n === '') return false;
+    $st = $db->prepare("SELECT COUNT(*) FROM karaoke_sing_queue
+                        WHERE LOWER(singer) = LOWER(?) AND status IN ('Waiting','Singing')");
+    $st->execute([$n]);
+    if ((int)$st->fetchColumn() > 0) return true;
+    $st = $db->prepare("SELECT COUNT(*) FROM karaoke_downloads
+                        WHERE LOWER(requested_by) = LOWER(?)
+                          AND requested_at > " . kar_ago(6, 'hours'));
+    $st->execute([$n]);
+    return (int)$st->fetchColumn() > 0;
+}
+
+/**
+ * Two people called Mike at one party must not share a Best list. Rather than number them
+ * — "Mike 2" means nothing to anyone and leaves the host renaming it later — the page asks
+ * the second one for the first letter of their surname and they become Mike G
+ * (the owner, 2026-09-08). A number is only ever a last resort, if even that collides.
+ */
+function kar_claim_name(PDO $db, string $first, string $initial = ''): string {
+    $first = kar_first_name($first);
+    if ($first === '') return '';
+    $initial = strtoupper(preg_replace('/[^A-Za-z]/', '', $initial));
+    if ($initial !== '') {
+        $withInitial = $first . ' ' . mb_substr($initial, 0, 1);
+        if (!kar_name_busy($db, $withInitial)) return $withInitial;
+        $first = $withInitial;          // even that is taken — fall through to numbering
+    } elseif (!kar_name_busy($db, $first)) {
+        return $first;
+    }
+    for ($i = 2; $i <= 20; $i++) if (!kar_name_busy($db, $first . ' ' . $i)) return $first . ' ' . $i;
+    return $first . ' ' . random_int(21, 99);
+}
+
+/**
+ * Search YouTube with yt-dlp — no API key, no account, nothing to run out of mid-party.
+ * "karaoke" is added to the words the guest typed, because someone asking for "Volare"
+ * at a party wants the backing track, not Modugno singing it (the owner, 2026-09-08).
+ * --flat-playlist keeps it to one request instead of one per result, which is the
+ * difference between three seconds and twenty.
+ */
+/**
+ * The same duplicate test as kar_dedup_matches, but returning the real file so the guest
+ * page can offer "sing ours" — a request has to name a file the catalogue will accept,
+ * and the display name has the extension stripped off.
+ */
+function kar_have_matches(string $title): array {
+    $toks = array_unique(kar_title_tokens($title));
+    if (!$toks) return [];
+    $need = min(2, count($toks));
+    $scored = [];
+    foreach (kar_songs_fresh() as $f) {
+        $score = count(array_intersect($toks, array_unique(kar_title_tokens($f))));
+        if ($score >= $need) $scored[] = [$score, $f];
+    }
+    usort($scored, static fn($a, $b) => $b[0] <=> $a[0] ?: strcasecmp($a[1], $b[1]));
+    return array_map(
+        static fn($r) => ['file' => $r[1], 'label' => pathinfo($r[1], PATHINFO_FILENAME)],
+        array_slice($scored, 0, 2));
+}
+
+function kar_yt_search(string $query, int $limit = 6): array {
+    $q = trim(preg_replace('/\s+/u', ' ', $query));
+    if ($q === '') return [];
+    $limit = max(1, min(10, $limit));
+    $cfg = kar_cfg();
+    $cookies = !empty($cfg['browser_cookies'])
+        ? ' --cookies-from-browser ' . escapeshellarg((string)$cfg['browser_cookies']) : '';
+    $cmd = escapeshellarg(kar_tool('yt-dlp'))
+         . ' --no-warnings --flat-playlist --skip-download'
+         . ' --print ' . escapeshellarg("%(id)s\t%(title)s\t%(duration)s\t%(channel)s")
+         . $cookies . ' ' . escapeshellarg('ytsearch' . $limit . ':' . $q . ' karaoke') . ' 2>/dev/null';
+    $out = (string)@shell_exec($cmd);
+    $rows = [];
+    foreach (explode("\n", $out) as $line) {
+        $line = trim($line);
+        if ($line === '') continue;
+        $p = explode("\t", $line);
+        if (count($p) < 2 || $p[0] === '' || $p[0] === 'NA') continue;
+        $secs = (isset($p[2]) && is_numeric($p[2])) ? (int)$p[2] : 0;
+        $rows[] = [
+            'id'    => $p[0],
+            'url'   => 'https://www.youtube.com/watch?v=' . $p[0],
+            'title' => $p[1],
+            'secs'  => $secs,
+            'len'   => $secs > 0 ? sprintf('%d:%02d', intdiv($secs, 60), $secs % 60) : '',
+            'chan'  => $p[3] ?? '',
+            // built from the id rather than asked for: always present, always valid
+            'thumb' => 'https://i.ytimg.com/vi/' . $p[0] . '/mqdefault.jpg',
+            // Full filenames, not display names: the page offers "sing ours", and that
+            // request has to name a real file the catalogue will accept.
+            'have'  => kar_have_matches($p[1]),
+        ];
+    }
+    return $rows;
+}
+
 function kar_lan_ip(): string {
     $out = [];
     // The interface actually carrying traffic, asked of the routing table rather
@@ -711,9 +852,7 @@ function kar_pitch_map(PDO $db): array {
  *  catalog so a renamed-out or removed file never shows as a ghost. */
 function kar_new_downloads(PDO $db, array $catalog): array {
     $new = []; $dup = [];
-    $cut = kar_is_local()
-        ? "datetime('now','localtime','-30 days')"
-        : "NOW() - INTERVAL 30 DAY";
+    $cut = kar_ago(30, 'days');
     $set = array_flip($catalog);
     try {
         $q = $db->query("SELECT filename, dup_note FROM karaoke_downloads

@@ -114,6 +114,23 @@ function kar_set(PDO $db, int $id, array $fields): void {
     $db->prepare('UPDATE karaoke_downloads SET ' . implode(', ', $sets) . ' WHERE id = ?')->execute($vals);
 }
 
+// --- 0 · answer searches -----------------------------------------------------
+// A guest is standing there with a phone open, so these go before anything else.
+$srch = $db->query("SELECT id, query FROM karaoke_searches WHERE status='Pending' ORDER BY id LIMIT 5")->fetchAll();
+foreach ($srch as $q) {
+    try {
+        $rows = kar_yt_search((string)$q['query']);
+        $db->prepare("UPDATE karaoke_searches SET status=?, results=?, done_at=? WHERE id=?")
+           ->execute([$rows ? 'Done' : 'Empty', json_encode($rows, JSON_UNESCAPED_UNICODE),
+                      date('Y-m-d H:i:s'), (int)$q['id']]);
+    } catch (Throwable $e) {
+        $db->prepare("UPDATE karaoke_searches SET status='Error', note=?, done_at=? WHERE id=?")
+           ->execute([$e->getMessage(), date('Y-m-d H:i:s'), (int)$q['id']]);
+    }
+}
+// Yesterday's searches are of no interest to anybody.
+$db->exec("DELETE FROM karaoke_searches WHERE requested_at < datetime('now','localtime','-12 hours')");
+
 // --- 1 · look up titles (and run the duplicate check) ----------------------
 // Guest rows land as Pending, so their title has to be read before the download —
 // that is where the duration gate happens.
@@ -152,10 +169,21 @@ while ($row = $db->query("SELECT id, url, title, requested_by, auto_sing FROM ka
     // ⚠ THE CODEC RULE: force H.264. YouTube's "best" is often AV1, which plays as
     // sound with NO PICTURE — the one failure that looks like a broken song file.
     $fmt = 'bv*[vcodec^=avc1][ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b';
+    // The person who asked for it goes into the file name, in the house convention
+    // (the owner, 2026-09-08) — "(0)" because a guest's song always starts at the original
+    // key. It lands as "Title (0) Josie.mp4", so the end-of-night tidy-up is a tidy-up
+    // rather than a rename from scratch.
+    $nameTag = '';
+    if (!empty($row['requested_by'])) {
+        $who = preg_replace('#[/\\\\:*?"<>|%]#u', '', (string)$row['requested_by']);
+        $who = trim(preg_replace('/\s+/u', ' ', $who));
+        if ($who !== '') $nameTag = ' (0) ' . mb_substr($who, 0, 24);
+    }
+
     $cmd = escapeshellarg($ytdlp) . ' --no-playlist --no-warnings --newline'
          . ' -f ' . escapeshellarg($fmt)
          . ' --merge-output-format mp4'
-         . ' -o ' . escapeshellarg($dir . '/%(title)s.%(ext)s')
+         . ' -o ' . escapeshellarg($dir . '/%(title)s' . $nameTag . '.%(ext)s')
          . ' --print after_move:filepath --no-simulate'
          . $cookies . ' ' . escapeshellarg($row['url']) . ' 2>&1';
     $out = (string)@shell_exec($cmd);

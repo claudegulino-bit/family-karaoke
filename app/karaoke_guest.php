@@ -23,7 +23,7 @@ if ($KAR_LOCAL) {
 }
 // "12 hours ago", in whichever dialect this install speaks — the guest caps are the same
 // either way, only the way of saying it differs.
-$KAR_12H = $KAR_LOCAL ? "datetime('now','localtime','-12 hours')" : "NOW() - INTERVAL 12 HOUR";
+$KAR_12H = kar_ago(12, 'hours');
 
 $tok = trim($_REQUEST['t'] ?? '');
 $real = '';
@@ -56,6 +56,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     };
     $gName = trim($_POST['name'] ?? '');
     try {
+        if ($act === 'claim') {
+            // The guest tells us their first name; we tell them the name they actually get.
+            // If somebody is already singing under it, we ask for the first letter of their
+            // surname rather than numbering them — "Mike G" means something, "Mike 2" does not.
+            $first = kar_first_name($gName);
+            if ($first === '') throw new Exception('Please type your first name.');
+            $initial = trim((string)($_POST['initial'] ?? ''));
+            if ($initial === '' && kar_name_busy($pdo, $first)) {
+                echo json_encode(['ok' => true, 'error' => '', 'needs_initial' => true, 'first' => $first,
+                                  'queue' => $qState(), 'dls' => []], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            $granted = kar_claim_name($pdo, $first, $initial);
+            echo json_encode(['ok' => true, 'error' => '', 'name' => $granted,
+                              'queue' => $qState(), 'dls' => $dlState($granted)], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($act === 'ytsearch') {
+            // The page cannot run yt-dlp itself, so the search is a request the Mac answers.
+            if ($gName === '') throw new Exception('Please type your first name first.');
+            $q = trim((string)($_POST['q'] ?? ''));
+            if ($q === '' || mb_strlen($q) > 120) throw new Exception('Type the singer or the name of the song.');
+            $recent = $pdo->prepare("SELECT COUNT(*) FROM karaoke_searches
+                                     WHERE requested_by = ? AND requested_at > " . kar_ago(1, 'minutes'));
+            $recent->execute([$gName]);
+            if ((int)$recent->fetchColumn() >= 8) throw new Exception('Give it a moment — too many searches at once.');
+            $pdo->prepare("INSERT INTO karaoke_searches (query, requested_by) VALUES (?,?)")->execute([$q, $gName]);
+            $sid = (int)$pdo->lastInsertId();
+            if ($KAR_LOCAL) kar_worker_spawn();   // nothing polls a queue here — start it now
+            echo json_encode(['ok' => true, 'error' => '', 'sid' => $sid], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($act === 'ytpoll') {
+            $sid = (int)($_POST['sid'] ?? 0);
+            $st = $pdo->prepare("SELECT status, results, note FROM karaoke_searches WHERE id = ?");
+            $st->execute([$sid]);
+            $r = $st->fetch();
+            if (!$r) throw new Exception('That search expired — try again.');
+            echo json_encode(['ok' => true, 'error' => '', 'status' => $r['status'],
+                              'results' => $r['results'] ? json_decode($r['results'], true) : [],
+                              'note' => (string)$r['note']], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         if ($act === 'dlreq') {
             // Guest brings a NEW song: paste a YouTube link -> the Mac downloads it into the
             // library, adds it to the guest's own Best list, and puts them in the Up Next line
@@ -121,16 +164,27 @@ $_db = $tokenOk ? kar_catalog() : [];
 <?php if (!$tokenOk): ?>
   <p style="color:#f87171;font-size:14px;margin-top:14px">This link isn't active. Scan the QR code on the karaoke screen to get in — and if you already did, ask the host to show the code again (it may have been renewed).</p>
 <?php else: ?>
-  <p style="color:#94a3b8;font-size:12.5px;margin:0 0 12px">Type your name, find your song, tap Request — you'll see your place in line.</p>
-  <input id="g-name" type="text" placeholder="Your name" maxlength="40" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:15px;padding:11px 13px">
+  <p style="color:#94a3b8;font-size:12.5px;margin:0 0 12px">Type your first name, find your song, tap Request — you'll see your place in line.</p>
+  <input id="g-name" type="text" placeholder="Your first name" maxlength="20" autocomplete="given-name" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:15px;padding:11px 13px">
+  <div id="g-initial-row" style="display:none;margin-top:8px;background:rgba(210,173,108,.08);border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:10px 12px">
+    <p id="g-initial-msg" style="margin:0 0 7px;color:#D2AD6C;font-size:12.5px"></p>
+    <div style="display:flex;gap:8px">
+      <input id="g-initial" type="text" maxlength="1" placeholder="G" style="flex:0 0 58px;text-align:center;background:#121620;border:1px solid #334155;border-radius:9px;color:#e2e8f0;font-size:16px;font-weight:700;padding:9px 0">
+      <button type="button" onclick="gClaim(true)" style="flex:1;font-family:inherit;background:#3b3324;border:1px solid #D2AD6C;color:#f3d9a4;cursor:pointer;font-size:13.5px;font-weight:700;padding:9px 0;border-radius:9px">That's me</button>
+    </div>
+  </div>
+  <div id="g-whoami" style="margin-top:6px;font-size:12px;color:#6ee7b7"></div>
   <div id="g-line" style="margin-top:12px"></div>
   <input id="g-search" type="text" placeholder="Search a song… (artist or title)" style="width:100%;margin-top:12px;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:15px;padding:11px 13px">
   <div id="g-results" style="margin-top:8px"></div>
   <div style="margin-top:16px;background:rgba(210,173,108,.07);border:1px solid rgba(210,173,108,.3);border-radius:10px;padding:12px 14px">
     <p style="margin:0;color:#D2AD6C;font-size:13.5px;font-weight:700">🎁 Can't find your song?</p>
-    <p style="margin:6px 0 8px;color:#94a3b8;font-size:12px">Open YouTube on your phone, find the song (a karaoke or lyrics version works best), tap <b>Share → Copy link</b>, come back here and paste it:</p>
-    <input id="g-url" type="text" placeholder="Paste the YouTube link here…" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:14px;padding:10px 12px">
-    <button type="button" id="g-dlbtn" onclick="gDlReq()" style="margin-top:8px;width:100%;font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:700;padding:10px 0;border-radius:10px">🎁 Bring this song to the party</button>
+    <p style="margin:6px 0 8px;color:#94a3b8;font-size:12px">Search YouTube for it right here — type the singer or the name of the song.</p>
+    <div style="display:flex;gap:8px">
+      <input id="g-yt" type="text" placeholder="e.g. Volare, or Andrea Bocelli" maxlength="120" style="flex:1;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:14px;padding:10px 12px">
+      <button type="button" id="g-ytbtn" onclick="gYt()" style="flex:0 0 auto;font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:700;padding:10px 16px;border-radius:10px">Search</button>
+    </div>
+    <div id="g-ytres" style="margin-top:10px"></div>
     <div id="g-dls" style="margin-top:6px"></div>
     <p style="margin:8px 0 0;color:#64748b;font-size:10.5px">The song downloads in a few minutes, joins the party list under your name, and you join the queue to sing it. Up to 2 new songs per person per night.</p>
   </div>
@@ -142,12 +196,52 @@ $_db = $tokenOk ? kar_catalog() : [];
   function gEsc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   var nameEl = document.getElementById('g-name');
   try { var n0 = localStorage.getItem('kguest_name'); if (n0) nameEl.value = n0; } catch(e){}
-  nameEl.addEventListener('change', function(){ try { localStorage.setItem('kguest_name', nameEl.value.trim()); } catch(e){} gLine(); });
+  var G_ME = '';
+  try { var m0 = localStorage.getItem('kguest_granted'); if (m0) { G_ME = m0; gShowMe(); } } catch(e){}
+  function gWho(){ return G_ME || nameEl.value.trim(); }
+  function gShowMe(){
+    var el = document.getElementById('g-whoami');
+    if (el) el.textContent = G_ME ? "You're in as " + G_ME : '';
+  }
+  nameEl.addEventListener('change', function(){
+    try { localStorage.setItem('kguest_name', nameEl.value.trim()); } catch(e){}
+    G_ME = ''; gShowMe(); gClaim(false);
+  });
+
+  // Claim a name. If somebody is already singing under it, the page asks for the first
+  // letter of the surname — "Mike G" rather than "Mike 2", which means something to
+  // everyone in the room (the owner's rule, 2026-09-08).
+  function gClaim(withInitial){
+    var first = nameEl.value.trim();
+    if (!first) { G_ME = ''; gShowMe(); return Promise.resolve(''); }
+    var row = document.getElementById('g-initial-row');
+    var f = { action:'claim', name:first };
+    if (withInitial) {
+      var ini = document.getElementById('g-initial').value.trim();
+      if (!ini) { document.getElementById('g-initial').focus(); return Promise.resolve(''); }
+      f.initial = ini;
+    }
+    return gPost(f).then(function(d){
+      if (!d.ok) { alert(d.error || 'Could not take that name.'); return ''; }
+      if (d.needs_initial) {
+        document.getElementById('g-initial-msg').textContent =
+          'There is already a ' + d.first + ' here tonight — what is the first letter of your last name?';
+        row.style.display = '';
+        document.getElementById('g-initial').focus();
+        return '';
+      }
+      row.style.display = 'none';
+      G_ME = d.name || first;
+      try { localStorage.setItem('kguest_granted', G_ME); } catch(e){}
+      gShowMe(); gLine();
+      return G_ME;
+    }).catch(function(){ return ''; });
+  }
 
   function gPost(fields){
     var fd = new FormData();
     fd.append('t', G_TOK);
-    if (!('name' in fields)) fd.append('name', nameEl.value.trim());  // so 'state' can fetch this guest's downloads
+    if (!('name' in fields)) fd.append('name', gWho());  // so 'state' can fetch this guest's downloads
     for (var k in fields) fd.append(k, fields[k]);
     return fetch('/karaoke_guest.php?t=' + encodeURIComponent(G_TOK), { method:'POST', body: fd })
       .then(function(r){ return r.json(); })
@@ -167,23 +261,101 @@ $_db = $tokenOk ? kar_catalog() : [];
     }
     el.innerHTML = out.join('');
   }
-  function gDlReq(){
-    var name = nameEl.value.trim();
-    if (!name) { alert('Type your name first, so the song is yours!'); nameEl.focus(); return; }
-    try { localStorage.setItem('kguest_name', name); } catch(e){}
-    var u = document.getElementById('g-url');
-    var url = u.value.trim();
-    if (!url) { u.focus(); return; }
-    var b = document.getElementById('g-dlbtn');
-    b.disabled = true; b.textContent = '…';
-    gPost({ action:'dlreq', name:name, url:url }).then(function(d){
-      b.disabled = false; b.textContent = '🎁 Bring this song to the party';
-      if (!d.ok) { alert(d.error || 'Not sent.'); return; }
-      u.value = '';
-    }).catch(function(){ b.disabled = false; b.textContent = '🎁 Bring this song to the party'; alert('Network hiccup — try again.'); });
+  var G_HITS = [];
+  var G_POLL = null;
+
+  // Search YouTube. The page cannot run yt-dlp, so this is a request the Mac answers —
+  // the same shape as a play or a download.
+  function gYt(){
+    var who = gWho();
+    if (!who) { alert('Type your first name first, so the song is yours!'); nameEl.focus(); return; }
+    var q = document.getElementById('g-yt').value.trim();
+    if (!q) { document.getElementById('g-yt').focus(); return; }
+    var btn = document.getElementById('g-ytbtn'), res = document.getElementById('g-ytres');
+    btn.disabled = true; btn.textContent = '…';
+    res.innerHTML = '<div style="color:#D2AD6C;font-size:12.5px;padding:6px 2px">Looking on YouTube…</div>';
+    if (G_POLL) { clearInterval(G_POLL); G_POLL = null; }
+    gPost({ action:'ytsearch', q:q }).then(function(d){
+      if (!d.ok) { btn.disabled = false; btn.textContent = 'Search'; res.innerHTML = '<div style="color:#f87171;font-size:12.5px">' + gEsc(d.error || 'Search failed.') + '</div>'; return; }
+      var tries = 0;
+      G_POLL = setInterval(function(){
+        tries++;
+        if (tries > 30) { clearInterval(G_POLL); G_POLL = null; btn.disabled = false; btn.textContent = 'Search';
+          res.innerHTML = '<div style="color:#f87171;font-size:12.5px">That took too long — try again.</div>'; return; }
+        gPost({ action:'ytpoll', sid:d.sid }).then(function(r){
+          if (!r.ok || r.status === 'Pending') return;
+          clearInterval(G_POLL); G_POLL = null;
+          btn.disabled = false; btn.textContent = 'Search';
+          G_HITS = r.results || [];
+          gYtRender();
+        });
+      }, 1200);
+    }).catch(function(){ btn.disabled = false; btn.textContent = 'Search'; res.innerHTML = '<div style="color:#f87171;font-size:12.5px">Network hiccup — try again.</div>'; });
   }
+
+  function gYtRender(){
+    var res = document.getElementById('g-ytres');
+    if (!G_HITS.length) { res.innerHTML = '<div style="color:#94a3b8;font-size:12.5px;padding:6px 2px">Nothing found — try the singer\'s name, or fewer words.</div>'; return; }
+    var out = [];
+    for (var i = 0; i < G_HITS.length; i++) {
+      var h = G_HITS[i];
+      out.push('<div onclick="gPick(' + i + ')" style="display:flex;gap:9px;align-items:center;padding:7px 4px;border-top:1px solid #1e293b;cursor:pointer">'
+        + '<img src="' + gEsc(h.thumb) + '" alt="" style="flex:0 0 64px;width:64px;height:36px;object-fit:cover;border-radius:5px;background:#1e293b">'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="color:#e2e8f0;font-size:12.5px;font-weight:600;line-height:1.35">' + gEsc(h.title) + '</div>'
+        + '<div style="color:#64748b;font-size:11px">' + gEsc(h.chan) + (h.len ? ' · ' + gEsc(h.len) : '') + '</div>'
+        + '</div></div>');
+    }
+    res.innerHTML = out.join('') + '<div id="g-confirm"></div>';
+  }
+
+  // Tapping a result never downloads straight away — one confirm, so a mis-tap on a
+  // forty-minute compilation does not land in the library. If we already have the song
+  // it is offered here too: singing the host's copy needs no download at all.
+  function gPick(i){
+    var h = G_HITS[i]; if (!h) return;
+    var box = document.getElementById('g-confirm'); if (!box) return;
+    var html = '<div style="margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:11px 12px">'
+      + '<div style="color:#e2e8f0;font-size:13px;font-weight:700;line-height:1.35">' + gEsc(h.title) + '</div>'
+      + '<div style="color:#64748b;font-size:11px;margin-bottom:9px">' + gEsc(h.chan) + (h.len ? ' · ' + gEsc(h.len) : '') + '</div>';
+    if (h.have && h.have.length) {
+      html += '<div style="color:#D2AD6C;font-size:12px;margin-bottom:8px">We already have: <b>' + gEsc(h.have[0].label) + '</b></div>'
+        + '<button type="button" onclick="gSingOurs(' + i + ')" style="width:100%;font-family:inherit;background:#3b3324;border:1px solid #D2AD6C;color:#f3d9a4;cursor:pointer;font-size:13.5px;font-weight:700;padding:10px 0;border-radius:9px">🎤 Sing ours — ready now</button>'
+        + '<button type="button" onclick="gGetIt(' + i + ')" style="margin-top:7px;width:100%;font-family:inherit;background:#1a2436;border:1px solid #334155;color:#cbd5e1;cursor:pointer;font-size:13px;font-weight:600;padding:9px 0;border-radius:9px">Get this version anyway</button>';
+    } else {
+      html += '<button type="button" onclick="gGetIt(' + i + ')" style="width:100%;font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:13.5px;font-weight:700;padding:10px 0;border-radius:9px">🎁 Get this one</button>';
+    }
+    box.innerHTML = html + '</div>';
+  }
+
+  function gGetIt(i){
+    var h = G_HITS[i]; if (!h) return;
+    var who = gWho();
+    if (!who) { alert('Type your first name first!'); nameEl.focus(); return; }
+    var box = document.getElementById('g-confirm');
+    box.innerHTML = '<div style="color:#D2AD6C;font-size:12.5px;padding:8px 2px">Sending it to the karaoke…</div>';
+    gPost({ action:'dlreq', name:who, url:h.url }).then(function(d){
+      box.innerHTML = d.ok
+        ? '<div style="color:#6ee7b7;font-size:12.5px;padding:8px 2px">On its way — you will be in the queue as soon as it lands.</div>'
+        : '<div style="color:#f87171;font-size:12.5px;padding:8px 2px">' + gEsc(d.error || 'Not sent.') + '</div>';
+    }).catch(function(){ box.innerHTML = '<div style="color:#f87171;font-size:12.5px;padding:8px 2px">Network hiccup — try again.</div>'; });
+  }
+
+  function gSingOurs(i){
+    var h = G_HITS[i]; if (!h || !h.have || !h.have.length) return;
+    var who = gWho();
+    if (!who) { alert('Type your first name first!'); nameEl.focus(); return; }
+    var box = document.getElementById('g-confirm');
+    box.innerHTML = '<div style="color:#D2AD6C;font-size:12.5px;padding:8px 2px">Adding you to the queue…</div>';
+    gPost({ action:'req', name:who, song:h.have[0].file }).then(function(d){
+      box.innerHTML = d.ok
+        ? '<div style="color:#6ee7b7;font-size:12.5px;padding:8px 2px">You are in the queue — nothing to wait for.</div>'
+        : '<div style="color:#f87171;font-size:12.5px;padding:8px 2px">' + gEsc(d.error || 'Not sent.') + '</div>';
+    }).catch(function(){ box.innerHTML = '<div style="color:#f87171;font-size:12.5px;padding:8px 2px">Network hiccup — try again.</div>'; });
+  }
+
   function gLine(){
-    var me = nameEl.value.trim().toLowerCase();
+    var me = gWho().toLowerCase();
     var singing = gQueue.filter(function(e){ return e.status === 'Singing'; })[0];
     var waiting = gQueue.filter(function(e){ return e.status === 'Waiting'; });
     var out = [];
@@ -220,9 +392,8 @@ $_db = $tokenOk ? kar_catalog() : [];
   document.getElementById('g-results').addEventListener('click', function(ev){
     var b = ev.target.closest ? ev.target.closest('button') : null;
     if (!b) return;
-    var name = nameEl.value.trim();
-    if (!name) { alert('Type your name first, so the host knows who is singing!'); nameEl.focus(); return; }
-    try { localStorage.setItem('kguest_name', name); } catch(e){}
+    var name = gWho();
+    if (!name) { alert('Type your first name first, so the host knows who is singing!'); nameEl.focus(); return; }
     var song = G_DB[parseInt(b.getAttribute('data-i'), 10)];
     b.disabled = true; b.textContent = '…';
     gPost({ action:'req', name:name, song:song }).then(function(d){
