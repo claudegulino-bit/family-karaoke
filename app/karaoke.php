@@ -150,99 +150,111 @@ if (!$KAR_LOCAL) {
         <h2 style="margin:0;font-size:16px;font-weight:800;color:#f3f4f6">🎤 Karaoke Guide</h2>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
       </div>
-      <!-- Reorganised 2026-09-07. Each panel now teaches itself through its own "? How it
-           works" button, so the Guide no longer repeats them — it covers the main screen
-           (which no panel owns), the shape of an evening, and setting up a new Mac. One
-           instruction, one place: two copies of the same sentence is how the wrong one
-           quietly goes stale. -->
-      <p style="margin:12px 0 0;color:#94a3b8;font-size:13px;line-height:1.7">Everything on this page, in the order it matters.</p>
+      <!-- Rebuilt 2026-09-08 on the owner's own reading of it: "very busy, unorganized… too
+           many colors. Maybe multiple boxes, each box clearly says what it's for."
+           So: six cards, shut until you pick one, and TWO colours in the whole panel —
+           gold for anything you can click or a heading, grey for everything you read.
+           The dozen colours that were here before signalled nothing; they were decoration
+           pretending to be structure. -->
+      <p style="margin:12px 0 0;color:#94a3b8;font-size:13px">Pick the part you want. Everything else stays out of the way.</p>
 
-      <h3 style="margin:18px 0 6px;font-size:14px;font-weight:800;color:#93c5fd">1 · 🚀 Setting up the Mac</h3>
-      <p style="margin:0 0 6px;color:#94a3b8;font-size:12.5px">A once-only job, on a Mac that has never run this before.</p>
-      <?php if (!$KAR_LOCAL): ?>
-      <div style="margin:0 0 8px;padding:8px 12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:8px;color:#cbd5e1;font-size:12.5px;line-height:1.8">
-        <b style="color:#93c5fd">First, pick the Mac.</b> The <b>Play on</b> box in the gold bar at the top says which Mac this page is talking to — the music, and the two setup buttons below, all go to that one. Before setting up a new Mac, choose it there.
+      <div id="kar-guide-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:8px;margin:12px 0 4px">
+        <?php
+        // One row per card: key, title, and the one line that says what it is for.
+        $_karCards = [];
+        if ($KAR_LOCAL) $_karCards[] = ['setup', '1 · Setting up the Mac', 'Once only — the songs folder, the player, and putting it on another Mac.'];
+        else            $_karCards[] = ['setup', '1 · Setting up the Mac', 'Once only — naming the Mac, the songs folder, and the player.'];
+        $_karCards[] = ['sing',  '2 · Sing a song',            'Find it, play it, and set the key.'];
+        $_karCards[] = ['while', '3 · While it is playing',    'The gold bar: key, speed, start and stop.'];
+        $_karCards[] = ['party', '4 · Running a party',        'The singing line, guests\' phones, and new songs.'];
+        $_karCards[] = ['songs', '5 · Looking after the songs','Best lists, what arrived lately, renaming and removing.'];
+        if ($KAR_LOCAL) $_karCards[] = ['update','6 · Keeping it up to date', 'Getting the newest version. Your songs are never touched.'];
+        foreach ($_karCards as [$_k, $_t, $_d]): ?>
+        <button type="button" id="kar-gc-<?= $_k ?>" onclick="karGuideOpen('<?= $_k ?>')" style="font-family:inherit;text-align:left;background:#1a2130;border:1px solid #334155;border-radius:9px;padding:11px 13px;cursor:pointer">
+          <span style="display:block;color:#D2AD6C;font-size:13.5px;font-weight:800"><?= h($_t) ?></span>
+          <span style="display:block;color:#94a3b8;font-size:12px;line-height:1.5;margin-top:3px"><?= h($_d) ?></span>
+        </button>
+        <?php endforeach; ?>
       </div>
-      <?php endif; ?>
-      <ol style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
-        <li>Put all your song files (mp4 or mp3) into <b>one folder</b> on the Mac.</li>
-        <?php if (!$KAR_LOCAL): ?>
-        <li><b>Give the Mac its name.</b> If it is not in the <b>Play on</b> box yet, pick <b>＋ Add a Mac…</b> there and type a name for it. Then on that Mac, open <code>~/casai/karaoke_config.json</code> and set <code>"mac_name"</code> to that same name — for example <code>"Kitchen Mac"</code>. That is how it knows which requests are for it, so two houses never start the same song at once. It is a casAI label only; it does not rename the computer.</li>
+
+      <!-- ── the sections themselves. Grey text, gold only for headings and things you click ── -->
+      <div id="kar-guide-body" style="display:none;margin-top:14px;border-top:1px solid #334155;padding-top:14px;color:#cbd5e1;font-size:13.5px;line-height:1.8">
+
+        <div class="kar-gs" id="kar-gs-setup" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Setting up the Mac</h3>
+          <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">A once-only job. If you are already singing, there is nothing to do here.</p>
+          <?php if ($KAR_LOCAL): ?>
+          <p style="margin:0 0 6px"><b>Putting the karaoke on another Mac.</b> Open <b>Terminal</b> on that Mac — hold ⌘, press Space, type <code>Terminal</code>, press Return — then paste this one line and press Return. It does everything: the player, the karaoke, the songs folder and the Desktop icon.</p>
+          <div style="margin:0 0 12px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
+          <p style="margin:0 0 12px;color:#94a3b8;font-size:12.5px">It asks for the Mac password once, if that Mac has never had Homebrew. <b>Nothing appears on screen as you type it</b> — no dots, no stars. That is normal.</p>
+          <?php else: ?>
+          <p style="margin:0 0 6px"><b>Pick the Mac first.</b> The <b>Play on</b> box in the gold bar says which Mac this page is talking to — the music, and the buttons below, all go to that one.</p>
+          <p style="margin:0 0 12px"><b>Give the Mac its name.</b> If it is not in the <b>Play on</b> box, pick <b>＋ Add a Mac…</b> and type a name. Then on that Mac set <code>"mac_name"</code> in <code>~/casai/karaoke_config.json</code> to the same name, so two houses never start the same song at once.</p>
+          <?php endif; ?>
+          <p style="margin:0 0 4px"><b>Where the songs are.</b> One folder, holding the song files.</p>
+          <button type="button" onclick="karPickFolder()" id="kar-pick-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">📁 Choose the karaoke songs folder…</button>
+          <span id="kar-pick-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Using now: <b id="kar-pick-cur" style="color:#cbd5e1"><?= h($_kj['songs_folder'] ?? 'not chosen yet') ?></b><br><span style="color:#94a3b8">The chooser opens on the Mac that plays the music — a web page is never allowed to see a real folder path.</span></span>
+          <p style="margin:0 0 4px"><b>The player.</b> Two free programs do the playing and the downloading. In Terminal:</p>
+          <div style="margin:0 0 4px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#cbd5e1">brew install mpv yt-dlp</div>
+          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If it answers <i>command not found: brew</i>, paste this first, let it finish, then repeat the line above:</p>
+          <div style="margin:0 0 8px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</div>
+          <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Check it worked</button>
+          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Press this when Terminal has finished — it asks the Mac what is really installed, so you do not have to judge it from the scrollback.</span>
+          <p style="margin:0"><b>Keep the Mac on and awake</b> during a party. It does the playing, and it is what the guests' phones are talking to.</p>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-sing" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Sing a song</h3>
+          <ul style="margin:0;padding-left:20px">
+            <li><b>Find it</b> — type anything in the search box: the artist, the title, or the name of whoever sings it.</li>
+            <li><b>Press ▶ Play</b> — it plays on the Mac. On that Mac's keyboard, <b>F</b> makes it full screen and <b>Q</b> closes it.</li>
+            <li><b>The number beside it is your key</b> — press − or + to move it up or down. It stays that way for next time.</li>
+            <li><b>Someone else wants to sing it?</b> Press <b>Reset</b>, then Play. It plays once in the original key and your own key comes straight back.</li>
+          </ul>
+          <p style="margin:10px 0 0;color:#94a3b8;font-size:12.5px"><label style="cursor:pointer"><input type="checkbox" id="kar-qmidi-cb" onchange="karQmidiToggle(this)" style="vertical-align:-1px;margin-right:6px">Show the old blue ▶ QMidi play button too — hidden, not deleted.</label></p>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-while" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">While it is playing</h3>
+          <ul style="margin:0;padding-left:20px">
+            <li>The <b>gold bar</b> at the top of the page is always there — that is where you steer the song being sung.</li>
+            <li><b>Key</b> and <b>Speed</b> change it right now, in the middle of the song.</li>
+            <li><b>▶ Start</b> begins the song again from the top. <b>⏹ Stop</b> stops the music.</li>
+            <li>Anything changed up there is <b>just for tonight</b>. The key a song always starts at is the number on its own row.</li>
+          </ul>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-party" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Running a party</h3>
+          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Three buttons at the top do the work. Each one explains itself — open it and press <b>? How it works</b> inside.</p>
+          <ul style="margin:0;padding-left:20px">
+            <li><b>🎶 Up Next</b> — the singing line. Click ➕ on a song to put someone in it, then keep pressing <b>▶ Next singer</b> all night.</li>
+            <li><b>📱 Guest QR</b> — guests scan it with their phone and ask for songs themselves.</li>
+            <li><b>⬇ Downloads</b> — bring new songs in from YouTube.</li>
+            <li>When something happens on its own — a guest's song arriving, for instance — the line under the buttons tells you.</li>
+          </ul>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-songs" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Looking after the songs</h3>
+          <ul style="margin:0;padding-left:20px">
+            <li><b>⭐ is each person's own list</b> — pick their name in the dropdown at the top, then click the stars on their songs.</li>
+            <li><b>🆕 New</b> holds everything that arrived in the last month, so you never have to remember what came in last night. Its <b>Duplicate</b> column warns you when a song looks like one you already own.</li>
+            <li><b>✎ renames a song · ✕ removes it.</b> Removed songs go to a "Deleted" folder — nothing is ever destroyed.</li>
+          </ul>
+        </div>
+
+        <?php if ($KAR_LOCAL): ?>
+        <div class="kar-gs" id="kar-gs-update" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Keeping it up to date</h3>
+          <p style="margin:0 0 8px">When the karaoke has been improved, this fetches it. <b>Your songs, your settings, everyone's lists and every saved key are left exactly as they are</b> — only the program itself is replaced.</p>
+          <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Update the karaoke</button>
+          <div id="kar-upd-state" style="display:none;margin-top:8px;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;line-height:1.6"></div>
+          <span id="kar-upd-msg" style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">This version: <b id="kar-upd-ver" style="color:#cbd5e1"><?= h(kar_installed_version()) ?></b></span>
+        </div>
         <?php endif; ?>
-        <li><b>Tell the system where that folder is</b> — press the button and pick it on the Mac. Nothing to type, no file to edit.<br>
-          <button type="button" onclick="karPickFolder()" id="kar-pick-btn" style="font-family:inherit;margin:6px 0 2px;background:rgba(96,165,250,.12);border:1px solid #60A5FA;color:#93c5fd;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">📁 Choose the karaoke songs folder…</button><br>
-          <span id="kar-pick-msg" style="display:block;margin-top:4px;color:#64748b;font-size:12px">Using now: <b id="kar-pick-cur" style="color:#94a3b8"><?= h($_kj['songs_folder'] ?? 'not chosen yet') ?></b></span>
-          <span style="display:block;margin-top:2px;color:#475569;font-size:11.5px">The chooser opens <b>on the Mac</b> that plays the music — a web page is never allowed to see a real folder path, so it has to be picked there.</span></li>
-        <li><b>Install the player.</b> This is the only step that uses <b>Terminal</b> — the black window where you type commands. It takes a few minutes and you only ever do it once.
-          <div style="margin:6px 0 0;color:#cbd5e1;font-size:13px;line-height:1.8">
-            <b style="color:#93c5fd">a.</b> Open Terminal: hold <b>⌘</b> and press <b>Space</b>, type <b>Terminal</b>, press <b>Return</b>.<br>
-            <b style="color:#93c5fd">b.</b> Copy the line below, click into the Terminal window, paste it (<b>⌘V</b>) and press <b>Return</b>:
-            <code style="display:block;margin:5px 0;background:#0d1118;border:1px solid #334155;border-radius:6px;padding:7px 10px;color:#D2AD6C;font-size:12.5px;word-break:break-all">brew install mpv yt-dlp</code>
-            <b style="color:#93c5fd">c.</b> <b>If it answers <i>“command not found: brew”</i></b>, this Mac has never had Homebrew — the free tool that installs the other two. Paste this line instead, press Return, let it finish, then do <b>b</b> again:
-            <code style="display:block;margin:5px 0;background:#0d1118;border:1px solid #334155;border-radius:6px;padding:7px 10px;color:#D2AD6C;font-size:12.5px;word-break:break-all">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code>
-          </div>
-          <div style="margin:8px 0 0;padding:8px 12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:8px;color:#cbd5e1;font-size:12.5px;line-height:1.8">
-            <b style="color:#93c5fd">What to expect —</b> pages of text scrolling past for several minutes. That is normal, and none of it needs reading.
-            It may ask for your Mac password: <b>as you type it nothing appears on screen</b> — no dots, no stars. That is normal too. Type it and press Return.
-            You'll know it has finished when the scrolling stops and you can type again.
-          </div>
-          <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:8px 0 2px;background:rgba(16,185,129,.12);border:1px solid #16a34a;color:#6ee7b7;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Check it worked</button>
-          <span id="kar-tools-msg" style="display:block;margin-top:4px;color:#64748b;font-size:12px">Press this when Terminal has finished — it asks the Mac what is really installed, so you don't have to judge it from the scrollback.</span></li>
-        <li>Keep the Mac <b>on and awake</b> during the party — it does the playing.</li>
-        <?php if (!$KAR_LOCAL): ?>
-        <li><b>Or the easy way: ask Claude to set up the new Mac.</b> It's a one-time job and Claude does all of the above for you.</li>
-        <?php endif; ?>
-      </ol>
-      <?php if ($KAR_LOCAL): ?>
-      <!-- Keeping up to date. Only in a standalone install: on casAI the page is deployed
-           the usual way, and there is nothing here to fetch. -->
-      <div style="margin:12px 0 0;padding:10px 14px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:8px">
-        <b style="color:#93c5fd;font-size:13px">Getting the newest version</b>
-        <div style="margin-top:4px;color:#cbd5e1;font-size:12.5px;line-height:1.7">When the karaoke has been improved, this fetches it. <b>Your songs, your settings, everyone's lists and every saved key are left exactly as they are</b> — only the program itself is replaced.</div>
-        <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:8px 0 2px;background:rgba(96,165,250,.12);border:1px solid #60A5FA;color:#93c5fd;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Update the karaoke</button>
-        <!-- The answer has to be impossible to miss. It used to be a line of grey print that
-             appeared several seconds after the dialog closed, by which time nobody is still
-             looking at it — so you pressed the button and nothing seemed to happen. -->
-        <div id="kar-upd-state" style="display:none;margin-top:8px;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;line-height:1.6"></div>
-        <span id="kar-upd-msg" style="display:block;margin-top:6px;color:#64748b;font-size:12px">This version: <b id="kar-upd-ver" style="color:#94a3b8"><?= h(kar_installed_version()) ?></b></span>
+
       </div>
-      <?php endif; ?>
-      <h3 style="margin:16px 0 6px;font-size:14px;font-weight:800;color:#D2AD6C">2 · Sing a song</h3>
-      <ul style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
-        <li><b>Find it</b> — type anything in the search box — the artist, the title, or the name of whoever sings it.</li>
-        <li><b>Press ▶ Play</b> — it plays on the Mac. On the Mac keyboard, <b>F</b> makes it full screen and <b>Q</b> closes it.</li>
-        <li><b>The number next to it is your key</b> — press <b>−</b> or <b>+</b> to move it up or down. It stays that way for next time.</li>
-        <li><b>Someone else wants to sing it?</b> Press <b>Reset</b>, then Play. It plays once in the original key and your own key comes straight back.</li>
-      </ul>
-
-      <h3 style="margin:16px 0 6px;font-size:14px;font-weight:800;color:#D2AD6C">3 · While the music is playing</h3>
-      <ul style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
-        <li>The <b style="color:#D2AD6C">gold bar</b> at the top of the page is always there — that's where you steer the song you're singing.</li>
-        <li><b>Key</b> and <b>Speed</b> change it <i>right now</i>, in the middle of the song.</li>
-        <li><b>▶ Start</b> begins the song again from the top · <b>⏹ Stop</b> stops the music.</li>
-        <li>Anything you change up here is <b>just for tonight</b>. The key a song always starts at is the number on its own row.</li>
-      </ul>
-
-      <h3 style="margin:16px 0 6px;font-size:14px;font-weight:800;color:#D2AD6C">4 · Running a party</h3>
-      <p style="margin:0 0 6px;color:#94a3b8;font-size:12.5px">Three buttons at the top do the work. Each one explains itself — open it and press <b>? How it works</b> inside.</p>
-      <ul style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
-        <li><b style="color:#D2AD6C">🎶 Up Next</b> — the singing line. Click <b>➕</b> on a song to put someone in it, then keep pressing <b>▶ Next singer</b> all night.</li>
-        <li><b style="color:#c084fc">📱 Guest QR</b> — your guests scan it with their phone and ask for songs themselves.</li>
-        <li><b style="color:#6ee7b7">⬇ Downloads</b> — bring new songs in from YouTube.</li>
-        <li>When something happens on its own — a guest's song arriving, for instance — the <b style="color:#c084fc">purple line</b> under the buttons tells you.</li>
-      </ul>
-
-      <h3 style="margin:16px 0 6px;font-size:14px;font-weight:800;color:#D2AD6C">5 · Looking after the songs</h3>
-      <ul style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
-        <li><b>⭐ is each person's own list</b> — pick their name in the dropdown at the top, then click the stars on their songs.</li>
-        <li><b style="color:#c084fc">🆕 New</b> holds everything that arrived in the last month, so you never have to remember what came in last night. Its <b>Duplicate</b> column warns you when a song looks like one you already own.</li>
-        <li><b>✎</b> renames a song · <b>✕</b> removes it. Removed songs go to a "Deleted" folder — nothing is ever destroyed.</li>
-      </ul>
-
-      <label style="display:flex;align-items:center;gap:7px;margin-top:14px;color:#64748b;font-size:12px;cursor:pointer">
-        <input type="checkbox" id="kar-qmidi-cb" onchange="karQmidiToggle(this)">
-        Show the old blue ▶ QMidi play button too (hidden, not deleted — tick this to go back to it)
-      </label>
     </div>
     <div id="kar-yt-hint" style="display:none;margin-top:8px;background:rgba(210,173,108,.07);border:1px solid rgba(210,173,108,.25);border-radius:8px;padding:8px 14px;font-size:12.5px;color:#94a3b8"></div>
     <div id="kar-activity" style="display:none;margin-top:8px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.35);border-radius:8px;padding:8px 14px;font-size:12.5px;color:#e2e8f0;line-height:1.6"></div>
@@ -1142,6 +1154,26 @@ if (!$KAR_LOCAL) {
     }
     // Four states, and every one of them says so out loud: working · updated ·
     // nothing to update · not updated. Anything quieter reads as "nothing happened".
+    // The Guide opens one section at a time. Six labels beat four screens of prose —
+    // the owner, reading it: "very busy, unorganized… maybe multiple boxes, each box clearly
+    // says what it's for."
+    var karGuideOpenKey = null;
+    function karGuideOpen(key){
+      var same = (karGuideOpenKey === key);
+      karGuideOpenKey = same ? null : key;
+      var cards = document.querySelectorAll('#kar-guide-cards button');
+      for (var i = 0; i < cards.length; i++) {
+        var on = !same && cards[i].id === 'kar-gc-' + key;
+        cards[i].style.borderColor = on ? '#D2AD6C' : '#334155';
+        cards[i].style.background  = on ? 'rgba(210,173,108,.10)' : '#1a2130';
+      }
+      var body = document.getElementById('kar-guide-body');
+      var secs = document.querySelectorAll('.kar-gs');
+      for (var j = 0; j < secs.length; j++) secs[j].style.display = 'none';
+      if (same) { body.style.display = 'none'; return; }
+      var sec = document.getElementById('kar-gs-' + key);
+      if (sec) { sec.style.display = 'block'; body.style.display = 'block'; }
+    }
     function karUpdState(kind, html){
       var box = document.getElementById('kar-upd-state');
       var skin = {
