@@ -185,7 +185,7 @@ if (!$KAR_LOCAL) {
         // The three party panels each get a card of their own. Their words live HERE and
         // nowhere else — the floating "?" beside each panel borrows this same text rather
         // than keeping a second copy that would quietly drift out of step with it.
-        $_karCards[] = ['upnext',    '6 · Up Next',   'The singing line, and what Fair turns does.'];
+        $_karCards[] = ['upnext',    '6 · Up Next',   'The singing line, and what scheduling fairness does.'];
         $_karCards[] = ['downloads', '7 · Downloads', 'Bringing songs in from YouTube.'];
         $_karCards[] = ['guestqr',   '8 · Guest QR',  'Guests asking for songs from their own phones.'];
         if ($KAR_LOCAL) $_karCards[] = ['update','9 · Keeping it up to date', 'Getting the newest version. Your songs are never touched.'];
@@ -269,7 +269,7 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Up Next — the singing line</h3>
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Schedule a singer</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. They join the line at the pitch showing on that row.</div>
         <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. It plays whoever is at the top of the line and moves the list on by itself, so that one button runs the whole night.</div>
-        <div><b style="color:#D2AD6C">Fair turns</b> (the checkbox beside that button) — leave it ticked and everyone sings once before anyone sings twice, so nobody has to keep track of whose turn it is.</div>
+        <div><b style="color:#D2AD6C">Scheduling fairness</b> (the checkbox beside that button) — leave it ticked and everyone sings once before anyone sings twice, twice before anyone sings a third time, and so on. Nobody has to keep track of whose turn it is.</div>
         <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, <b>✕</b> takes them out, and <b>✕ Clear the queue</b> empties the whole line at the end of the night.</div>
           </div>
         </div>
@@ -343,7 +343,7 @@ if (!$KAR_LOCAL) {
         </select>
         <label style="display:flex;align-items:center;gap:6px;color:#94a3b8;font-size:12.5px;font-weight:600;cursor:pointer" title="With this on, ▶ Next singer picks whoever has sung the LEAST tonight — everyone sings one song before anyone sings a second, two before anyone's third, and so on">
           <input type="checkbox" id="kar-q-fair" onchange="try{localStorage.setItem('kar_q_fair',this.checked?'1':'')}catch(e){}">
-          Fair turns
+          Scheduling fairness
         </label>
         <button type="button" onclick="karQClear()" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px">✕ Clear the queue</button>
       </div>
