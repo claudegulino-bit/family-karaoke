@@ -264,6 +264,7 @@ if (!$KAR_LOCAL) {
             <li><b>⭐ is each person's own list</b> — pick their name in the dropdown at the top, then click the stars on their songs.</li>
             <li><b>🆕 New</b> holds everything that arrived in the last month, so you never have to remember what came in last night. Its <b>Duplicate</b> column warns you when a song looks like one you already own.</li>
             <li><b>✎ renames a song · ✕ removes it.</b> Removed songs go to a "Deleted" folder — nothing is ever destroyed.</li>
+            <li><b>These songs are yours, for singing at home.</b> If you ever run this somewhere commercial — a restaurant, a hall, a paid event — point it at a properly licensed song library instead. The songs folder is a setting, so that is a two-minute change (Card 1, step 2).</li>
           </ul>
         </div>
 
