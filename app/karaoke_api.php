@@ -173,6 +173,7 @@ try {
             return $m;
         };
         try {
+            if ($ft === 'karaoke_q_state') { try { kar_sync($db); } catch (Throwable $e) { } }
             if ($ft === 'karaoke_q_add') {
                 $singer = trim((string)($_POST['singer'] ?? ''));
                 $song   = trim((string)($_POST['song'] ?? ''));
@@ -334,6 +335,10 @@ try {
                OR (status='Error' AND COALESCE(done_at, requested_at) > datetime('now','localtime','-7 days'))
             ORDER BY id DESC LIMIT 20")->fetchAll();
         kar_worker_spawn();   // keeps a queue moving even if a worker died mid-fetch
+        // The page polls this every few seconds whether or not a panel is open, which
+        // makes it the natural heartbeat for keeping the Macs in step. Without it a
+        // screen left open all evening never notices a song starred in the other room.
+        try { kar_sync($db); } catch (Throwable $e) { }   // throttled inside, once a minute
         kj(['ok'=>true, 'rows'=>$rows]);
     }
 
