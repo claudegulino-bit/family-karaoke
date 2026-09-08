@@ -98,7 +98,7 @@ if (!$KAR_LOCAL) {
   <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;flex-wrap:wrap">
     <div style="margin:0">
       <h1 style="margin:0;font-size:22px;font-weight:800;color:#f3f4f6;letter-spacing:.01em">🎤 Cantoria</h1>
-      <div style="color:#94a3b8;font-size:12px;margin-top:1px">Karaoke for your house</div>
+      <div style="color:#94a3b8;font-size:12px;margin-top:1px">Karaoke for any room</div>
     </div>
     <?php if ($KAR_LOCAL): ?>
     <span style="color:#64748b;font-size:12.5px">everything runs on this Mac — nothing to sign in to</span>
