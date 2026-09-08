@@ -248,7 +248,7 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Running a party</h3>
           <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Three buttons at the top do the work. Each has a card of its own below with the whole of it.</p>
           <ul style="margin:0;padding-left:20px">
-            <li><b>🎶 Up Next</b> — the singing queue. Click ➕ on a song to add someone to it, then keep pressing <b>▶ Next singer</b> all night. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
+            <li><b>🎶 Up Next</b> — the singing queue. Click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">➕</span> on a song to add someone to it, then keep pressing <b>▶ Next singer</b> all night. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
             <li><b>📱 Guest QR</b> — guests scan it with their phone and ask for songs themselves. <a href="#" onclick="karGuideOpen('guestqr');return false" style="color:#D2AD6C">Card 8</a>.</li>
             <li><b>⬇ Downloads</b> — bring new songs in from YouTube. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Card 7</a>.</li>
             <li>When something happens on its own — a guest's song arriving, for instance — the purple strip under the buttons tells you.</li>
@@ -267,10 +267,10 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-upnext" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Up Next — the singing queue</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. They join the queue at the pitch showing on that row.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — pick their name in the dropdown at the top of the page, then click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">➕</span> on the song they want. They join the queue at the pitch showing on that row.</div>
         <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. It plays whoever is at the top of the queue and moves it on by itself, so that one button runs the whole night.</div>
-        <div><b style="color:#D2AD6C">Scheduling fairness</b> (the checkbox beside that button) — leave it ticked and everyone sings once before anyone sings twice, twice before anyone sings a third time, and so on. Nobody has to keep track of whose turn it is.</div>
-        <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, <b>✕</b> takes them out, and <b>✕ Clear the queue</b> empties the whole queue at the end of the night.</div>
+        <div><b style="color:#D2AD6C">Scheduling fairness</b> (the <span style="display:inline-block;width:11px;height:11px;border:2px solid #6ee7b7;border-radius:3px;vertical-align:-1px;margin:0 3px"></span> beside that button) — leave it ticked and everyone sings once before anyone sings twice, twice before anyone sings a third time, and so on. Nobody has to keep track of whose turn it is.</div>
+        <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, and the <span style="display:inline-block;border:1px solid #7f1d1d;color:#f87171;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">✕</span> beside a name takes <i>that one person</i> out. <b>Clear the queue</b>, over on the right, empties <i>the whole thing</i> — that one is for the end of the night.</div>
           </div>
         </div>
 
@@ -322,7 +322,7 @@ if (!$KAR_LOCAL) {
         <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
         <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
         <button type="button" onclick="karDlStart()" id="kar-dl-start" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">⬇ Download the list</button>
-        <button type="button" onclick="karDlClear()" title="Empties the whole list — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">✕ Clear the list</button>
+        <button type="button" onclick="karDlClear()" title="Empties the whole list at once — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">Clear the list</button>
       </div>
       <div id="kar-dl-list" style="margin-top:10px"></div>
     </div>
@@ -345,7 +345,7 @@ if (!$KAR_LOCAL) {
           <input type="checkbox" id="kar-q-fair" onchange="try{localStorage.setItem('kar_q_fair',this.checked?'1':'')}catch(e){}">
           Scheduling fairness
         </label>
-        <button type="button" onclick="karQClear()" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px">✕ Clear the queue</button>
+        <button type="button" onclick="karQClear()" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px">Clear the queue</button>
       </div>
       <div id="kar-q-now" style="display:none;margin-top:10px;color:#D2AD6C;font-size:13.5px;font-weight:700"></div>
       <div id="kar-q-list" style="margin-top:4px"></div>
