@@ -11,7 +11,10 @@ HAD="$(cat "$DEST/VERSION" 2>/dev/null || true)"
 echo "Fetching the newest karaoke…"
 # Ask which commit is current and fetch THAT one. The plain branch download is cached
 # for a few seconds, which is long enough to hand back the version you already have.
-SHA="$(curl -fsSL "https://api.github.com/repos/$REPO/commits/main" 2>/dev/null \
+# The "?_=" is not decoration. Without it GitHub hands back a cached branch pointer
+# for up to a minute, so an Update pressed just after a change reports "already up to
+# date" — the one wrong answer nobody would think to question.
+SHA="$(curl -fsSL "https://api.github.com/repos/$REPO/commits/main?_=$(date +%s)" 2>/dev/null \
         | sed -n 's/.*"sha"[[:space:]]*:[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' | head -1)"
 REF="${SHA:-refs/heads/main}"
 curl -fsSL "https://codeload.github.com/$REPO/tar.gz/$REF" -o "$TMP/k.tgz"
