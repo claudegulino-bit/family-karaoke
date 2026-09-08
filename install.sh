@@ -183,7 +183,10 @@ else
   ok "this is a laptop, so it runs only when you open Karaoke — it will not serve a page"
   ok "to every café Wi-Fi you join."
   pkill -f "php -S 0.0.0.0:$PORT -t $DEST" 2>/dev/null || true
-  ( cd "$DEST" && nohup "$PHPBIN" -S "0.0.0.0:$PORT" -t . > "$DEST/logs/server.log" 2>&1 & )
+  # ⚠ </dev/null matters. Without it the server keeps the installer's own input open,
+  # and anything reading the installer's output — a pipe, a log, a wrapper — waits forever
+  # for a script that has actually already finished.
+  ( cd "$DEST" && nohup "$PHPBIN" -S "0.0.0.0:$PORT" -t . > "$DEST/logs/server.log" 2>&1 </dev/null & )
 fi
 sleep 3
 
