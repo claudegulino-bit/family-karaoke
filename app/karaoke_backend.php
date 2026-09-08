@@ -466,7 +466,10 @@ function kar_lan_ip(): string {
 
 function kar_guest_url(string $token): string {
     $c = kar_cfg();
-    $port = (string)($c['port'] ?? ($_SERVER['SERVER_PORT'] ?? '8080'));
+    // The port the page is REALLY being served on wins over the one written in the
+    // settings. They are normally the same; when they are not, the settings file is the
+    // one that is wrong, and believing it would print a QR code that answers nowhere.
+    $port = (string)($_SERVER['SERVER_PORT'] ?? '') ?: (string)($c['port'] ?? '8899');
     $host = !empty($c['lan_host']) ? $c['lan_host'] : kar_lan_ip();
     return 'http://' . $host . ':' . $port . '/karaoke_guest.php?t=' . $token;
 }
