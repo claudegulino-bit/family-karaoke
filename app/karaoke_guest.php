@@ -150,7 +150,7 @@ $_db = $tokenOk ? kar_catalog() : [];
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>🎤 Song Requests</title>
+<title>Cantoria</title>
 <style>
   * { box-sizing: border-box; }
   body { margin:0; background:#1A1F2C; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
@@ -160,11 +160,11 @@ $_db = $tokenOk ? kar_catalog() : [];
 </head>
 <body>
 <div class="wrap">
-  <h1 style="margin:0 0 4px;font-size:20px;font-weight:800;color:#f3f4f6">🎤 Song Requests</h1>
+  <h1 style="margin:0 0 4px;font-size:20px;font-weight:800;color:#f3f4f6">🎤 Cantoria</h1>
 <?php if (!$tokenOk): ?>
   <p style="color:#f87171;font-size:14px;margin-top:14px">This link isn't active. Scan the QR code on the karaoke screen to get in — and if you already did, ask the host to show the code again (it may have been renewed).</p>
 <?php else: ?>
-  <p style="color:#94a3b8;font-size:12.5px;margin:0 0 12px">Type your first name, find your song, tap Request — you'll see your place in line.</p>
+  <p style="color:#94a3b8;font-size:12.5px;margin:0 0 12px">Song requests — type your first name, find your song, tap Request, and you'll see your place in the queue.</p>
   <input id="g-name" type="text" placeholder="Your first name" maxlength="20" autocomplete="given-name" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:15px;padding:11px 13px">
   <div id="g-initial-row" style="display:none;margin-top:8px;background:rgba(210,173,108,.08);border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:10px 12px">
     <p id="g-initial-msg" style="margin:0 0 7px;color:#D2AD6C;font-size:12.5px"></p>

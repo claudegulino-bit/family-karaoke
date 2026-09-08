@@ -1271,7 +1271,7 @@ if (!$KAR_LOCAL) {
       btn.disabled = true;
       btn.style.opacity = .6;
       btn.textContent = '⏳ Working…';
-      karUpdState('working', '⏳ <b>Fetching the newest karaoke…</b><div style="font-weight:600;font-size:12.5px;opacity:.85;margin-top:2px">This usually takes a few seconds. You will see the answer right here — leave this open.</div>');
+      karUpdState('working', '⏳ <b>Fetching the newest Cantoria…</b><div style="font-weight:600;font-size:12.5px;opacity:.85;margin-top:2px">This usually takes a few seconds. You will see the answer right here — leave this open.</div>');
       karMacAsk('update', null, function(ok, note){
         btn.disabled = false;
         btn.style.opacity = 1;

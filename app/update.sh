@@ -15,7 +15,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 HAD="$(cat "$DEST/VERSION" 2>/dev/null || true)"
 
-echo "Fetching the newest karaoke…"
+echo "Fetching the newest Cantoria…"
 # Ask which commit is current and fetch THAT one. The plain branch download is cached
 # for a few seconds, which is long enough to hand back the version you already have.
 # The "?_=" is not decoration. Without it GitHub hands back a cached branch pointer
@@ -42,7 +42,7 @@ NOW="$(cat "$DEST/VERSION" 2>/dev/null || true)"
 if [ -n "$HAD" ] && [ "$HAD" = "$NOW" ]; then
   echo "Already up to date (karaoke $NOW)."
 else
-  echo "Updated to karaoke $NOW${HAD:+ (was $HAD)} — in $DEST"
+  echo "Updated to Cantoria $NOW${HAD:+ (was $HAD)} — in $DEST"
 fi
 }
 main "$@"

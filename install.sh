@@ -31,7 +31,7 @@ done
 say() { printf "\n\033[1m%s\033[0m\n" "$1"; }
 ok()  { printf "   %s\n" "$1"; }
 
-say "Karaoke — setting up this Mac"
+say "Cantoria — setting up this Mac"
 
 # ---------------------------------------------------------------- 1 · the tools
 say "1 of 5 · The player"
@@ -53,12 +53,12 @@ for t in mpv yt-dlp; do
 done
 
 # ------------------------------------------------------------- 2 · the program
-say "2 of 5 · The karaoke itself"
+say "2 of 5 · Cantoria itself"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 SHA="$(curl -fsSL "https://api.github.com/repos/$REPO/commits/main?_=$(date +%s)" 2>/dev/null \
         | sed -n 's/.*"sha"[[:space:]]*:[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' | head -1)"
 curl -fsSL "https://codeload.github.com/$REPO/tar.gz/${SHA:-refs/heads/main}" -o "$TMP/k.tgz" || {
-  echo "   Could not download the karaoke. Is this Mac online?"; exit 1; }
+  echo "   Could not download Cantoria. Is this Mac online?"; exit 1; }
 tar -xzf "$TMP/k.tgz" -C "$TMP"
 SRC="$(find "$TMP" -type d -name app -maxdepth 2 | head -1)"
 [ -d "$SRC" ] || { echo "   That download did not look right — nothing was changed."; exit 1; }
@@ -130,18 +130,18 @@ on run
 	if code is "200" then
 		open location theURL
 	else
-		display dialog "The karaoke could not start on this Mac." buttons {"OK"} default button 1 with icon caution with title "Karaoke"
+		display dialog "Cantoria could not start on this Mac." buttons {"OK"} default button 1 with icon caution with title "Cantoria"
 	end if
 end run
 AS
-rm -rf "$TMP/Karaoke.app"
-if osacompile -o "$TMP/Karaoke.app" "$TMP/launch.applescript" 2>/dev/null; then
-  [ -f "$DEST/karaoke.icns" ] && cp "$DEST/karaoke.icns" "$TMP/Karaoke.app/Contents/Resources/applet.icns"
-  xattr -cr "$TMP/Karaoke.app" 2>/dev/null || true
-  codesign --force --deep -s - "$TMP/Karaoke.app" 2>/dev/null || true
-  rm -rf "$HOME/Desktop/Karaoke.app"
-  mv "$TMP/Karaoke.app" "$HOME/Desktop/Karaoke.app"
-  ok "Karaoke.app is on the Desktop"
+rm -rf "$TMP/Cantoria.app"
+if osacompile -o "$TMP/Cantoria.app" "$TMP/launch.applescript" 2>/dev/null; then
+  [ -f "$DEST/karaoke.icns" ] && cp "$DEST/karaoke.icns" "$TMP/Cantoria.app/Contents/Resources/applet.icns"
+  xattr -cr "$TMP/Cantoria.app" 2>/dev/null || true
+  codesign --force --deep -s - "$TMP/Cantoria.app" 2>/dev/null || true
+  rm -rf "$HOME/Desktop/Cantoria.app" "$HOME/Desktop/Karaoke.app"
+  mv "$TMP/Cantoria.app" "$HOME/Desktop/Cantoria.app"
+  ok "Cantoria.app is on the Desktop"
 else
   ok "could not build the Desktop icon — start.command in $DEST does the same job"
 fi
