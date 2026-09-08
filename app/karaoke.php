@@ -1414,7 +1414,7 @@ if (!$KAR_LOCAL) {
         karDlRefresh();
       }).catch(function(){ alert('Network error.'); });
     }
-    // ===== Up Next singing queue (the party MC line, 2026-09-06) =====
+    // ===== Up Next singing queue (the party MC queue, 2026-09-06) =====
     var karQ = [];
     var karQSung = {};   // songs sung tonight per person — drives the Fair-turns rotation
     function karQPost(fd){
@@ -1499,7 +1499,7 @@ if (!$KAR_LOCAL) {
       }).catch(function(){ alert('Network error — the play was not sent.'); });
     }
     function karQClear(){
-      if (!confirm('Clear the whole Up Next line?\n\nOnly the requests list empties — songs, pitches and Best lists are untouched.')) return;
+      if (!confirm('Clear the whole Up Next queue?\n\nOnly the requests list empties — songs, pitches and Best lists are untouched.')) return;
       var fd = new FormData(); fd.append('form_type', 'karaoke_q_clear');
       karQPost(fd).catch(function(){ alert('Network error.'); });
     }
