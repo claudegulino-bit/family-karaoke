@@ -153,11 +153,11 @@ if (!$KAR_LOCAL) {
       </select>
       <input id="kar-search" type="text" placeholder="Search songs, pitch, CSG, names…" oninput="karRender()" style="font-family:inherit;flex:1;min-width:150px;background:#121620;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
       <button type="button" onclick="karYtGo()" title="Opens YouTube in the next tab — browse, copy a song's link, then click back to this tab and paste it" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px">▶ YouTube</button>
-      <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The Up Next queue — who sings next, in order" style="font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🎶 Up Next <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
-      <button type="button" onclick="karDlToggle()" id="kar-dl-btn" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">⬇ Downloads</button>
-      <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" style="font-family:inherit;background:#1e293b;border:1px solid rgba(192,132,252,.45);color:#c084fc;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">📱</span> Guest QR</button>
+      <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The Up Next queue — who sings next, in order" style="font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">🎶 Up Next <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
+      <button type="button" onclick="karDlToggle()" id="kar-dl-btn" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">⬇ Downloads</button>
+      <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" style="font-family:inherit;background:#1e293b;border:1px solid rgba(192,132,252,.45);color:#c084fc;transition:background .12s,border-color .12s,box-shadow .12s;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">📱</span> Guest QR</button>
       <button type="button" onclick="location.reload()" title="Reload the song lists from the server (after a download or rename)" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">🔄</span> Refresh</button>
-      <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">📖</span> Guide</button>
+      <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px"><span style="font-size:15px">📖</span> Guide</button>
     </div>
     <div id="kar-guide-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:16px 22px;max-height:calc(100vh - 220px);overflow-y:auto">
       <div style="display:flex;align-items:center;gap:10px">
@@ -1108,12 +1108,22 @@ if (!$KAR_LOCAL) {
     // One panel at a time (the owner, 2026-09-07: Downloads + Up Next + QR all open at
     // once buried the song list — "I find this all very confusing"). Opening any panel
     // closes the others; clicking the open one's button just closes it.
+    // btn = its header button · col/bd = how it looks at rest · rgb = its own accent,
+    // used for the lit fill, border and halo · lit = the bright text colour when open.
     var KAR_PANELS = {
-      'kar-guide-panel': ['kar-guide-btn', '#94a3b8'],
-      'kar-dl-panel':    ['kar-dl-btn',    '#94a3b8'],
-      'kar-q-panel':     ['kar-q-btn',     '#D2AD6C'],
-      'kar-qr-panel':    ['kar-qr-btn',    '#94a3b8']
+      'kar-guide-panel': { btn:'kar-guide-btn', col:'#94a3b8', bd:'#334155',                rgb:'110,231,183', lit:'#a7f3d0' },
+      'kar-dl-panel':    { btn:'kar-dl-btn',    col:'#94a3b8', bd:'#334155',                rgb:'96,165,250',  lit:'#bfdbfe' },
+      'kar-q-panel':     { btn:'kar-q-btn',     col:'#D2AD6C', bd:'rgba(210,173,108,.45)',  rgb:'210,173,108', lit:'#f3d9a4' },
+      'kar-qr-panel':    { btn:'kar-qr-btn',    col:'#c084fc', bd:'rgba(192,132,252,.45)',  rgb:'192,132,252', lit:'#e9d5ff' }
     };
+    function karBtnLight(pid, on){
+      var p = KAR_PANELS[pid], b = p && document.getElementById(p.btn);
+      if (!b) return;
+      b.style.background  = on ? 'rgba(' + p.rgb + ',.22)' : '#1e293b';
+      b.style.borderColor = on ? 'rgb(' + p.rgb + ')'      : p.bd;
+      b.style.color       = on ? p.lit                     : p.col;
+      b.style.boxShadow   = on ? '0 0 0 3px rgba(' + p.rgb + ',.20)' : 'none';
+    }
     // ── Per-panel "? How it works" blocks ───────────────────────────────────────────────
     // One shared mechanism so every panel behaves the same way (the owner wants this on the
     // others too). Shown by DEFAULT — a fresh machine teaches whoever sits down at it —
@@ -1300,8 +1310,7 @@ if (!$KAR_LOCAL) {
       ['dl','q','qr'].forEach(function(k){ try { localStorage.setItem('kar_help_' + k, '0'); } catch(e){} karHelpApply(k); });
       Object.keys(KAR_PANELS).forEach(function(pid){
         document.getElementById(pid).style.display = 'none';
-        var b = document.getElementById(KAR_PANELS[pid][0]);
-        if (b) b.style.color = KAR_PANELS[pid][1];
+        karBtnLight(pid, false);
       });
       if (karDlTimer) { clearTimeout(karDlTimer); karDlTimer = null; }
     }
@@ -1317,8 +1326,7 @@ if (!$KAR_LOCAL) {
       karPanelClose();
       if (wasOpen) return false;
       document.getElementById(id).style.display = '';
-      var b = document.getElementById(KAR_PANELS[id][0]);
-      if (b) b.style.color = '#f3d9a4';
+      karBtnLight(id, true);
       return true;
     }
     function karGuideToggle(){ karPanelShow('kar-guide-panel'); }
