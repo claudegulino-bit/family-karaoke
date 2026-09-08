@@ -267,11 +267,10 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-upnext" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Up Next — the singing line</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Put someone in the line</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. It goes in at the pitch showing on that row.</div>
-        <div><b style="color:#D2AD6C">Run the party</b> — just keep pressing <b style="color:#6ee7b7">▶ Next singer</b>. It plays the top of the line and moves on by itself.</div>
-        <div><b style="color:#D2AD6C">Fair turns</b> — leave it ticked and everyone sings once before anyone sings twice, so nobody has to keep track. You never rearrange anything.</div>
-        <div><b style="color:#D2AD6C">Fixing the line</b> — <b>↑ ↓</b> move a person, <b>✕</b> takes them out, and <b>✕ Clear the queue</b> empties it at the end of the night.</div>
-        <div><b style="color:#D2AD6C">Guests</b> — anyone who scans the <b style="color:#c084fc">📱 Guest QR</b> code lands in this line by themselves, from their own phone.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Schedule a singer</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. They join the line at the pitch showing on that row.</div>
+        <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. It plays whoever is at the top of the line and moves the list on by itself, so that one button runs the whole night.</div>
+        <div><b style="color:#D2AD6C">Fair turns</b> (the checkbox beside that button) — leave it ticked and everyone sings once before anyone sings twice, so nobody has to keep track of whose turn it is.</div>
+        <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, <b>✕</b> takes them out, and <b>✕ Clear the queue</b> empties the whole line at the end of the night.</div>
           </div>
         </div>
 
