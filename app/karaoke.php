@@ -197,7 +197,11 @@ if (!$KAR_LOCAL) {
         <b style="color:#93c5fd;font-size:13px">Getting the newest version</b>
         <div style="margin-top:4px;color:#cbd5e1;font-size:12.5px;line-height:1.7">When the karaoke has been improved, this fetches it. <b>Your songs, your settings, everyone's lists and every saved key are left exactly as they are</b> — only the program itself is replaced.</div>
         <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:8px 0 2px;background:rgba(96,165,250,.12);border:1px solid #60A5FA;color:#93c5fd;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Update the karaoke</button>
-        <span id="kar-upd-msg" style="display:block;margin-top:4px;color:#64748b;font-size:12px">This version: <b style="color:#94a3b8"><?= h(kar_installed_version()) ?></b></span>
+        <!-- The answer has to be impossible to miss. It used to be a line of grey print that
+             appeared several seconds after the dialog closed, by which time nobody is still
+             looking at it — so you pressed the button and nothing seemed to happen. -->
+        <div id="kar-upd-state" style="display:none;margin-top:8px;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;line-height:1.6"></div>
+        <span id="kar-upd-msg" style="display:block;margin-top:6px;color:#64748b;font-size:12px">This version: <b id="kar-upd-ver" style="color:#94a3b8"><?= h(kar_installed_version()) ?></b></span>
       </div>
       <?php endif; ?>
       <h3 style="margin:16px 0 6px;font-size:14px;font-weight:800;color:#D2AD6C">2 · Sing a song</h3>
@@ -1133,24 +1137,51 @@ if (!$KAR_LOCAL) {
           else    { karPickDone(false, note || 'The songs folder was not changed.'); }
         });
     }
+    // Four states, and every one of them says so out loud: working · updated ·
+    // nothing to update · not updated. Anything quieter reads as "nothing happened".
+    function karUpdState(kind, html){
+      var box = document.getElementById('kar-upd-state');
+      var skin = {
+        working: ['rgba(210,173,108,.12)', '#D2AD6C', '#f0d9ac'],
+        done:    ['rgba(16,185,129,.14)',  '#16a34a', '#6ee7b7'],
+        same:    ['rgba(96,165,250,.10)',  '#60A5FA', '#93c5fd'],
+        failed:  ['rgba(239,68,68,.12)',   '#ef4444', '#fca5a5']
+      }[kind];
+      box.style.display = 'block';
+      box.style.background  = skin[0];
+      box.style.border      = '1px solid ' + skin[1];
+      box.style.color       = skin[2];
+      box.innerHTML = html;
+    }
     function karUpdate(){
       // Fetching and replacing the program is a real change to this Mac, so it asks first.
       if (!confirm('Fetch the newest karaoke?\n\nOnly the program is replaced. Your songs, your settings, the lists and every saved key stay exactly as they are.')) return;
       var btn = document.getElementById('kar-upd-btn');
-      var msg = document.getElementById('kar-upd-msg');
       btn.disabled = true;
-      btn.textContent = '⏳ Fetching…';
-      msg.innerHTML = '<span style="color:#D2AD6C">Asking the Mac to fetch it — this takes a few seconds…</span>';
+      btn.style.opacity = .6;
+      btn.textContent = '⏳ Working…';
+      karUpdState('working', '⏳ <b>Fetching the newest karaoke…</b><div style="font-weight:600;font-size:12.5px;opacity:.85;margin-top:2px">This usually takes a few seconds. You will see the answer right here — leave this open.</div>');
       karMacAsk('update', null, function(ok, note){
         btn.disabled = false;
+        btn.style.opacity = 1;
         btn.textContent = '⬆︎ Update the karaoke';
         if (!ok) {
-          msg.innerHTML = '<span style="color:#f87171"><b>Not updated.</b> ' + karEsc(note) + '</span>';
+          karUpdState('failed', '✕ <b>Not updated.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">' + karEsc(note) + '</div>');
           return;
         }
-        var changed = note.indexOf('Already up to date') !== 0;
-        msg.innerHTML = '<span style="color:#6ee7b7"><b>' + (changed ? '✅ Done. ' : '') + '</b>' + karEsc(note) + '</span>'
-          + (changed ? ' <a href="#" onclick="location.reload();return false;" style="color:#93c5fd">Reload the page to use it →</a>' : '');
+        // "Already up to date" is a real answer, not a non-event — it is the one people
+        // will see most often, so it gets said as plainly as the others.
+        if (note.indexOf('Already up to date') === 0) {
+          karUpdState('same', '✔︎ <b>Nothing to update.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">This Mac already has the newest karaoke. ' + karEsc(note.replace(/^Already up to date /, '').replace(/[().]/g, '')) + '</div>');
+          return;
+        }
+        var m = note.match(/karaoke (\S+?)\s*\(was (\S+?)\)/);
+        var ver = m ? m[1] : '', was = m ? m[2] : '';
+        var vEl = document.getElementById('kar-upd-ver');
+        if (vEl && ver) vEl.textContent = ver;
+        karUpdState('done', '✅ <b>Updated.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">'
+          + (ver ? 'Now on <b>' + karEsc(ver) + '</b>' + (was ? ' — was ' + karEsc(was) : '') + '. ' : karEsc(note) + ' ')
+          + '<a href="#" onclick="location.reload();return false;" style="color:#93c5fd">Reload the page to start using it →</a></div>');
       });
     }
     function karCheckTools(){
