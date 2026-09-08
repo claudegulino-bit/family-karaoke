@@ -2,6 +2,13 @@
 # Fetches the current karaoke and puts it in place. Safe to run any time:
 # your settings, your songs and your lists are never touched.
 set -euo pipefail
+
+# ⚠ EVERYTHING lives inside this function on purpose. This script replaces the program
+# files — and one of them is this script. Bash reads a plain script a piece at a time as
+# it runs, so overwriting it mid-run makes it carry on at the wrong place in the new file
+# and die on a nonsense syntax error. Wrapped in a function, bash parses the whole thing
+# before the first line executes, and replacing the file underneath is harmless.
+main() {
 REPO="claudegulino-bit/family-karaoke"
 DEST="${1:-$(cd "$(dirname "$0")" && pwd)}"
 TMP="$(mktemp -d)"
@@ -37,3 +44,5 @@ if [ -n "$HAD" ] && [ "$HAD" = "$NOW" ]; then
 else
   echo "Updated to karaoke $NOW${HAD:+ (was $HAD)} — in $DEST"
 fi
+}
+main "$@"
