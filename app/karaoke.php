@@ -176,7 +176,13 @@ if (!$KAR_LOCAL) {
         $_karCards[] = ['while', '3 · While it is playing',    'The gold bar: key, speed, start and stop.'];
         $_karCards[] = ['party', '4 · Running a party',        'The singing line, guests\' phones, and new songs.'];
         $_karCards[] = ['songs', '5 · Looking after the songs','Best lists, what arrived lately, renaming and removing.'];
-        if ($KAR_LOCAL) $_karCards[] = ['update','6 · Keeping it up to date', 'Getting the newest version. Your songs are never touched.'];
+        // The three party panels each get a card of their own. Their words live HERE and
+        // nowhere else — the floating "?" beside each panel borrows this same text rather
+        // than keeping a second copy that would quietly drift out of step with it.
+        $_karCards[] = ['upnext',    '6 · Up Next',   'The singing line, and what Fair turns does.'];
+        $_karCards[] = ['downloads', '7 · Downloads', 'Bringing songs in from YouTube.'];
+        $_karCards[] = ['guestqr',   '8 · Guest QR',  'Guests asking for songs from their own phones.'];
+        if ($KAR_LOCAL) $_karCards[] = ['update','9 · Keeping it up to date', 'Getting the newest version. Your songs are never touched.'];
         foreach ($_karCards as [$_k, $_t, $_d]): ?>
         <button type="button" id="kar-gc-<?= $_k ?>" onclick="karGuideOpen('<?= $_k ?>')" style="font-family:inherit;text-align:left;background:#1a2130;border:1px solid #334155;border-radius:9px;padding:11px 13px;cursor:pointer">
           <span style="display:block;color:#D2AD6C;font-size:13.5px;font-weight:800"><?= h($_t) ?></span>
@@ -234,11 +240,11 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-party" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Running a party</h3>
-          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Three buttons at the top do the work. Each one explains itself — open it and press <b>? How it works</b> inside.</p>
+          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Three buttons at the top do the work. Each has a card of its own below with the whole of it.</p>
           <ul style="margin:0;padding-left:20px">
-            <li><b>🎶 Up Next</b> — the singing line. Click ➕ on a song to put someone in it, then keep pressing <b>▶ Next singer</b> all night.</li>
-            <li><b>📱 Guest QR</b> — guests scan it with their phone and ask for songs themselves.</li>
-            <li><b>⬇ Downloads</b> — bring new songs in from YouTube.</li>
+            <li><b>🎶 Up Next</b> — the singing line. Click ➕ on a song to put someone in it, then keep pressing <b>▶ Next singer</b> all night. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
+            <li><b>📱 Guest QR</b> — guests scan it with their phone and ask for songs themselves. <a href="#" onclick="karGuideOpen('guestqr');return false" style="color:#D2AD6C">Card 8</a>.</li>
+            <li><b>⬇ Downloads</b> — bring new songs in from YouTube. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Card 7</a>.</li>
             <li>When something happens on its own — a guest's song arriving, for instance — the line under the buttons tells you.</li>
           </ul>
         </div>
@@ -252,6 +258,34 @@ if (!$KAR_LOCAL) {
           </ul>
         </div>
 
+
+        <div class="kar-gs" id="kar-gs-upnext" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Up Next — the singing line</h3>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Put someone in the line</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. It goes in at the pitch showing on that row.</div>
+        <div><b style="color:#D2AD6C">Run the party</b> — just keep pressing <b style="color:#6ee7b7">▶ Next singer</b>. It plays the top of the line and moves on by itself.</div>
+        <div><b style="color:#D2AD6C">Fair turns</b> — leave it ticked and everyone sings once before anyone sings twice, so nobody has to keep track. You never rearrange anything.</div>
+        <div><b style="color:#D2AD6C">Fixing the line</b> — <b>↑ ↓</b> move a person, <b>✕</b> takes them out, and <b>✕ Clear the queue</b> empties it at the end of the night.</div>
+        <div><b style="color:#D2AD6C">Guests</b> — anyone who scans the <b style="color:#c084fc">📱 Guest QR</b> code lands in this line by themselves, from their own phone.</div>
+          </div>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-downloads" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Downloads — songs from YouTube</h3>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#93c5fd">1 · Add the song</b> — press <b>▶ YouTube</b> at the top, find the song, copy its link, paste it in the box below and press <b>+ Add to list</b>. Add as many as you like.</div>
+        <div><b style="color:#93c5fd">2 · Fetch them</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. They come down one at a time, a minute or two each. You can close this panel and carry on.</div>
+        <div><b style="color:#93c5fd">3 · Where they end up</b> — a song that arrives leaves this panel and lives under <b style="color:#c084fc">🆕 New</b> for a month. One that <b style="color:#f87171">didn't work</b> stays here with the reason, so it can't slip past you.</div>
+        <div><b style="color:#93c5fd">Guests can add songs too</b> — anything they send from their phone shows up here marked with their name, and downloads by itself.</div>
+          </div>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-guestqr" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Guest QR — songs from guests’ phones</h3>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#c084fc">What it is</b> — hold this screen up, or leave it open on the TV, and guests point their phone camera at the square. No app, no password, nothing to install.</div>
+        <div><b style="color:#c084fc">What they can do</b> — ask for a song already in your library, or bring a new one from YouTube. Either way they end up in the <b style="color:#D2AD6C">🎶 Up Next</b> line, and this page tells you the moment it happens.</div>
+        <div><b style="color:#c084fc">What they cannot do</b> — they cannot play, stop, rename or delete anything. Requesting is all the code allows.</div>
+        <div><b style="color:#c084fc">The red button</b> — press <b style="color:#f87171">🔄 New code</b> after a party and every QR you have shown stops working, so last night's guests can't keep sending songs. You'll need to show the new square next time.</div>
+          </div>
+        </div>
         <?php if ($KAR_LOCAL): ?>
         <div class="kar-gs" id="kar-gs-update" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Keeping it up to date</h3>
@@ -277,10 +311,7 @@ if (!$KAR_LOCAL) {
            it would allow us to organize what we wanna say in a better way"). Shown by default
            so a new machine teaches its owner; hidden for good once dismissed. -->
       <div id="kar-help-dl" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('dl')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
-        <div><b style="color:#93c5fd">1 · Add the song</b> — press <b>▶ YouTube</b> at the top, find the song, copy its link, paste it in the box below and press <b>+ Add to list</b>. Add as many as you like.</div>
-        <div><b style="color:#93c5fd">2 · Fetch them</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. They come down one at a time, a minute or two each. You can close this panel and carry on.</div>
-        <div><b style="color:#93c5fd">3 · Where they end up</b> — a song that arrives leaves this panel and lives under <b style="color:#c084fc">🆕 New</b> for a month. One that <b style="color:#f87171">didn't work</b> stays here with the reason, so it can't slip past you.</div>
-        <div><b style="color:#93c5fd">Guests can add songs too</b> — anything they send from their phone shows up here marked with their name, and downloads by itself.</div>
+
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
@@ -297,11 +328,7 @@ if (!$KAR_LOCAL) {
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
       </div>
       <div id="kar-help-q" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('q')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
-        <div><b style="color:#D2AD6C">Put someone in the line</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. It goes in at the pitch showing on that row.</div>
-        <div><b style="color:#D2AD6C">Run the party</b> — just keep pressing <b style="color:#6ee7b7">▶ Next singer</b>. It plays the top of the line and moves on by itself.</div>
-        <div><b style="color:#D2AD6C">Fair turns</b> — leave it ticked and everyone sings once before anyone sings twice, so nobody has to keep track. You never rearrange anything.</div>
-        <div><b style="color:#D2AD6C">Fixing the line</b> — <b>↑ ↓</b> move a person, <b>✕</b> takes them out, and <b>✕ Clear the queue</b> empties it at the end of the night.</div>
-        <div><b style="color:#D2AD6C">Guests</b> — anyone who scans the <b style="color:#c084fc">📱 Guest QR</b> code lands in this line by themselves, from their own phone.</div>
+
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <button type="button" onclick="karQNext()" id="kar-q-next" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:800;padding:9px 20px;border-radius:8px">▶ Next singer</button>
@@ -328,10 +355,7 @@ if (!$KAR_LOCAL) {
            the GUEST holding the phone, not at the host. Only the host-facing explanation
            moved in here. -->
       <div id="kar-help-qr" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('qr')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
-        <div><b style="color:#c084fc">What it is</b> — hold this screen up, or leave it open on the TV, and guests point their phone camera at the square. No app, no password, nothing to install.</div>
-        <div><b style="color:#c084fc">What they can do</b> — ask for a song already in your library, or bring a new one from YouTube. Either way they end up in the <b style="color:#D2AD6C">🎶 Up Next</b> line, and this page tells you the moment it happens.</div>
-        <div><b style="color:#c084fc">What they cannot do</b> — they cannot play, stop, rename or delete anything. Requesting is all the code allows.</div>
-        <div><b style="color:#c084fc">The red button</b> — press <b style="color:#f87171">🔄 New code</b> after a party and every QR you have shown stops working, so last night's guests can't keep sending songs. You'll need to show the new square next time.</div>
+
       </div>
       <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">
         <div id="kar-qr-code" style="background:#fff;padding:12px;border-radius:10px"></div>
@@ -1095,10 +1119,27 @@ if (!$KAR_LOCAL) {
     function karHelpOn(key){
       try { return localStorage.getItem('kar_help_' + key) === '1'; } catch(e) { return false; }
     }
+    // Which Guide card each floating "?" belongs to. The words live in the Guide and are
+    // BORROWED from it here — one copy, so the two can never drift apart the way two
+    // hand-kept copies of the same paragraph always eventually do.
+    var KAR_HELP_SECTION = { q: 'upnext', dl: 'downloads', qr: 'guestqr' };
     function karHelpApply(key){
       var on  = karHelpOn(key);
       var box = document.getElementById('kar-help-' + key);
-      if (box) box.style.display = on ? '' : 'none';
+      if (box) {
+        if (on && !box.querySelector('.kar-help-body')) {
+          var src = document.querySelector('#kar-gs-' + KAR_HELP_SECTION[key] + ' .kar-gs-body');
+          if (src) {
+            var b = document.createElement('div');
+            b.className = 'kar-help-body';
+            b.style.display = 'grid';
+            b.style.gap = '9px';
+            b.innerHTML = src.innerHTML;
+            box.appendChild(b);
+          }
+        }
+        box.style.display = on ? '' : 'none';
+      }
       var btn = document.getElementById('kar-helpbtn-' + key);
       if (btn) {
         btn.style.color       = on ? '#D2AD6C' : '#94a3b8';
