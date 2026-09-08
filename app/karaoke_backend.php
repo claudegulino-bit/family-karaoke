@@ -352,13 +352,20 @@ function kar_play(string $song, int $pitch): array {
     // NOT fullscreen: the screen is shared — words on one side, the song list on the
     // other. F toggles fullscreen when the whole screen is wanted.
     $args[] = '--geometry=55%x70%-0+60';
-    // ⚠ ON TOP, and this is not a preference — it is the difference between a words
-    // screen and no words screen. mpv is started by a background service, and macOS
-    // does not let a background service bring a window to the front, so the words open
-    // BEHIND whatever browser is showing the song list: playing, invisible, and looking
-    // like a fault. Set "words_on_top": false in the config to turn it off.
+    // ⚠ THE PLAYER STAYS OPEN BETWEEN SONGS, and that is the point of these two options.
+    // Left to itself mpv quits when a song ends and the next one opens a brand-new window
+    // wherever the geometry says — so any arrangement of words-here, song-list-there is
+    // undone every single song. Idle + keep-open means ONE window: put it where you want
+    // it once, and every later song loads into that same window, same place, same size.
+    // It also fixes the words opening behind the browser, without forcing them on top of
+    // it — a background service cannot raise a window, but it does not need to if the
+    // window never went away.
+    $args[] = '--idle=yes';
+    $args[] = '--keep-open=always';
+    // Off by default, deliberately: pinning the words above everything stops the two
+    // windows being used side by side. "words_on_top": true if you want it anyway.
     $cfg = kar_cfg();
-    if (!array_key_exists('words_on_top', $cfg) || $cfg['words_on_top']) $args[] = '--ontop';
+    if (!empty($cfg['words_on_top'])) $args[] = '--ontop';
     $args[] = '--osd-font-size=48';
     $args[] = $path;
     $cmd = implode(' ', array_map('escapeshellarg', $args)) . ' >/dev/null 2>&1 & echo $!';
