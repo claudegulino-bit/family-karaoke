@@ -327,9 +327,10 @@ try {
         // Two-phase, exactly as the server version: start queues the job, check polls it.
         // A folder chooser waits for a person to walk to the Mac, so it CANNOT run inside
         // the request — it goes to a detached worker and the answer lands on the row.
-        $task = ((string)($_POST['task'] ?? 'folder') === 'tools') ? 'tools' : 'folder';
+        $tasks = ['folder' => '__PICKFOLDER__', 'tools' => '__CHECKTOOLS__', 'update' => '__UPDATE__'];
+        $task = isset($tasks[(string)($_POST['task'] ?? '')]) ? (string)$_POST['task'] : 'folder';
         $mode = ((string)($_POST['mode'] ?? 'start') === 'check') ? 'check' : 'start';
-        $sentinel = $task === 'tools' ? '__CHECKTOOLS__' : '__PICKFOLDER__';
+        $sentinel = $tasks[$task];
 
         if ($mode === 'start') {
             $db->prepare("INSERT INTO karaoke_play_queue (filename, player, status) VALUES (?, 'all', 'Pending')")
@@ -353,9 +354,12 @@ try {
                 if (strpos($note, 'not installed') !== false) $note .= ' — run the Terminal command above, then check again';
                 $db->prepare("UPDATE karaoke_play_queue SET status='Played', note=? WHERE id=?")->execute([$note, $id]);
             } else {
+                // 'folder' waits for a person at the Mac; 'update' talks to the internet.
+                // Neither can happen inside a web request, so both go to the worker.
                 $php = PHP_BINARY ?: 'php';
                 @exec(escapeshellarg($php) . ' ' . escapeshellarg(__DIR__ . '/karaoke_worker.php') . ' '
-                    . escapeshellarg((string)kar_marker_path()) . ' pick ' . (int)$id . ' >/dev/null 2>&1 &');
+                    . escapeshellarg((string)kar_marker_path()) . ' ' . ($task === 'update' ? 'update' : 'pick')
+                    . ' ' . (int)$id . ' >/dev/null 2>&1 &');
             }
             kj(['ok'=>true, 'id'=>$id]);
         }

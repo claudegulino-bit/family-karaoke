@@ -69,6 +69,30 @@ if ($job === 'pick') {
 }
 
 // ---------------------------------------------------------------------------
+// Fetching a newer karaoke
+// ---------------------------------------------------------------------------
+if ($job === 'update') {
+    $id  = (int)($argv[3] ?? 0);
+    $dir = dirname((string)kar_marker_path());
+    $sh  = $dir . '/update.sh';
+    if (!is_file($sh)) {
+        $db->prepare("UPDATE karaoke_play_queue SET status='Error', note=? WHERE id=?")
+           ->execute(['this copy was not installed from the internet, so there is nothing to update from', $id]);
+        exit;
+    }
+    // update.sh replaces the program files — including, possibly, this one. That is safe:
+    // PHP has already read what it is running, and the page reloads afterwards.
+    $out = (string)@shell_exec('cd ' . escapeshellarg($dir) . ' && /bin/bash ' . escapeshellarg($sh) . ' 2>&1');
+    $lines = array_values(array_filter(array_map('trim', explode("\n", $out)), 'strlen'));
+    $last  = $lines ? end($lines) : '';
+    $ok = $last !== '' && (str_starts_with($last, 'Updated to') || str_starts_with($last, 'Already up to date'));
+    $db->prepare("UPDATE karaoke_play_queue SET status=?, note=? WHERE id=?")
+       ->execute([$ok ? 'Played' : 'Error',
+                  mb_substr($last !== '' ? $last : 'the update did not finish', 0, 400), $id]);
+    exit;
+}
+
+// ---------------------------------------------------------------------------
 // Downloads
 // ---------------------------------------------------------------------------
 @touch($lock);

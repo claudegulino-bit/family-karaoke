@@ -186,8 +186,20 @@ if (!$KAR_LOCAL) {
           <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:8px 0 2px;background:rgba(16,185,129,.12);border:1px solid #16a34a;color:#6ee7b7;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Check it worked</button>
           <span id="kar-tools-msg" style="display:block;margin-top:4px;color:#64748b;font-size:12px">Press this when Terminal has finished — it asks the Mac what is really installed, so you don't have to judge it from the scrollback.</span></li>
         <li>Keep the Mac <b>on and awake</b> during the party — it does the playing.</li>
+        <?php if (!$KAR_LOCAL): ?>
         <li><b>Or the easy way: ask Claude to set up the new Mac.</b> It's a one-time job and Claude does all of the above for you.</li>
+        <?php endif; ?>
       </ol>
+      <?php if ($KAR_LOCAL): ?>
+      <!-- Keeping up to date. Only in a standalone install: on casAI the page is deployed
+           the usual way, and there is nothing here to fetch. -->
+      <div style="margin:12px 0 0;padding:10px 14px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:8px">
+        <b style="color:#93c5fd;font-size:13px">Getting the newest version</b>
+        <div style="margin-top:4px;color:#cbd5e1;font-size:12.5px;line-height:1.7">When the karaoke has been improved, this fetches it. <b>Your songs, your settings, everyone's lists and every saved key are left exactly as they are</b> — only the program itself is replaced.</div>
+        <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:8px 0 2px;background:rgba(96,165,250,.12);border:1px solid #60A5FA;color:#93c5fd;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Update the karaoke</button>
+        <span id="kar-upd-msg" style="display:block;margin-top:4px;color:#64748b;font-size:12px">This version: <b style="color:#94a3b8"><?= h(kar_installed_version()) ?></b></span>
+      </div>
+      <?php endif; ?>
       <h3 style="margin:16px 0 6px;font-size:14px;font-weight:800;color:#D2AD6C">2 · Sing a song</h3>
       <ul style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
         <li><b>Find it</b> — type anything in the search box — the artist, the title, or the name of whoever sings it.</li>
@@ -1120,6 +1132,26 @@ if (!$KAR_LOCAL) {
           if (ok) { var bits = note.split(' — '); karPickDone(true, bits.slice(1).join(' — '), bits[0]); }
           else    { karPickDone(false, note || 'The songs folder was not changed.'); }
         });
+    }
+    function karUpdate(){
+      // Fetching and replacing the program is a real change to this Mac, so it asks first.
+      if (!confirm('Fetch the newest karaoke?\n\nOnly the program is replaced. Your songs, your settings, the lists and every saved key stay exactly as they are.')) return;
+      var btn = document.getElementById('kar-upd-btn');
+      var msg = document.getElementById('kar-upd-msg');
+      btn.disabled = true;
+      btn.textContent = '⏳ Fetching…';
+      msg.innerHTML = '<span style="color:#D2AD6C">Asking the Mac to fetch it — this takes a few seconds…</span>';
+      karMacAsk('update', null, function(ok, note){
+        btn.disabled = false;
+        btn.textContent = '⬆︎ Update the karaoke';
+        if (!ok) {
+          msg.innerHTML = '<span style="color:#f87171"><b>Not updated.</b> ' + karEsc(note) + '</span>';
+          return;
+        }
+        var changed = note.indexOf('Already up to date') !== 0;
+        msg.innerHTML = '<span style="color:#6ee7b7"><b>' + (changed ? '✅ Done. ' : '') + '</b>' + karEsc(note) + '</span>'
+          + (changed ? ' <a href="#" onclick="location.reload();return false;" style="color:#93c5fd">Reload the page to use it →</a>' : '');
+      });
     }
     function karCheckTools(){
       var btn = document.getElementById('kar-tools-btn');

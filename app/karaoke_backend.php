@@ -485,6 +485,15 @@ function kar_guest_token(bool $rotate = false): string {
     return $tok;
 }
 
+/** Which version of the program this Mac is running, if it was installed from the
+ *  internet. A copy put here by hand has no VERSION file, and says so. */
+function kar_installed_version(): string {
+    $m = kar_marker_path();
+    $f = ($m ? dirname($m) : __DIR__) . '/VERSION';
+    $v = is_file($f) ? trim((string)file_get_contents($f)) : '';
+    return $v !== '' ? $v : 'installed by hand — no version recorded';
+}
+
 // ---------------------------------------------------------------------------
 // Shared read helpers — the page uses these in BOTH modes
 // ---------------------------------------------------------------------------
