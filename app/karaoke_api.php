@@ -82,6 +82,8 @@ try {
         if (!kar_ok_name($song) || !kar_known($song)) kj(['ok'=>false,'error'=>'unknown song']);
         if ($raw === '') {
             $db->prepare('DELETE FROM karaoke_pitches WHERE filename = ?')->execute([$song]);
+            kar_sync_record_removal($db, 'pitch', $song);
+            try { kar_sync($db, true); } catch (Throwable $e) { }
             kj(['ok'=>true, 'error'=>'', 'stored'=>false]);
         }
         if (!preg_match('/^[+-]?\d{1,2}$/', $raw) || (int)$raw < -12 || (int)$raw > 12) {
@@ -92,10 +94,14 @@ try {
         $default = kar_filename_pitch($song) ?? 0;
         if ((int)$raw === $default) {
             $db->prepare('DELETE FROM karaoke_pitches WHERE filename = ?')->execute([$song]);
+            kar_sync_record_removal($db, 'pitch', $song);
+            try { kar_sync($db, true); } catch (Throwable $e) { }
             kj(['ok'=>true, 'error'=>'', 'stored'=>false]);
         }
-        $db->prepare("INSERT INTO karaoke_pitches (filename, pitch) VALUES (?,?)
-                      ON CONFLICT(filename) DO UPDATE SET pitch = excluded.pitch")->execute([$song, (int)$raw]);
+        $db->prepare("INSERT INTO karaoke_pitches (filename, pitch, updated_at) VALUES (?,?,datetime('now','localtime'))
+                      ON CONFLICT(filename) DO UPDATE SET pitch = excluded.pitch, updated_at = excluded.updated_at")->execute([$song, (int)$raw]);
+        $db->prepare('DELETE FROM karaoke_removals WHERE kind=? AND k1=? AND k2=?')->execute(['pitch', $song, '']);
+        try { kar_sync($db, true); } catch (Throwable $e) { }
         kj(['ok'=>true, 'error'=>'', 'stored'=>true]);
     }
 
@@ -106,8 +112,15 @@ try {
         $want   = (string)($_POST['want'] ?? '') === '1';
         if ($person === '' || mb_strlen($person) > 40 || strpbrk($person, '/\\') !== false) kj(['ok'=>false,'error'=>'bad person name']);
         if (!kar_ok_name($song) || !kar_known($song)) kj(['ok'=>false,'error'=>'unknown song']);
-        if ($want) $db->prepare('INSERT OR IGNORE INTO karaoke_best (person, filename) VALUES (?,?)')->execute([$person, $song]);
-        else       $db->prepare('DELETE FROM karaoke_best WHERE person = ? AND filename = ?')->execute([$person, $song]);
+        if ($want) {
+            $db->prepare('INSERT OR IGNORE INTO karaoke_best (person, filename) VALUES (?,?)')->execute([$person, $song]);
+            // An add cancels an older removal, or the other Mac would keep taking it away.
+            $db->prepare('DELETE FROM karaoke_removals WHERE kind=? AND k1=? AND k2=?')->execute(['best', $person, $song]);
+        } else {
+            $db->prepare('DELETE FROM karaoke_best WHERE person = ? AND filename = ?')->execute([$person, $song]);
+            kar_sync_record_removal($db, 'best', $person, $song);
+        }
+        try { kar_sync($db, true); } catch (Throwable $e) { }
         kj(['ok'=>true, 'error'=>'', 'on'=>$want]);
     }
 
@@ -121,6 +134,8 @@ try {
             // Never delete without capturing the values somewhere recoverable first.
             kar_log('delete', 'Best list removed: ' . $person . ' (' . count($songs) . ') ' . json_encode($songs, JSON_UNESCAPED_UNICODE));
             $db->prepare('DELETE FROM karaoke_best WHERE person = ?')->execute([$person]);
+            kar_sync_record_removal($db, 'person', $person);
+            try { kar_sync($db, true); } catch (Throwable $e) { }
         }
         kj(['ok'=>true, 'error'=>'', 'removed'=>count($songs)]);
     }

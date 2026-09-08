@@ -184,6 +184,16 @@ const KAR_SCHEMA = [
         requested_at TEXT DEFAULT (datetime('now','localtime')),
         done_at  TEXT DEFAULT NULL)",
     "CREATE TABLE IF NOT EXISTS karaoke_settings (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+    // Removals have to be remembered, not just done. Two Macs merge their lists by
+    // taking the union of what each one has — so without a record of "this was taken
+    // off, at this moment", every un-starred song would come straight back from the
+    // other machine on the next sync.
+    "CREATE TABLE IF NOT EXISTS karaoke_removals (
+        kind TEXT NOT NULL,          -- 'best' | 'person' | 'pitch'
+        k1   TEXT NOT NULL,          -- person, or filename for a pitch
+        k2   TEXT NOT NULL DEFAULT '',
+        at   TEXT NOT NULL,
+        PRIMARY KEY (kind, k1, k2))",
     "CREATE TABLE IF NOT EXISTS karaoke_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         at TEXT DEFAULT (datetime('now','localtime')),
@@ -506,6 +516,140 @@ function kar_installed_version(): string {
     $f = ($m ? dirname($m) : __DIR__) . '/VERSION';
     $v = is_file($f) ? trim((string)file_get_contents($f)) : '';
     return $v !== '' ? $v : 'installed by hand — no version recorded';
+}
+
+// ---------------------------------------------------------------------------
+// Keeping two Macs in step
+// ---------------------------------------------------------------------------
+//
+// the owner sings in his office and with friends in the other room, and wants the same
+// singers and the same starred songs in both places. The two Macs share exactly one
+// thing — the Google Drive songs folder — so the lists travel the same way.
+//
+// ⚠ NOT by sharing the database file. SQLite in a syncing folder corrupts: Drive has no
+// idea two programs are writing to it. Instead each Mac writes ONLY ITS OWN small file
+// and reads everyone else's, so there is never a second writer to collide with.
+//
+// Merging is by (person, song), newest wins, and a removal beats an older add — which is
+// why removals are recorded rather than just done.
+//
+// It is OFF unless "sync_folder" is set in the config. A brother's install shares nothing
+// and must never start reaching into somebody else's folder.
+
+function kar_sync_dir(): ?string {
+    $c = kar_cfg();
+    if (empty($c['sync_folder'])) return null;
+    $d = rtrim((string)$c['sync_folder'], '/');
+    if (!is_dir($d)) @mkdir($d, 0755, true);
+    return is_dir($d) ? $d : null;
+}
+
+/** This Mac's name, used only to name its own file in the shared folder. */
+function kar_machine(): string {
+    $c = kar_cfg();
+    $n = (string)($c['machine'] ?? '');
+    if ($n === '') $n = trim((string)@shell_exec('scutil --get ComputerName 2>/dev/null'));
+    if ($n === '') $n = (string)gethostname();
+    $n = preg_replace('/[^A-Za-z0-9 _-]/', '', $n);
+    return trim($n) !== '' ? trim($n) : 'this-Mac';
+}
+
+/** Everything this Mac currently knows, plus what it has deliberately removed. */
+function kar_sync_snapshot(PDO $db): array {
+    $best = [];
+    foreach ($db->query("SELECT person, filename, COALESCE(created_at, datetime('now','localtime')) at FROM karaoke_best") as $r) {
+        $best[] = [$r['person'], $r['filename'], $r['at']];
+    }
+    $pitch = [];
+    foreach ($db->query("SELECT filename, pitch, COALESCE(updated_at, datetime('now','localtime')) at FROM karaoke_pitches") as $r) {
+        $pitch[] = [$r['filename'], (int)$r['pitch'], $r['at']];
+    }
+    $gone = [];
+    foreach ($db->query("SELECT kind, k1, k2, at FROM karaoke_removals") as $r) {
+        $gone[] = [$r['kind'], $r['k1'], $r['k2'], $r['at']];
+    }
+    return ['machine' => kar_machine(), 'written_at' => date('Y-m-d H:i:s'),
+            'best' => $best, 'pitches' => $pitch, 'removals' => $gone];
+}
+
+function kar_sync_record_removal(PDO $db, string $kind, string $k1, string $k2 = ''): void {
+    try {
+        $db->prepare("INSERT INTO karaoke_removals (kind,k1,k2,at) VALUES (?,?,?,datetime('now','localtime'))
+                      ON CONFLICT(kind,k1,k2) DO UPDATE SET at=excluded.at")->execute([$kind, $k1, $k2]);
+    } catch (Throwable $e) { /* a failed note must never block the click */ }
+}
+
+/** Read every Mac's file, work out what the shared truth is, and make this Mac match. */
+function kar_sync(PDO $db, bool $force = false): bool {
+    $dir = kar_sync_dir();
+    if (!$dir) return false;
+    // Once a minute is plenty — Drive takes longer than that to carry a file across anyway.
+    $stamp = kar_data_dir() . '/last_sync';
+    if (!$force && is_file($stamp) && (time() - (int)@filemtime($stamp)) < 60) return false;
+    @touch($stamp);
+
+    $mine = kar_sync_snapshot($db);
+    @file_put_contents($dir . '/' . kar_machine() . '.json',
+        json_encode($mine, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+    $bestAt = []; $pitchAt = []; $goneAt = [];
+    foreach (glob($dir . '/*.json') ?: [] as $f) {
+        $j = json_decode((string)@file_get_contents($f), true);
+        if (!is_array($j)) continue;                       // a half-written file is skipped, not fatal
+        foreach ($j['removals'] ?? [] as [$kind, $k1, $k2, $at]) {
+            $key = $kind . "\x00" . $k1 . "\x00" . $k2;
+            if (!isset($goneAt[$key]) || $at > $goneAt[$key]) $goneAt[$key] = $at;
+        }
+        foreach ($j['best'] ?? [] as [$person, $file, $at]) {
+            $key = $person . "\x00" . $file;
+            if (!isset($bestAt[$key]) || $at > $bestAt[$key]) $bestAt[$key] = $at;
+        }
+        foreach ($j['pitches'] ?? [] as [$file, $p, $at]) {
+            if (!isset($pitchAt[$file]) || $at > $pitchAt[$file][1]) $pitchAt[$file] = [(int)$p, $at];
+        }
+    }
+
+    $db->beginTransaction();
+    try {
+        foreach ($bestAt as $key => $at) {
+            [$person, $file] = explode("\x00", $key, 2);
+            $removed = max($goneAt['best' . "\x00" . $person . "\x00" . $file] ?? '',
+                           $goneAt['person' . "\x00" . $person . "\x00"] ?? '');
+            if ($removed !== '' && $removed > $at) {
+                $db->prepare('DELETE FROM karaoke_best WHERE person=? AND filename=?')->execute([$person, $file]);
+            } else {
+                $db->prepare('INSERT OR IGNORE INTO karaoke_best (person, filename, created_at) VALUES (?,?,?)')
+                   ->execute([$person, $file, $at]);
+            }
+        }
+        foreach ($pitchAt as $file => [$p, $at]) {
+            $removed = $goneAt['pitch' . "\x00" . $file . "\x00"] ?? '';
+            if ($removed !== '' && $removed > $at) {
+                $db->prepare('DELETE FROM karaoke_pitches WHERE filename=?')->execute([$file]);
+            } else {
+                $db->prepare("INSERT INTO karaoke_pitches (filename, pitch, updated_at) VALUES (?,?,?)
+                              ON CONFLICT(filename) DO UPDATE SET pitch=excluded.pitch, updated_at=excluded.updated_at
+                              WHERE excluded.updated_at > karaoke_pitches.updated_at")->execute([$file, $p, $at]);
+            }
+        }
+        // Everyone's removals become everyone's removals, or a third Mac would keep
+        // handing a deleted song back.
+        foreach ($goneAt as $key => $at) {
+            [$kind, $k1, $k2] = array_pad(explode("\x00", $key, 3), 3, '');
+            $db->prepare("INSERT INTO karaoke_removals (kind,k1,k2,at) VALUES (?,?,?,?)
+                          ON CONFLICT(kind,k1,k2) DO UPDATE SET at=excluded.at WHERE excluded.at > karaoke_removals.at")
+               ->execute([$kind, $k1, $k2, $at]);
+        }
+        $db->commit();
+    } catch (Throwable $e) {
+        $db->rollBack();
+        kar_log('sync', 'merge failed: ' . $e->getMessage());
+        return false;
+    }
+    // Write again, so this Mac's file now carries what everyone agreed.
+    @file_put_contents($dir . '/' . kar_machine() . '.json',
+        json_encode(kar_sync_snapshot($db), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    return true;
 }
 
 // ---------------------------------------------------------------------------

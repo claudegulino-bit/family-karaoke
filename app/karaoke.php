@@ -109,6 +109,9 @@ if (!$KAR_LOCAL) {
   // (it was a strict subset of the database — ▶ plays straight from the database file,
   // never through a QMidi playlist), and "Claude Best" became one person's list among many.
   // The QMidi .qmpl playlists on the Mac are untouched — this is casAI's own favorites data.
+  // Two Macs, one set of lists: pick up anything starred on the other one before drawing
+  // this page. Throttled inside, and silent if this install shares nothing.
+  if ($KAR_LOCAL && $pdo) { try { kar_sync($pdo); } catch (Throwable $e) { /* never block the party */ } }
   $_kjBestBy  = $pdo ? kar_best_lists($pdo) : [];
   $_kjWho     = kar_best_default($_kjBestBy, $pdo);   // whose list opens first — never a hardcoded name
   // Stored working pitches (the editable pitch box) — override the filename pitch on ▶ plays.
