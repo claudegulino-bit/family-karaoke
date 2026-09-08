@@ -180,12 +180,12 @@ if (!$KAR_LOCAL) {
         else            $_karCards[] = ['setup', '1 · Setting up the Mac', 'Once only — naming the Mac, the songs folder, and the player.'];
         $_karCards[] = ['sing',  '2 · Sing a song',            'Find it, play it, and set the key.'];
         $_karCards[] = ['while', '3 · While it is playing',    'The gold bar: key, speed, start and stop.'];
-        $_karCards[] = ['party', '4 · Running a party',        'The singing line, guests\' phones, and new songs.'];
+        $_karCards[] = ['party', '4 · Running a party',        'The singing queue, guests\' phones, and new songs.'];
         $_karCards[] = ['songs', '5 · Looking after the songs','Best lists, what arrived lately, renaming and removing.'];
         // The three party panels each get a card of their own. Their words live HERE and
         // nowhere else — the floating "?" beside each panel borrows this same text rather
         // than keeping a second copy that would quietly drift out of step with it.
-        $_karCards[] = ['upnext',    '6 · Up Next',   'The singing line, and what scheduling fairness does.'];
+        $_karCards[] = ['upnext',    '6 · Up Next',   'The singing queue, and what scheduling fairness does.'];
         $_karCards[] = ['downloads', '7 · Downloads', 'Bringing songs in from YouTube.'];
         $_karCards[] = ['guestqr',   '8 · Guest QR',  'Guests asking for songs from their own phones.'];
         if ($KAR_LOCAL) $_karCards[] = ['update','9 · Keeping it up to date', 'Getting the newest version. Your songs are never touched.'];
@@ -248,10 +248,10 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Running a party</h3>
           <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Three buttons at the top do the work. Each has a card of its own below with the whole of it.</p>
           <ul style="margin:0;padding-left:20px">
-            <li><b>🎶 Up Next</b> — the singing line. Click ➕ on a song to put someone in it, then keep pressing <b>▶ Next singer</b> all night. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
+            <li><b>🎶 Up Next</b> — the singing queue. Click ➕ on a song to add someone to it, then keep pressing <b>▶ Next singer</b> all night. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
             <li><b>📱 Guest QR</b> — guests scan it with their phone and ask for songs themselves. <a href="#" onclick="karGuideOpen('guestqr');return false" style="color:#D2AD6C">Card 8</a>.</li>
             <li><b>⬇ Downloads</b> — bring new songs in from YouTube. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Card 7</a>.</li>
-            <li>When something happens on its own — a guest's song arriving, for instance — the line under the buttons tells you.</li>
+            <li>When something happens on its own — a guest's song arriving, for instance — the purple strip under the buttons tells you.</li>
           </ul>
         </div>
 
@@ -266,9 +266,9 @@ if (!$KAR_LOCAL) {
 
 
         <div class="kar-gs" id="kar-gs-upnext" style="display:none">
-          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Up Next — the singing line</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Schedule a singer</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. They join the line at the pitch showing on that row.</div>
-        <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. It plays whoever is at the top of the line and moves the list on by itself, so that one button runs the whole night.</div>
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Up Next — the singing queue</h3>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. They join the queue at the pitch showing on that row.</div>
+        <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. It plays whoever is at the top of the queue and moves it on by itself, so that one button runs the whole night.</div>
         <div><b style="color:#D2AD6C">Scheduling fairness</b> (the checkbox beside that button) — leave it ticked and everyone sings once before anyone sings twice, twice before anyone sings a third time, and so on. Nobody has to keep track of whose turn it is.</div>
         <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, <b>✕</b> takes them out, and <b>✕ Clear the queue</b> empties the whole line at the end of the night.</div>
           </div>
@@ -328,7 +328,7 @@ if (!$KAR_LOCAL) {
     </div>
     <div id="kar-q-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-size:13.5px;font-weight:800;color:#D2AD6C">🎶 Up Next — the singing line</span>
+        <span style="font-size:13.5px;font-weight:800;color:#D2AD6C">🎶 Up Next — the singing queue</span>
         <button type="button" id="kar-helpbtn-q" onclick="karHelpToggle('q')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">? How it works</button>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
       </div>
@@ -847,7 +847,7 @@ if (!$KAR_LOCAL) {
     // One delegated listener for Play and Reset — rows themselves carry no handlers (People-tab DOM lesson).
     document.getElementById('kar-list').addEventListener('click', function(ev){
       var src = KAR_DATA[karRenderedView] || [];
-      // ➕: add this song to the Up Next singing line for the selected person.
+      // ➕: add this song to the Up Next singing queue for the selected person.
       var qb = ev.target.closest ? ev.target.closest('.kar-q-add') : null;
       if (qb) {
         var songQ = src[parseInt(qb.getAttribute('data-i'), 10)];
@@ -1450,17 +1450,17 @@ if (!$KAR_LOCAL) {
           + '<span style="color:#e2e8f0;font-size:13px">' + karEsc(e.song.replace(/\.[a-z0-9]{2,4}$/i,'')) + '</span>'
           + '<span style="color:#94a3b8;font-size:12px">(' + (e.pitch > 0 ? '+' : '') + e.pitch + ')</span>'
           + '<span style="margin-left:auto;display:flex;gap:4px">'
-          + '<button type="button" class="kar-q-up" data-id="' + e.id + '" title="Move up the line" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;padding:2px 8px;border-radius:6px">↑</button>'
-          + '<button type="button" class="kar-q-dn" data-id="' + e.id + '" title="Move down the line" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;padding:2px 8px;border-radius:6px">↓</button>'
-          + '<button type="button" class="kar-q-rm" data-id="' + e.id + '" title="Remove this request from the line" style="font-family:inherit;background:none;border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:12px;padding:2px 8px;border-radius:6px">✕</button>'
+          + '<button type="button" class="kar-q-up" data-id="' + e.id + '" title="Move up the queue" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;padding:2px 8px;border-radius:6px">↑</button>'
+          + '<button type="button" class="kar-q-dn" data-id="' + e.id + '" title="Move down the queue" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;padding:2px 8px;border-radius:6px">↓</button>'
+          + '<button type="button" class="kar-q-rm" data-id="' + e.id + '" title="Remove this request from the queue" style="font-family:inherit;background:none;border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:12px;padding:2px 8px;border-radius:6px">✕</button>'
           + '</span></div>');
       }
       document.getElementById('kar-q-list').innerHTML = out.length ? out.join('')
-        : '<p style="color:#64748b;font-size:12.5px;margin:8px 0 0">The line is empty — pick a singer in the dropdown and click ➕ on a song.</p>';
+        : '<p style="color:#64748b;font-size:12.5px;margin:8px 0 0">The queue is empty — pick a singer in the dropdown and click ➕ on a song.</p>';
     }
     function karQNext(){
       var waiting = karQ.filter(function(e){ return e.status === 'Waiting'; });
-      if (!waiting.length) { alert('The line is empty — add a request first: pick the singer in the dropdown, then click ➕ on a song.'); return; }
+      if (!waiting.length) { alert('The queue is empty — add a request first: pick the singer in the dropdown, then click ➕ on a song.'); return; }
       var singingE = karQ.filter(function(e){ return e.status === 'Singing'; })[0];
       var lastSinger = singingE ? singingE.singer : null;
       var pick = waiting[0];
@@ -1585,7 +1585,7 @@ if (!$KAR_LOCAL) {
         var el = document.getElementById('kar-activity');
         if (lines.length) { el.style.display = ''; el.innerHTML = lines.join('<br>'); }
         else el.style.display = 'none';
-        if (queueChanged) karQFetch();  // the guest joined the singing line — refresh the count
+        if (queueChanged) karQFetch();  // the guest joined the singing queue — refresh the count
       }).catch(function(){});
     }
     karActivityPoll();

@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mine = $pdo->prepare("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Waiting' AND singer = ?");
             $mine->execute([$name]);
             if ((int)$mine->fetchColumn() >= 3) throw new Exception('You already have 3 songs waiting — sing one first!');
-            if ((int)$pdo->query("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Waiting'")->fetchColumn() >= 50) throw new Exception('The line is full right now — try again in a little while.');
+            if ((int)$pdo->query("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Waiting'")->fetchColumn() >= 50) throw new Exception('The queue is full right now — try again in a little while.');
             $pos = (int)$pdo->query("SELECT COALESCE(MAX(position),0) FROM karaoke_sing_queue")->fetchColumn() + 1;
             // Guests sing at the original key (pitch 0) — the host can adjust live during the song.
             $pdo->prepare("INSERT INTO karaoke_sing_queue (singer, filename, pitch, status, position) VALUES (?,?,0,'Waiting',?)")->execute([$name, $song, $pos]);
@@ -132,7 +132,7 @@ $_db = $tokenOk ? kar_catalog() : [];
     <input id="g-url" type="text" placeholder="Paste the YouTube link here…" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:14px;padding:10px 12px">
     <button type="button" id="g-dlbtn" onclick="gDlReq()" style="margin-top:8px;width:100%;font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:700;padding:10px 0;border-radius:10px">🎁 Bring this song to the party</button>
     <div id="g-dls" style="margin-top:6px"></div>
-    <p style="margin:8px 0 0;color:#64748b;font-size:10.5px">The song downloads in a few minutes, joins the party list under your name, and you're put in the line to sing it. Up to 2 new songs per person per night.</p>
+    <p style="margin:8px 0 0;color:#64748b;font-size:10.5px">The song downloads in a few minutes, joins the party list under your name, and you join the queue to sing it. Up to 2 new songs per person per night.</p>
   </div>
   <p style="color:#64748b;font-size:11px;margin-top:18px">Up to 3 songs waiting per person. Songs play at the original key — the host can adjust the pitch live.</p>
 <script>
@@ -160,7 +160,7 @@ $_db = $tokenOk ? kar_catalog() : [];
     var out = [];
     for (var i = 0; i < list.length; i++) {
       var d = list[i], txt, col;
-      if (d.status === 'Done') { txt = '✅ ' + (d.title || 'Your song') + ' — ready! You are in the line to sing it.'; col = '#6ee7b7'; }
+      if (d.status === 'Done') { txt = '✅ ' + (d.title || 'Your song') + ' — ready! You are in the queue to sing it.'; col = '#6ee7b7'; }
       else if (d.status === 'Error') { txt = '✕ ' + (d.title || 'Your song') + ' — could not be fetched. Try a different YouTube version.'; col = '#f87171'; }
       else { txt = '⏳ ' + (d.title || 'Your song') + ' — on its way, give it a few minutes…'; col = '#D2AD6C'; }
       out.push('<div style="padding:4px 0;font-size:12.5px;color:' + col + '">' + gEsc(txt) + '</div>');
