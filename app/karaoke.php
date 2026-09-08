@@ -58,7 +58,7 @@ if (!$KAR_LOCAL) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Karaoke — casAI</title>
+<title>Cantoria</title>
 <link rel="icon" href="/favicon.ico">
 <style>
   * { box-sizing: border-box; }
@@ -95,8 +95,11 @@ if (!$KAR_LOCAL) {
 </head>
 <body>
 <div class="kar-wrap">
-  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px">
-    <h1 style="margin:0;font-size:22px;font-weight:800;color:#f3f4f6">🎤 Karaoke</h1>
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="margin:0">
+      <h1 style="margin:0;font-size:22px;font-weight:800;color:#f3f4f6;letter-spacing:.01em">🎤 Cantoria</h1>
+      <div style="color:#94a3b8;font-size:12px;margin-top:1px">Karaoke for your house</div>
+    </div>
     <?php if ($KAR_LOCAL): ?>
     <span style="color:#64748b;font-size:12.5px">everything runs on this Mac — nothing to sign in to</span>
     <?php else: ?>
@@ -161,7 +164,7 @@ if (!$KAR_LOCAL) {
     </div>
     <div id="kar-guide-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:16px 22px;max-height:calc(100vh - 220px);overflow-y:auto">
       <div style="display:flex;align-items:center;gap:10px">
-        <h2 style="margin:0;font-size:16px;font-weight:800;color:#f3f4f6">🎤 Karaoke Guide</h2>
+        <h2 style="margin:0;font-size:16px;font-weight:800;color:#f3f4f6">🎤 Cantoria Guide</h2>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
       </div>
       <!-- Rebuilt 2026-09-08 on the owner's own reading of it: "very busy, unorganized… too
