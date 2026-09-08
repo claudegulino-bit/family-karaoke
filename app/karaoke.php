@@ -78,10 +78,16 @@ if (!$KAR_LOCAL) {
   .kar-pstep:active { background: #334155; }
   /* The "? How it works" cards FLOAT — they used to sit inside their panel and make it
      twice as tall, which is what made the panels feel heavy. Now they stand beside the
-     work instead of on top of it, and stay put until closed. */
-  .kar-help { position: fixed; right: 18px; top: 96px; width: 320px; max-height: calc(100vh - 130px);
+     work instead of on top of it, and stay put until closed.
+     WIDE AND SHORT, deliberately (the owner, 2026-09-08: "high and narrow… vertically they're
+     narrow… it will look better if it was rectangular but longest left to right"). A tall
+     column pinned to the right edge is genuinely hard to read; the same words across a wide
+     box are two or three short rows instead of a long ladder. Nothing sits under it, so the
+     width costs nothing. */
+  .kar-help { position: fixed; right: 18px; top: 96px;
+    width: min(760px, calc(100vw - 36px)); max-height: calc(100vh - 130px);
     overflow-y: auto; z-index: 60; background: #161c28; border: 1px solid #D2AD6C;
-    border-radius: 10px; padding: 12px 15px; font-size: 12.5px; line-height: 1.75;
+    border-radius: 10px; padding: 13px 17px; font-size: 12.5px; line-height: 1.7;
     color: #cbd5e1; box-shadow: 0 10px 34px rgba(0,0,0,.55); }
   @media (max-width: 900px) { .kar-help { position: static; width: auto; max-height: none; margin-bottom: 12px; } }
 </style>
