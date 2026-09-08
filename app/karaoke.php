@@ -1172,7 +1172,7 @@ if (!$KAR_LOCAL) {
         // "Already up to date" is a real answer, not a non-event — it is the one people
         // will see most often, so it gets said as plainly as the others.
         if (note.indexOf('Already up to date') === 0) {
-          karUpdState('same', '✔︎ <b>Nothing to update.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">This Mac already has the newest karaoke. ' + karEsc(note.replace(/^Already up to date /, '').replace(/[().]/g, '')) + '</div>');
+          karUpdState('same', '✔︎ <b>Nothing to update.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">This Mac already has the newest karaoke. ' + karEsc(note.replace(/^Already up to date \(/, '').replace(/\)\.?\s*$/, '')) + '</div>');
           return;
         }
         var m = note.match(/karaoke (\S+?)\s*\(was (\S+?)\)/);
