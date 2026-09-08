@@ -328,7 +328,11 @@ try {
         // A folder chooser waits for a person to walk to the Mac, so it CANNOT run inside
         // the request — it goes to a detached worker and the answer lands on the row.
         $tasks = ['folder' => '__PICKFOLDER__', 'tools' => '__CHECKTOOLS__', 'update' => '__UPDATE__'];
-        $task = isset($tasks[(string)($_POST['task'] ?? '')]) ? (string)$_POST['task'] : 'folder';
+        $task = (string)($_POST['task'] ?? 'folder');
+        // A task this version does not know is refused, not quietly treated as "open the
+        // folder chooser" — which is how an older copy answered a newer button by putting
+        // a dialog on the screen that nobody had asked for.
+        if (!isset($tasks[$task])) kj(['ok'=>false, 'error'=>'this version does not know how to do that — update it first']);
         $mode = ((string)($_POST['mode'] ?? 'start') === 'check') ? 'check' : 'start';
         $sentinel = $tasks[$task];
 
