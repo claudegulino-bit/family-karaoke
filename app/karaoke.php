@@ -270,7 +270,7 @@ if (!$KAR_LOCAL) {
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. They join the queue at the pitch showing on that row.</div>
         <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. It plays whoever is at the top of the queue and moves it on by itself, so that one button runs the whole night.</div>
         <div><b style="color:#D2AD6C">Scheduling fairness</b> (the checkbox beside that button) — leave it ticked and everyone sings once before anyone sings twice, twice before anyone sings a third time, and so on. Nobody has to keep track of whose turn it is.</div>
-        <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, <b>✕</b> takes them out, and <b>✕ Clear the queue</b> empties the whole line at the end of the night.</div>
+        <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, <b>✕</b> takes them out, and <b>✕ Clear the queue</b> empties the whole queue at the end of the night.</div>
           </div>
         </div>
 
