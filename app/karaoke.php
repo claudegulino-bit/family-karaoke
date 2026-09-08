@@ -76,6 +76,14 @@ if (!$KAR_LOCAL) {
     font-family: inherit; padding: 0; }
   .kar-pstep:hover { background: #28324a; color: #e2e8f0; border-color: #60A5FA; }
   .kar-pstep:active { background: #334155; }
+  /* The "? How it works" cards FLOAT — they used to sit inside their panel and make it
+     twice as tall, which is what made the panels feel heavy. Now they stand beside the
+     work instead of on top of it, and stay put until closed. */
+  .kar-help { position: fixed; right: 18px; top: 96px; width: 320px; max-height: calc(100vh - 130px);
+    overflow-y: auto; z-index: 60; background: #161c28; border: 1px solid #D2AD6C;
+    border-radius: 10px; padding: 12px 15px; font-size: 12.5px; line-height: 1.75;
+    color: #cbd5e1; box-shadow: 0 10px 34px rgba(0,0,0,.55); }
+  @media (max-width: 900px) { .kar-help { position: static; width: auto; max-height: none; margin-bottom: 12px; } }
 </style>
 <script src="/qrcode.min.js"></script>
 </head>
@@ -268,7 +276,7 @@ if (!$KAR_LOCAL) {
            grey print always on screen (the owner, 2026-09-07: "I see a lot of explanation...
            it would allow us to organize what we wanna say in a better way"). Shown by default
            so a new machine teaches its owner; hidden for good once dismissed. -->
-      <div id="kar-help-dl" style="display:none;margin-bottom:12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.28);border-radius:8px;padding:10px 14px;font-size:12.5px;line-height:1.75;color:#cbd5e1">
+      <div id="kar-help-dl" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('dl')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
         <div><b style="color:#93c5fd">1 · Add the song</b> — press <b>▶ YouTube</b> at the top, find the song, copy its link, paste it in the box below and press <b>+ Add to list</b>. Add as many as you like.</div>
         <div><b style="color:#93c5fd">2 · Fetch them</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. They come down one at a time, a minute or two each. You can close this panel and carry on.</div>
         <div><b style="color:#93c5fd">3 · Where they end up</b> — a song that arrives leaves this panel and lives under <b style="color:#c084fc">🆕 New</b> for a month. One that <b style="color:#f87171">didn't work</b> stays here with the reason, so it can't slip past you.</div>
@@ -288,7 +296,7 @@ if (!$KAR_LOCAL) {
         <button type="button" id="kar-helpbtn-q" onclick="karHelpToggle('q')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">? How it works</button>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
       </div>
-      <div id="kar-help-q" style="display:none;margin-bottom:12px;background:rgba(210,173,108,.06);border:1px solid rgba(210,173,108,.28);border-radius:8px;padding:10px 14px;font-size:12.5px;line-height:1.75;color:#cbd5e1">
+      <div id="kar-help-q" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('q')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
         <div><b style="color:#D2AD6C">Put someone in the line</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. It goes in at the pitch showing on that row.</div>
         <div><b style="color:#D2AD6C">Run the party</b> — just keep pressing <b style="color:#6ee7b7">▶ Next singer</b>. It plays the top of the line and moves on by itself.</div>
         <div><b style="color:#D2AD6C">Fair turns</b> — leave it ticked and everyone sings once before anyone sings twice, so nobody has to keep track. You never rearrange anything.</div>
@@ -319,7 +327,7 @@ if (!$KAR_LOCAL) {
       <!-- The big "scan this" line below stays in the panel body on purpose: it is aimed at
            the GUEST holding the phone, not at the host. Only the host-facing explanation
            moved in here. -->
-      <div id="kar-help-qr" style="display:none;margin-bottom:12px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.28);border-radius:8px;padding:10px 14px;font-size:12.5px;line-height:1.75;color:#cbd5e1">
+      <div id="kar-help-qr" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('qr')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
         <div><b style="color:#c084fc">What it is</b> — hold this screen up, or leave it open on the TV, and guests point their phone camera at the square. No app, no password, nothing to install.</div>
         <div><b style="color:#c084fc">What they can do</b> — ask for a song already in your library, or bring a new one from YouTube. Either way they end up in the <b style="color:#D2AD6C">🎶 Up Next</b> line, and this page tells you the moment it happens.</div>
         <div><b style="color:#c084fc">What they cannot do</b> — they cannot play, stop, rename or delete anything. Requesting is all the code allows.</div>
@@ -1081,8 +1089,11 @@ if (!$KAR_LOCAL) {
     // One shared mechanism so every panel behaves the same way (the owner wants this on the
     // others too). Shown by DEFAULT — a fresh machine teaches whoever sits down at it —
     // and hidden for good on that computer once its owner has read it and pressed ?.
+    // OFF by default (the owner, 2026-09-08: "the instruction should be only if we need
+    // it"). The Guide covers all of this properly now, so these are a reminder beside your
+    // hands, not a lecture you have to scroll past every time you open a panel.
     function karHelpOn(key){
-      try { return localStorage.getItem('kar_help_' + key) !== '0'; } catch(e) { return true; }
+      try { return localStorage.getItem('kar_help_' + key) === '1'; } catch(e) { return false; }
     }
     function karHelpApply(key){
       var on  = karHelpOn(key);
@@ -1090,13 +1101,18 @@ if (!$KAR_LOCAL) {
       if (box) box.style.display = on ? '' : 'none';
       var btn = document.getElementById('kar-helpbtn-' + key);
       if (btn) {
-        btn.style.color       = on ? '#93c5fd' : '#94a3b8';
-        btn.style.borderColor = on ? '#60A5FA' : '#334155';
+        btn.style.color       = on ? '#D2AD6C' : '#94a3b8';
+        btn.style.borderColor = on ? '#D2AD6C' : '#334155';
         btn.textContent       = on ? '? Hide this' : '? How it works';
       }
     }
     function karHelpToggle(key){
-      try { localStorage.setItem('kar_help_' + key, karHelpOn(key) ? '0' : '1'); } catch(e){}
+      var turningOn = !karHelpOn(key);
+      try { localStorage.setItem('kar_help_' + key, turningOn ? '1' : '0'); } catch(e){}
+      // Only one floating card at a time, or they stack on top of each other in the corner.
+      if (turningOn) ['dl','q','qr'].forEach(function(k){
+        if (k !== key) { try { localStorage.setItem('kar_help_' + k, '0'); } catch(e){} karHelpApply(k); }
+      });
       karHelpApply(key);
     }
     // ── "Choose the karaoke songs folder…" (Guide, step 2) ──────────────────────────────
@@ -1234,6 +1250,8 @@ if (!$KAR_LOCAL) {
       });
     }
     function karPanelClose(){
+      // a help card belongs to its panel — it should not outlive it on screen
+      ['dl','q','qr'].forEach(function(k){ try { localStorage.setItem('kar_help_' + k, '0'); } catch(e){} karHelpApply(k); });
       Object.keys(KAR_PANELS).forEach(function(pid){
         document.getElementById(pid).style.display = 'none';
         var b = document.getElementById(KAR_PANELS[pid][0]);
