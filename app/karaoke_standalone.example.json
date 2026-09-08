@@ -1,0 +1,6 @@
+{
+    "_readme": "This file being here is what makes this a standalone karaoke: no server, no accounts, no cloud. Everything else is chosen on screen, in the Guide.",
+    "songs_folder": "",
+    "port": "8899",
+    "singers": []
+}

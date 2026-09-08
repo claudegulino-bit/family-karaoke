@@ -1,0 +1,1447 @@
+<?php
+// Full-page Karaoke system — opened in its own tab from People > 🎤 Karaoke.
+// the owner (2026-09-06): "karaoke requires a space" — the in-app tab lost half the screen
+// to the sidebar and People headers.
+//
+// ONE page, TWO worlds (2026-09-08). Which one it is comes from karaoke_backend.php:
+//
+//   SERVER   — the owner's casAI. MySQL, the song list published by karaoke_sync.py, a
+//              login, three named Macs, and every action posted to /app.php where it
+//              becomes a queue row for the watcher.
+//   LOCAL    — one Mac in one house (another household). SQLite in a file,
+//              the songs folder scanned live, no login, no Mac picker, and actions
+//              posted to karaoke_api.php which drives mpv on this same machine.
+//
+// Everything below is shared. Where the two genuinely differ, the difference is named
+// with $KAR_LOCAL rather than duplicated into a second copy of the page.
+require_once __DIR__ . '/karaoke_backend.php';
+$KAR_LOCAL = kar_is_local();
+
+if (!$KAR_LOCAL) {
+    // casAI's own gate. Standalone has no accounts to check — one Mac, one house.
+    session_start();
+    if (empty($_SESSION['user_id'])) { header('Location: /login.php'); exit; }
+}
+header('Cache-Control: no-store, no-cache, must-revalidate');
+function h($value): string { return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); }
+
+if ($KAR_LOCAL) {
+    $pdo = kar_db();                       // SQLite, created on first run
+} else {
+    $config = require __DIR__ . '/../config/database.php';
+    try {
+        $dsn = "mysql:host={$config['host']};dbname={$config['database']};charset={$config['charset']}";
+        $pdo = new PDO($dsn, $config['username'], $config['password'], [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+    } catch (Throwable $e) { $pdo = null; }
+}
+// ---- WHICH MAC? (2026-09-07) ---------------------------------------------
+// the owner has three: this laptop, the other Macs. They
+// share ONE Google Drive songs folder and ONE casAI server, so without a name they
+// would all answer the same ▶ Play and the song would start in two houses at once.
+// A request is addressed to a Mac by name; each Mac answers only its own.
+// TO ADD A MAC: use "+ Add a Mac..." in the Play-on box on the page — then put the SAME
+// name in that Mac's ~/casai/karaoke_config.json as "mac_name". The two must match exactly.
+// ⚠ STANDALONE HAS NO PICKER AT ALL: one Mac, nothing to address, so his machine names
+// never travel to anyone else's house.
+$KAR_MACS = [];
+if (!$KAR_LOCAL) {
+    try {
+        if ($pdo) $KAR_MACS = $pdo->query("SELECT name FROM karaoke_macs ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
+    } catch (Throwable $e) { $KAR_MACS = []; }
+    if (!$KAR_MACS) $KAR_MACS = ['MacBook Pro'];   // never render an empty picker
+}
+?><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Karaoke — casAI</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; background:#1A1F2C; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .kar-wrap { max-width:1660px; margin:0 auto; padding:18px 26px 26px; }
+  code { background:#121620; padding:1px 5px; border-radius:4px; }
+  /* Pitch stepper: real − / + buttons either side of the number, big enough to
+     hit easily (the owner, 2026-09-06: "make the field wider, and the arrows could
+     go one to the right and one to the left where we have more space"). The
+     browser's tiny built-in spinner is hidden — the buttons replace it. */
+  .kar-pitch::-webkit-inner-spin-button, .kar-pitch::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .kar-pitch { -moz-appearance: textfield; appearance: textfield; }
+  .kar-pstep { flex: 0 0 auto; width: 26px; height: 24px; font-size: 16px; font-weight: 700; line-height: 1;
+    background: #1c2331; border: 1px solid #334155; color: #94a3b8; border-radius: 6px; cursor: pointer;
+    font-family: inherit; padding: 0; }
+  .kar-pstep:hover { background: #28324a; color: #e2e8f0; border-color: #60A5FA; }
+  .kar-pstep:active { background: #334155; }
+</style>
+<script src="/qrcode.min.js"></script>
+</head>
+<body>
+<div class="kar-wrap">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px">
+    <h1 style="margin:0;font-size:22px;font-weight:800;color:#f3f4f6">🎤 Karaoke</h1>
+    <?php if ($KAR_LOCAL): ?>
+    <span style="color:#64748b;font-size:12.5px">everything runs on this Mac — nothing to sign in to</span>
+    <?php else: ?>
+    <span style="color:#64748b;font-size:12.5px">songs play in QMidi on the Mac · <a href="/app.php?view=people" style="color:#60A5FA;text-decoration:none">back to casAI</a></span>
+    <?php endif; ?>
+  </div>
+  <?php
+  // WHERE THE SONGS COME FROM — the second real difference between the two worlds.
+  // Server: karaoke_songs.json, written by ~/casai/karaoke_sync.py on the Mac and pushed
+  // via scp, because the page and the files are on different machines.
+  // Local: the folder itself, scanned on every page load — the page IS on the Mac, so a
+  // download or a rename shows up on the next reload with nothing to publish.
+  if ($KAR_LOCAL) {
+      $_kjDb  = kar_songs();
+      $_kjGen = date('Y-m-d H:i');
+      $_kj    = ['songs_folder' => kar_songs_dir()];   // never "not published yet"
+  } else {
+      $_kjPath = '/var/www/getcasa.ai/karaoke_songs.json';
+      $_kj = is_file($_kjPath) ? json_decode((string)file_get_contents($_kjPath), true) : null;
+      $_kjDb   = (is_array($_kj) && !empty($_kj['database']) && is_array($_kj['database'])) ? array_values($_kj['database']) : [];
+      $_kjGen  = is_array($_kj) ? (string)($_kj['generated_at'] ?? '') : '';
+  }
+  // Per-person Best lists (2026-09-06, the owner's redesign): the Main Playlist view is gone
+  // (it was a strict subset of the database — ▶ plays straight from the database file,
+  // never through a QMidi playlist), and "Claude Best" became one person's list among many.
+  // The QMidi .qmpl playlists on the Mac are untouched — this is casAI's own favorites data.
+  $_kjBestBy  = $pdo ? kar_best_lists($pdo) : [];
+  $_kjWho     = kar_best_default($_kjBestBy, $pdo);   // whose list opens first — never a hardcoded name
+  // Stored working pitches (the editable pitch box) — override the filename pitch on ▶ plays.
+  $_kjPitch = $pdo ? kar_pitch_map($pdo) : [];
+  // 🆕 New — everything downloaded in the last 30 days, newest first (the owner, 2026-09-07:
+  // "you don't remember what you downloaded last night... a temporary place, a simple click"),
+  // each with the duplicate finding made at download time so the review list can still flag
+  // it days later.
+  [$_kjNew, $_kjDup] = $pdo ? kar_new_downloads($pdo, $_kjDb) : [[], []];
+  ?>
+  <div id="karaoke-page">
+    <?php if ($_kj === null): ?>
+    <p style="color:#94a3b8;font-size:13px">The karaoke song list hasn't been published to the server yet — ask Claude to run <code>karaoke_sync.py</code> and it will appear here.</p>
+    <?php else: ?>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8"><?= count($_kjDb) ?></span></button>
+      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🆕 New <span style="font-weight:600;opacity:.8"><?= count($_kjNew) ?></span></button>
+      <button type="button" id="kar-best-chip" class="kar-chip" onclick="karSwitch('best',this)" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">⭐ Best of <span id="kar-best-name"><?= h($_kjWho !== '' ? $_kjWho : 'nobody yet') ?></span> <span id="kar-best-count" style="font-weight:600;opacity:.8"><?= $_kjWho !== '' ? count($_kjBestBy[$_kjWho]) : 0 ?></span></button>
+      <select id="kar-who" onchange="karWhoChange(this)" title="Whose Best list — pick a person, or add a new one" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 8px;border-radius:999px">
+        <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
+        <option value="<?= h($_kbp) ?>"><?= h($_kbp) ?></option>
+        <?php endforeach; ?>
+        <option value="__add__">＋ Add a person…</option>
+        <option value="__remove__">− Remove a person…</option>
+      </select>
+      <input id="kar-search" type="text" placeholder="Search songs, pitch, CSG, names…" oninput="karRender()" style="font-family:inherit;flex:1;min-width:150px;background:#121620;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+      <button type="button" onclick="karYtGo()" title="Opens YouTube in the next tab — browse, copy a song's link, then click back to this tab and paste it" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px">▶ YouTube</button>
+      <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The Up Next line — who sings next, in order" style="font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🎶 Up Next <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
+      <button type="button" onclick="karDlToggle()" id="kar-dl-btn" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">⬇ Downloads</button>
+      <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" style="font-family:inherit;background:#1e293b;border:1px solid rgba(192,132,252,.45);color:#c084fc;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">📱</span> Guest QR</button>
+      <button type="button" onclick="location.reload()" title="Reload the song lists from the server (after a download or rename)" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">🔄</span> Refresh</button>
+      <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">📖</span> Guide</button>
+    </div>
+    <div id="kar-guide-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:16px 22px;max-height:calc(100vh - 220px);overflow-y:auto">
+      <div style="display:flex;align-items:center;gap:10px">
+        <h2 style="margin:0;font-size:16px;font-weight:800;color:#f3f4f6">🎤 Karaoke Guide</h2>
+        <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
+      </div>
+      <!-- Reorganised 2026-09-07. Each panel now teaches itself through its own "? How it
+           works" button, so the Guide no longer repeats them — it covers the main screen
+           (which no panel owns), the shape of an evening, and setting up a new Mac. One
+           instruction, one place: two copies of the same sentence is how the wrong one
+           quietly goes stale. -->
+      <p style="margin:12px 0 0;color:#94a3b8;font-size:13px;line-height:1.7">Everything on this page, in the order it matters.</p>
+
+      <h3 style="margin:18px 0 6px;font-size:14px;font-weight:800;color:#93c5fd">1 · 🚀 Setting up the Mac</h3>
+      <p style="margin:0 0 6px;color:#94a3b8;font-size:12.5px">A once-only job, on a Mac that has never run this before.</p>
+      <?php if (!$KAR_LOCAL): ?>
+      <div style="margin:0 0 8px;padding:8px 12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:8px;color:#cbd5e1;font-size:12.5px;line-height:1.8">
+        <b style="color:#93c5fd">First, pick the Mac.</b> The <b>Play on</b> box in the gold bar at the top says which Mac this page is talking to — the music, and the two setup buttons below, all go to that one. Before setting up a new Mac, choose it there.
+      </div>
+      <?php endif; ?>
+      <ol style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
+        <li>Put all your song files (mp4 or mp3) into <b>one folder</b> on the Mac.</li>
+        <?php if (!$KAR_LOCAL): ?>
+        <li><b>Give the Mac its name.</b> If it is not in the <b>Play on</b> box yet, pick <b>＋ Add a Mac…</b> there and type a name for it. Then on that Mac, open <code>~/casai/karaoke_config.json</code> and set <code>"mac_name"</code> to that same name — for example <code>"Kitchen Mac"</code>. That is how it knows which requests are for it, so two houses never start the same song at once. It is a casAI label only; it does not rename the computer.</li>
+        <?php endif; ?>
+        <li><b>Tell the system where that folder is</b> — press the button and pick it on the Mac. Nothing to type, no file to edit.<br>
+          <button type="button" onclick="karPickFolder()" id="kar-pick-btn" style="font-family:inherit;margin:6px 0 2px;background:rgba(96,165,250,.12);border:1px solid #60A5FA;color:#93c5fd;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">📁 Choose the karaoke songs folder…</button><br>
+          <span id="kar-pick-msg" style="display:block;margin-top:4px;color:#64748b;font-size:12px">Using now: <b id="kar-pick-cur" style="color:#94a3b8"><?= h($_kj['songs_folder'] ?? 'not chosen yet') ?></b></span>
+          <span style="display:block;margin-top:2px;color:#475569;font-size:11.5px">The chooser opens <b>on the Mac</b> that plays the music — a web page is never allowed to see a real folder path, so it has to be picked there.</span></li>
+        <li><b>Install the player.</b> This is the only step that uses <b>Terminal</b> — the black window where you type commands. It takes a few minutes and you only ever do it once.
+          <div style="margin:6px 0 0;color:#cbd5e1;font-size:13px;line-height:1.8">
+            <b style="color:#93c5fd">a.</b> Open Terminal: hold <b>⌘</b> and press <b>Space</b>, type <b>Terminal</b>, press <b>Return</b>.<br>
+            <b style="color:#93c5fd">b.</b> Copy the line below, click into the Terminal window, paste it (<b>⌘V</b>) and press <b>Return</b>:
+            <code style="display:block;margin:5px 0;background:#0d1118;border:1px solid #334155;border-radius:6px;padding:7px 10px;color:#D2AD6C;font-size:12.5px;word-break:break-all">brew install mpv yt-dlp</code>
+            <b style="color:#93c5fd">c.</b> <b>If it answers <i>“command not found: brew”</i></b>, this Mac has never had Homebrew — the free tool that installs the other two. Paste this line instead, press Return, let it finish, then do <b>b</b> again:
+            <code style="display:block;margin:5px 0;background:#0d1118;border:1px solid #334155;border-radius:6px;padding:7px 10px;color:#D2AD6C;font-size:12.5px;word-break:break-all">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code>
+          </div>
+          <div style="margin:8px 0 0;padding:8px 12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.25);border-radius:8px;color:#cbd5e1;font-size:12.5px;line-height:1.8">
+            <b style="color:#93c5fd">What to expect —</b> pages of text scrolling past for several minutes. That is normal, and none of it needs reading.
+            It may ask for your Mac password: <b>as you type it nothing appears on screen</b> — no dots, no stars. That is normal too. Type it and press Return.
+            You'll know it has finished when the scrolling stops and you can type again.
+          </div>
+          <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:8px 0 2px;background:rgba(16,185,129,.12);border:1px solid #16a34a;color:#6ee7b7;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Check it worked</button>
+          <span id="kar-tools-msg" style="display:block;margin-top:4px;color:#64748b;font-size:12px">Press this when Terminal has finished — it asks the Mac what is really installed, so you don't have to judge it from the scrollback.</span></li>
+        <li>Keep the Mac <b>on and awake</b> during the party — it does the playing.</li>
+        <li><b>Or the easy way: ask Claude to set up the new Mac.</b> It's a one-time job and Claude does all of the above for you.</li>
+      </ol>
+      <h3 style="margin:16px 0 6px;font-size:14px;font-weight:800;color:#D2AD6C">2 · Sing a song</h3>
+      <ul style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
+        <li><b>Find it</b> — type anything in the search box — the artist, the title, or the name of whoever sings it.</li>
+        <li><b>Press ▶ Play</b> — it plays on the Mac. On the Mac keyboard, <b>F</b> makes it full screen and <b>Q</b> closes it.</li>
+        <li><b>The number next to it is your key</b> — press <b>−</b> or <b>+</b> to move it up or down. It stays that way for next time.</li>
+        <li><b>Someone else wants to sing it?</b> Press <b>Reset</b>, then Play. It plays once in the original key and your own key comes straight back.</li>
+      </ul>
+
+      <h3 style="margin:16px 0 6px;font-size:14px;font-weight:800;color:#D2AD6C">3 · While the music is playing</h3>
+      <ul style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
+        <li>The <b style="color:#D2AD6C">gold bar</b> at the top of the page is always there — that's where you steer the song you're singing.</li>
+        <li><b>Key</b> and <b>Speed</b> change it <i>right now</i>, in the middle of the song.</li>
+        <li><b>▶ Start</b> begins the song again from the top · <b>⏹ Stop</b> stops the music.</li>
+        <li>Anything you change up here is <b>just for tonight</b>. The key a song always starts at is the number on its own row.</li>
+      </ul>
+
+      <h3 style="margin:16px 0 6px;font-size:14px;font-weight:800;color:#D2AD6C">4 · Running a party</h3>
+      <p style="margin:0 0 6px;color:#94a3b8;font-size:12.5px">Three buttons at the top do the work. Each one explains itself — open it and press <b>? How it works</b> inside.</p>
+      <ul style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
+        <li><b style="color:#D2AD6C">🎶 Up Next</b> — the singing line. Click <b>➕</b> on a song to put someone in it, then keep pressing <b>▶ Next singer</b> all night.</li>
+        <li><b style="color:#c084fc">📱 Guest QR</b> — your guests scan it with their phone and ask for songs themselves.</li>
+        <li><b style="color:#6ee7b7">⬇ Downloads</b> — bring new songs in from YouTube.</li>
+        <li>When something happens on its own — a guest's song arriving, for instance — the <b style="color:#c084fc">purple line</b> under the buttons tells you.</li>
+      </ul>
+
+      <h3 style="margin:16px 0 6px;font-size:14px;font-weight:800;color:#D2AD6C">5 · Looking after the songs</h3>
+      <ul style="margin:0;padding-left:22px;color:#e2e8f0;font-size:13.5px;line-height:1.75">
+        <li><b>⭐ is each person's own list</b> — pick their name in the dropdown at the top, then click the stars on their songs.</li>
+        <li><b style="color:#c084fc">🆕 New</b> holds everything that arrived in the last month, so you never have to remember what came in last night. Its <b>Duplicate</b> column warns you when a song looks like one you already own.</li>
+        <li><b>✎</b> renames a song · <b>✕</b> removes it. Removed songs go to a "Deleted" folder — nothing is ever destroyed.</li>
+      </ul>
+
+      <label style="display:flex;align-items:center;gap:7px;margin-top:14px;color:#64748b;font-size:12px;cursor:pointer">
+        <input type="checkbox" id="kar-qmidi-cb" onchange="karQmidiToggle(this)">
+        Show the old blue ▶ QMidi play button too (hidden, not deleted — tick this to go back to it)
+      </label>
+    </div>
+    <div id="kar-yt-hint" style="display:none;margin-top:8px;background:rgba(210,173,108,.07);border:1px solid rgba(210,173,108,.25);border-radius:8px;padding:8px 14px;font-size:12.5px;color:#94a3b8"></div>
+    <div id="kar-activity" style="display:none;margin-top:8px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.35);border-radius:8px;padding:8px 14px;font-size:12.5px;color:#e2e8f0;line-height:1.6"></div>
+    <div id="kar-dl-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:13.5px;font-weight:800;color:#f3f4f6">⬇ Downloads</span>
+        <button type="button" id="kar-helpbtn-dl" onclick="karHelpToggle('dl')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">? How it works</button>
+        <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
+      </div>
+      <!-- Instructions live in their own block, opened by the ? button, instead of as small
+           grey print always on screen (the owner, 2026-09-07: "I see a lot of explanation...
+           it would allow us to organize what we wanna say in a better way"). Shown by default
+           so a new machine teaches its owner; hidden for good once dismissed. -->
+      <div id="kar-help-dl" style="display:none;margin-bottom:12px;background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.28);border-radius:8px;padding:10px 14px;font-size:12.5px;line-height:1.75;color:#cbd5e1">
+        <div><b style="color:#93c5fd">1 · Add the song</b> — press <b>▶ YouTube</b> at the top, find the song, copy its link, paste it in the box below and press <b>+ Add to list</b>. Add as many as you like.</div>
+        <div><b style="color:#93c5fd">2 · Fetch them</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. They come down one at a time, a minute or two each. You can close this panel and carry on.</div>
+        <div><b style="color:#93c5fd">3 · Where they end up</b> — a song that arrives leaves this panel and lives under <b style="color:#c084fc">🆕 New</b> for a month. One that <b style="color:#f87171">didn't work</b> stays here with the reason, so it can't slip past you.</div>
+        <div><b style="color:#93c5fd">Guests can add songs too</b> — anything they send from their phone shows up here marked with their name, and downloads by itself.</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+        <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
+        <button type="button" onclick="karDlStart()" id="kar-dl-start" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">⬇ Download the list</button>
+        <button type="button" onclick="karDlClear()" title="Empties the whole list — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">✕ Clear the list</button>
+      </div>
+      <div id="kar-dl-list" style="margin-top:10px"></div>
+    </div>
+    <div id="kar-q-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:13.5px;font-weight:800;color:#D2AD6C">🎶 Up Next — the singing line</span>
+        <button type="button" id="kar-helpbtn-q" onclick="karHelpToggle('q')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">? How it works</button>
+        <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
+      </div>
+      <div id="kar-help-q" style="display:none;margin-bottom:12px;background:rgba(210,173,108,.06);border:1px solid rgba(210,173,108,.28);border-radius:8px;padding:10px 14px;font-size:12.5px;line-height:1.75;color:#cbd5e1">
+        <div><b style="color:#D2AD6C">Put someone in the line</b> — pick their name in the dropdown at the top of the page, then click <b>➕</b> on the song they want. It goes in at the pitch showing on that row.</div>
+        <div><b style="color:#D2AD6C">Run the party</b> — just keep pressing <b style="color:#6ee7b7">▶ Next singer</b>. It plays the top of the line and moves on by itself.</div>
+        <div><b style="color:#D2AD6C">Fair turns</b> — leave it ticked and everyone sings once before anyone sings twice, so nobody has to keep track. You never rearrange anything.</div>
+        <div><b style="color:#D2AD6C">Fixing the line</b> — <b>↑ ↓</b> move a person, <b>✕</b> takes them out, and <b>✕ Clear the queue</b> empties it at the end of the night.</div>
+        <div><b style="color:#D2AD6C">Guests</b> — anyone who scans the <b style="color:#c084fc">📱 Guest QR</b> code lands in this line by themselves, from their own phone.</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button type="button" onclick="karQNext()" id="kar-q-next" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:800;padding:9px 20px;border-radius:8px">▶ Next singer</button>
+        <select id="kar-q-player" onchange="try{localStorage.setItem('kar_q_player',this.value)}catch(e){}" title="Which player the Next-singer button uses" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;font-size:12.5px;font-weight:700;padding:8px 10px;border-radius:8px">
+          <option value="qmidi">plays in QMidi</option>
+          <option value="mpv">plays in casAI player</option>
+        </select>
+        <label style="display:flex;align-items:center;gap:6px;color:#94a3b8;font-size:12.5px;font-weight:600;cursor:pointer" title="With this on, ▶ Next singer picks whoever has sung the LEAST tonight — everyone sings one song before anyone sings a second, two before anyone's third, and so on">
+          <input type="checkbox" id="kar-q-fair" onchange="try{localStorage.setItem('kar_q_fair',this.checked?'1':'')}catch(e){}">
+          Fair turns
+        </label>
+        <button type="button" onclick="karQClear()" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px">✕ Clear the queue</button>
+      </div>
+      <div id="kar-q-now" style="display:none;margin-top:10px;color:#D2AD6C;font-size:13.5px;font-weight:700"></div>
+      <div id="kar-q-list" style="margin-top:4px"></div>
+    </div>
+    <div id="kar-qr-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(192,132,252,.4);border-radius:10px;padding:16px 18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:13.5px;font-weight:800;color:#c084fc">📱 Guest QR</span>
+        <button type="button" id="kar-helpbtn-qr" onclick="karHelpToggle('qr')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">? How it works</button>
+        <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
+      </div>
+      <!-- The big "scan this" line below stays in the panel body on purpose: it is aimed at
+           the GUEST holding the phone, not at the host. Only the host-facing explanation
+           moved in here. -->
+      <div id="kar-help-qr" style="display:none;margin-bottom:12px;background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.28);border-radius:8px;padding:10px 14px;font-size:12.5px;line-height:1.75;color:#cbd5e1">
+        <div><b style="color:#c084fc">What it is</b> — hold this screen up, or leave it open on the TV, and guests point their phone camera at the square. No app, no password, nothing to install.</div>
+        <div><b style="color:#c084fc">What they can do</b> — ask for a song already in your library, or bring a new one from YouTube. Either way they end up in the <b style="color:#D2AD6C">🎶 Up Next</b> line, and this page tells you the moment it happens.</div>
+        <div><b style="color:#c084fc">What they cannot do</b> — they cannot play, stop, rename or delete anything. Requesting is all the code allows.</div>
+        <div><b style="color:#c084fc">The red button</b> — press <b style="color:#f87171">🔄 New code</b> after a party and every QR you have shown stops working, so last night's guests can't keep sending songs. You'll need to show the new square next time.</div>
+      </div>
+      <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">
+        <div id="kar-qr-code" style="background:#fff;padding:12px;border-radius:10px"></div>
+        <div style="flex:1;min-width:240px">
+          <p style="margin:0;color:#e2e8f0;font-size:15px;font-weight:800">📱 Guests: scan this with your phone camera</p>
+          <p id="kar-qr-url" style="margin:10px 0 0;color:#64748b;font-size:10.5px;word-break:break-all"></p>
+          <button type="button" onclick="karQrRotate()" title="Issues a fresh code — every QR shown before stops working. Do this after a party so old guests can't keep requesting" style="margin-top:10px;font-family:inherit;background:none;border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:8px">🔄 New code (old QR stops working)</button>
+        </div>
+      </div>
+    </div>
+    <div id="kar-del-pop" style="display:none;position:fixed;z-index:60;background:#1c2331;border:1px solid #7f1d1d;border-radius:10px;padding:12px 14px;max-width:360px;box-shadow:0 6px 24px rgba(0,0,0,.65)">
+      <div style="color:#f87171;font-size:12px;font-weight:700;margin-bottom:4px">Remove this song?</div>
+      <div id="kar-del-song" style="color:#e2e8f0;font-size:12.5px;font-weight:600;margin-bottom:6px;word-break:break-word"></div>
+      <div style="color:#94a3b8;font-size:11.5px;margin-bottom:10px">The file is <b>moved</b> to the "09-Deleted by casAI" folder — not destroyed. You can get it back.</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" onclick="karDelHide()" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:6px 14px;border-radius:8px">Cancel</button>
+        <button type="button" onclick="karDelDo()" id="kar-del-yes" style="font-family:inherit;background:#7f1d1d;border:1px solid #ef4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 14px;border-radius:8px">✕ Remove</button>
+      </div>
+    </div>
+    <div id="kar-now-bar" style="position:sticky;top:8px;z-index:40;margin-top:10px;background:#28241a;border:1px solid rgba(210,173,108,.45);border-radius:10px;padding:9px 16px;box-shadow:0 4px 16px rgba(0,0,0,.45)">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <?php if (!$KAR_LOCAL): // one Mac in standalone — nothing to address, so no picker ?>
+        <span style="display:flex;align-items:center;gap:6px">
+          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Play on</span>
+          <select id="kar-mac" onchange="karMacChange(this)" title="Which Mac the music comes out of. Every button on this page — Play, Stop, pitch, tempo — goes to the Mac picked here." style="font-family:inherit;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:12px;font-weight:700;padding:4px 8px;border-radius:8px">
+            <?php foreach ($KAR_MACS as $_km): ?>
+            <option value="<?= h($_km) ?>"><?= h($_km) ?></option>
+            <?php endforeach; ?>
+            <option value="__addmac__">＋ Add a Mac…</option>
+            <option value="__removemac__">− Remove this Mac…</option>
+          </select>
+        </span>
+        <?php endif; ?>
+        <span style="color:#D2AD6C;font-weight:700;font-size:13px">♪ Now playing:</span>
+        <span id="kar-now-song" style="color:#e2e8f0;font-size:13px;font-weight:600"></span>
+        <span id="kar-now-player" style="color:#64748b;font-size:11.5px"></span>
+        <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Live pitch</span>
+          <button type="button" onclick="karLiveAdj(-1)" title="Lower the key by one semitone, while the song keeps playing" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
+          <span id="kar-live-val" style="color:#D2AD6C;font-size:15px;font-weight:800;width:32px;text-align:center">0</span>
+          <button type="button" onclick="karLiveAdj(1)" title="Raise the key by one semitone, while the song keeps playing" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
+          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-left:10px">Tempo</span>
+          <button type="button" onclick="karTempoAdj(-5)" title="Slow the song down 5% — the key stays true (casAI player only)" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
+          <span id="kar-tempo-val" style="color:#6ee7b7;font-size:14px;font-weight:800;width:44px;text-align:center">100%</span>
+          <button type="button" onclick="karTempoAdj(5)" title="Speed the song up 5% — the key stays true (casAI player only)" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
+          <span style="color:#64748b;font-size:11px">a few seconds to take effect · not saved</span>
+          <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the pitch you have it now" style="font-family:inherit;margin-left:10px;background:rgba(16,185,129,.12);border:1px solid #16a34a;color:#6ee7b7;cursor:pointer;font-size:12px;font-weight:700;padding:5px 14px;border-radius:8px">▶ Start</button>
+          <button type="button" onclick="karStop()" id="kar-stop-btn" title="Stop the music — silences the player within a few seconds" style="font-family:inherit;background:rgba(239,68,68,.12);border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:12px;font-weight:700;padding:5px 14px;border-radius:8px">⏹ Stop</button>
+        </span>
+      </div>
+    </div>
+    <div id="kar-count" style="margin-top:10px;color:#64748b;font-size:11.5px"></div>
+    <div style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
+      <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
+      <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
+      <span style="flex:0 0 auto;width:56px;text-align:center" title="Sets the Pitch box to 0 (original key) for one play — for a guest singer. Your saved pitch comes back by itself after the song is sent">Guest<br>Reset</span>
+      <span style="flex:0 0 auto;width:92px;text-align:center" title="The pitch the Play button uses. Click − / + to change it one semitone at a time, or type a number — it saves by itself (gold = your saved pitch)">Pitch</span>
+      <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
+      <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
+      <span style="flex:0 0 auto;width:48px;text-align:center" title="✎ renames the song — changes the REAL file name in the music folder">Edit<br>Name</span>
+      <span style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
+      <span style="flex:0 0 auto;width:460px" title="The song's real file name — artist, title, pitch, and any singer initials you use">Song Filename</span>
+      <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
+    </div>
+    <div id="kar-list" style="margin-top:4px;background:#121620;border:1px solid #334155;border-radius:10px;padding:6px 16px;height:calc(100vh - 275px);min-height:300px;overflow-y:auto"></div>
+    <p style="margin:10px 0 0;color:#64748b;font-size:11.5px">List updated <?= h($_kjGen ?: 'unknown') ?> from the Google Drive song folders on the Mac · how everything works is under <b style="color:#94a3b8">📖 Guide</b> at the top.</p>
+    <script>
+    // WHERE ACTIONS GO — the third and last real difference between the two worlds.
+    // Server: /app.php, which turns each one into a queue row for the Mac watcher.
+    // Local: karaoke_api.php on this same Mac, which just does it. Same request shapes,
+    // same answers, so nothing else on this page has to know which world it is in.
+    var KAR_LOCAL = <?= $KAR_LOCAL ? 'true' : 'false' ?>;
+    var KAR_API   = KAR_LOCAL ? '/karaoke_api.php' : '/app.php';
+    var KAR_DATA = {
+      db:   <?= json_encode($_kjDb, JSON_UNESCAPED_UNICODE) ?>,
+      new:  <?= json_encode($_kjNew, JSON_UNESCAPED_UNICODE) ?>,
+      best: []
+    };
+    // Per-person Best lists — editable via the ⭐ on each row; person picked in the dropdown.
+    var KAR_BEST_BY = <?= json_encode((object)$_kjBestBy, JSON_UNESCAPED_UNICODE) ?>;
+    var KAR_PITCH = <?= json_encode((object)$_kjPitch, JSON_UNESCAPED_UNICODE) ?>;
+    // Songs the download-time check thought you might already own → shown in 🆕 New only.
+    var KAR_DUP = <?= json_encode((object)$_kjDup, JSON_UNESCAPED_UNICODE) ?>;
+    var karWho = <?= json_encode($_kjWho) ?>;
+    try { var _w = localStorage.getItem('kar_best_who'); if (_w && KAR_BEST_BY[_w]) karWho = _w; } catch(e){}
+    var KAR_BEST_SET = {};
+    function karRebuildBest(){
+      KAR_DATA.best = KAR_BEST_BY[karWho] || [];
+      KAR_BEST_SET = {};
+      KAR_DATA.best.forEach(function(n){ KAR_BEST_SET[n.replace(/\.[a-z0-9]{2,4}$/i,'')] = 1; });
+      var nm = document.getElementById('kar-best-name');
+      var ct = document.getElementById('kar-best-count');
+      if (nm) nm.textContent = karWho || 'nobody yet';
+      if (ct) ct.textContent = KAR_DATA.best.length;
+      var sel = document.getElementById('kar-who');
+      if (sel && sel.value !== karWho) sel.value = karWho;
+    }
+    function karWhoChange(sel){
+      if (sel.value === '__add__') {
+        var nn = prompt('Name of the person for the new Best list:');
+        sel.value = karWho;  // put the select back first, in case they cancel
+        if (nn === null) return;
+        nn = nn.trim();
+        if (nn === '' || nn.length > 40) { alert('Please use a name of 1-40 characters.'); return; }
+        if (!KAR_BEST_BY[nn]) {
+          KAR_BEST_BY[nn] = [];
+          var opt = document.createElement('option');
+          opt.value = nn; opt.textContent = nn;
+          // Keep the list alphabetical: insert before the first name that sorts after it.
+          var before = sel.querySelector('option[value="__add__"]');
+          for (var oi = 0; oi < sel.options.length; oi++) {
+            var ov = sel.options[oi].value;
+            if (ov === '__add__') break;
+            if (ov.toLowerCase() > nn.toLowerCase()) { before = sel.options[oi]; break; }
+          }
+          sel.insertBefore(opt, before);
+        }
+        karWho = nn;
+      } else if (sel.value === '__remove__') {
+        // Removes the CURRENTLY SELECTED person and their whole Best list (snapshotted
+        // to the audit log server-side, so it can be brought back if this was a mistake).
+        sel.value = karWho;  // put the select back first
+        var gone = karWho;
+        if (!gone) { alert('There is nobody on the list yet — add a person first.'); return; }
+        var cnt = (KAR_BEST_BY[gone] || []).length;
+        if (!confirm('Remove "' + gone + '" from the list?\n\nTheir Best list (' + cnt + ' song' + (cnt === 1 ? '' : 's') + ') is removed too — a copy is kept in the log, so it can be brought back if you change your mind.')) return;
+        var fdR = new FormData();
+        fdR.append('form_type', 'karaoke_best_remove_person');
+        fdR.append('person', gone);
+        fetch(KAR_API, {method:'POST', body: fdR}).then(function(r){ return r.json(); }).then(function(d){
+          if (!d.ok) { alert('Not removed' + (d.error ? ': ' + d.error : '') + '.'); return; }
+          delete KAR_BEST_BY[gone];
+          var og = sel.querySelector('option[value="' + gone.replace(/"/g, '\\"') + '"]');
+          if (og) og.remove();
+          // An empty list is a legitimate state — a Mac nobody has sung on yet. It used to
+          // put "Claude" back, which on someone else's machine is a stranger's name.
+          var names = Object.keys(KAR_BEST_BY);
+          karWho = names.length ? names[0] : '';
+          try { localStorage.setItem('kar_best_who', karWho); } catch(e){}
+          karRebuildBest();
+          karSwitch('best', document.getElementById('kar-best-chip'));
+        }).catch(function(){ alert('Network error — the removal was not sent.'); });
+        return;
+      } else {
+        karWho = sel.value;
+      }
+      try { localStorage.setItem('kar_best_who', karWho); } catch(e){}
+      karRebuildBest();
+      // Picking a person means "show me their songs" — jump straight to their Best list
+      // (the owner, 2026-09-07: it only switched when the Best chip was already active,
+      // which read as random). karSwitch re-renders, so no separate karRender needed.
+      karSwitch('best', document.getElementById('kar-best-chip'));
+    }
+    function karFnPitch(n){ var m = n.match(/\(([+-]?\d{1,2})\)/); return m ? parseInt(m[1], 10) : null; }
+    var karView = 'db';
+    function karSwitch(view, btn){
+      karView = view;
+      document.querySelectorAll('.kar-chip').forEach(function(b){
+        b.classList.remove('kar-on');
+        b.style.background='#1e293b'; b.style.borderColor='#334155'; b.style.color='#94a3b8';
+      });
+      btn.classList.add('kar-on');
+      btn.style.background='#1d4ed8'; btn.style.borderColor='#2563eb'; btn.style.color='#fff';
+      karRender();
+    }
+    var karRenderedView = 'db';
+    // Which Mac every button on this page talks to. Remembered per browser, so the
+    // TV Mac in one house and the laptop in another each keep their own choice.
+    var karMacName = '';
+    function karMac(){ return karMacName; }
+    function karMacChange(sel){
+      if (sel.value === '__addmac__') {
+        var nn = prompt('What is this Mac called? (e.g. Kitchen Mac mini)\n\nYou will put the same name in that Mac\'s karaoke_config.json.');
+        sel.value = karMacName;                       // put the box back first, in case they cancel
+        if (nn === null) return;
+        karMacSave('karaoke_mac_add', nn.trim(), sel);
+        return;
+      }
+      if (sel.value === '__removemac__') {
+        var gone = karMacName;
+        sel.value = karMacName;
+        if (!confirm('Take "' + gone + '" off the list?\n\nNothing on that Mac changes — it just stops being a choice here.')) return;
+        karMacSave('karaoke_mac_remove', gone, sel);
+        return;
+      }
+      karMacName = sel.value;
+      try { localStorage.setItem('kar_mac', karMacName); } catch(e){}
+    }
+    // Rebuilds the picker from the server's answer, so the page and the saved list can
+    // never drift apart — the same reason the singer dropdown re-reads after a change.
+    function karMacSave(ft, name, sel){
+      if (!name) return;
+      var fd = new FormData();
+      fd.append('form_type', ft);
+      fd.append('name', name);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert(d.error || 'That did not save.'); return; }
+        var keep = (ft === 'karaoke_mac_add') ? d.name : (d.macs[0] || '');
+        while (sel.options.length && sel.options[0].value !== '__addmac__') sel.remove(0);
+        for (var i = d.macs.length - 1; i >= 0; i--) {
+          var o = document.createElement('option');
+          o.value = d.macs[i]; o.textContent = d.macs[i];
+          sel.insertBefore(o, sel.firstChild);
+        }
+        sel.value = keep;
+        karMacName = keep;
+        try { localStorage.setItem('kar_mac', karMacName); } catch(e){}
+        if (ft === 'karaoke_mac_add') {
+          alert('"' + d.name + '" is on the list.\n\nNow on THAT Mac, open ~/casai/karaoke_config.json and set:\n\n    "mac_name": "' + d.name + '"\n\nThe two names must match exactly, or it will not answer.');
+        }
+      }).catch(function(){ alert('Network error — nothing was saved.'); });
+    }
+    (function(){
+      var sel = document.getElementById('kar-mac');
+      if (!sel) return;
+      var saved = null;
+      try { saved = localStorage.getItem('kar_mac'); } catch(e){}
+      // A remembered Mac that has since been removed from the list falls back to the
+      // first one rather than sending music to a name nothing answers to.
+      if (saved) { for (var i=0;i<sel.options.length;i++) if (sel.options[i].value === saved) sel.value = saved; }
+      karMacName = sel.value;
+    })();
+
+    var karNowPlaying = null;         // the song last sent to a player — its row stays lit until another plays
+    var karNowPlayingPlayer = 'qmidi';  // which engine it went to: 'qmidi' or 'mpv' (the casAI player)
+    // The Duplicate column — 🆕 New only. Names the songs already in the library that this
+    // one looked like when it came down, so the two can be compared and one removed.
+    function karDupCell(full){
+      var d = KAR_DUP[full];
+      if (!d) return '<span style="flex:0 0 auto;width:300px;font-size:11px;color:#64748b" '
+        + 'title="Nothing was flagged when this song came down.">—</span>';
+      return '<span style="flex:0 0 auto;width:300px;font-size:10.5px;line-height:1.35;color:#94a3b8" title="' + karEsc(d) + '">'
+        + '<b style="color:#D2AD6C;font-size:11px">⚠ You may already have this</b><br>' + karEsc(d) + '</span>';
+    }
+    function karRender(){
+      var listEl = document.getElementById('kar-list');
+      if (!listEl) return;
+      var q = (document.getElementById('kar-search').value || '').toLowerCase();
+      var src = KAR_DATA[karView] || [];
+      karRenderedView = karView;
+      var hd = document.getElementById('kar-h-dup');
+      if (hd) hd.style.display = (karView === 'new') ? '' : 'none';
+      var out = [];
+      for (var i = 0; i < src.length; i++) {
+        var full = src[i];
+        if (q && full.toLowerCase().indexOf(q) === -1) continue;
+        var name = full.replace(/\.[a-z0-9]{2,4}$/i,'');
+        var inBest = !!KAR_BEST_SET[name];
+        var star = '<button type="button" class="kar-star" data-i="' + i + '" title="'
+          + (inBest ? 'On ' : 'Not on ') + karWho + '’s Best list — click to ' + (inBest ? 'remove it' : 'add it') + '" '
+          + 'style="font-family:inherit;flex:0 0 auto;width:48px;background:none;border:none;cursor:pointer;font-size:17px;line-height:1;padding:0;text-align:center;'
+          + (inBest ? 'color:#FFD34D;text-shadow:0 0 6px rgba(255,211,77,.45)' : 'color:#94a3b8') + '">' + (inBest ? '⭐' : '☆') + '</button>';
+        var ovr = Object.prototype.hasOwnProperty.call(KAR_PITCH, full);
+        var eff = ovr ? KAR_PITCH[full] : karFnPitch(full);
+        if (eff === null) eff = 0;  // every song shows its real playing pitch — 0 by default
+        var playing = (full === karNowPlaying);
+        var pQm = playing && karNowPlayingPlayer === 'qmidi';
+        var pMv = playing && karNowPlayingPlayer === 'mpv';
+        out.push('<div class="kar-row' + (playing ? ' kar-row-playing' : '') + '" style="display:flex;align-items:center;gap:12px;padding:4px 6px;border-top:1px solid #1e293b;border-radius:6px'
+          + (playing ? ';background:rgba(210,173,108,.16)' : '') + '">'
+          + (karShowQmidi
+            ? '<button type="button" class="kar-play" data-player="qmidi" data-i="' + i + '" title="' + (pQm ? 'This song is playing now in QMidi — click to start it again' : 'Play this song in QMidi on the Mac, at the pitch shown in the Pitch box') + '" '
+              + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
+              + (pQm ? 'background:#EF4444;border:1px solid #EF4444;color:#fff;font-weight:700' : 'background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd')
+              + '">' + (pQm ? '♪ ♪ ♪' : '▶ QMidi') + '</button>'
+            : '')
+          + '<button type="button" class="kar-play" data-player="mpv" data-i="' + i + '" title="' + (pMv ? 'This song is playing now in the casAI player — click to start it again' : 'Play this song with casAI\'s player on the Mac, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window') + '" '
+          + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
+          + (pMv ? 'background:#EF4444;border:1px solid #EF4444;color:#fff;font-weight:700' : 'background:rgba(16,185,129,.10);border:1px solid #334155;color:#6ee7b7')
+          + '">' + (pMv ? '♪ ♪ ♪' : (karShowQmidi ? '▶ casAI' : '▶ Play')) + '</button>'
+          + '<button type="button" class="kar-reset" data-i="' + i + '" title="Guest singer: sets the Pitch box to 0 (original key) for the next play only — the saved pitch comes back by itself" '
+          + 'style="font-family:inherit;flex:0 0 auto;width:56px;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:10.5px;padding:3px 0;border-radius:6px">Reset</button>'
+          + '<span style="display:flex;flex:0 0 auto;align-items:center;gap:3px">'
+          + '<button type="button" class="kar-pstep kar-pdn" data-i="' + i + '" title="Pitch DOWN one semitone — saves right away">−</button>'
+          + '<input type="number" class="kar-pitch" data-i="' + i + '" min="-12" max="12" step="1" value="' + (eff === null ? '' : eff) + '" '
+          + 'title="Pitch this song plays at. Use − / + or type a number — blank goes back to the filename pitch." '
+          + 'style="font-family:inherit;flex:0 0 auto;width:34px;background:#121620;border:1px solid ' + (ovr ? '#D2AD6C' : '#334155') + ';color:' + (ovr ? '#D2AD6C' : '#94a3b8') + ';font-size:13px;padding:2px 2px;border-radius:6px;text-align:center">'
+          + '<button type="button" class="kar-pstep kar-pup" data-i="' + i + '" title="Pitch UP one semitone — saves right away">+</button>'
+          + '</span>'
+          + star
+          + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the Up Next line for ' + karEsc(karWho) + ', at the pitch shown" '
+          + 'style="font-family:inherit;flex:0 0 auto;width:58px;background:rgba(96,165,250,.15);border:1px solid #60A5FA;color:#93c5fd;cursor:pointer;font-size:15px;font-weight:800;line-height:1;padding:2px 0;text-align:center;border-radius:6px">＋</button>'
+          + '<button type="button" class="kar-ren" data-i="' + i + '" title="Rename this song — changes the REAL file name in the music folder" '
+          + 'style="font-family:inherit;flex:0 0 auto;width:48px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:0;text-align:center">✎</button>'
+          + '<button type="button" class="kar-del" data-i="' + i + '" title="Remove this song from the database — the file is moved to the 09-Deleted by casAI folder (recoverable), not destroyed" '
+          + 'style="font-family:inherit;flex:0 0 auto;width:48px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:0;text-align:center">✕</button>'
+          // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
+          // characters, 90% ≤66); the long ones wrap to a second line rather than pushing
+          // the Duplicate column out to the far right where it read as stranded.
+          + '<span style="flex:0 0 auto;width:460px;word-break:break-word;font-size:13px;color:' + (playing ? '#D2AD6C;font-weight:700' : '#e2e8f0') + '">' + karEsc(name) + '</span>'
+          // 🆕 New is the review bench, so it gets its own Duplicate column — what this
+          // song looked like when it came down, side by side with the name.
+          + (karView === 'new' ? karDupCell(full) : '')
+          + '</div>');
+      }
+      var lbl = karView === 'db' ? 'song database' : (karView === 'new' ? 'new downloads (last 30 days)' : (karWho + '’s Best list'));
+      document.getElementById('kar-count').textContent = out.length + ' of ' + src.length + ' songs in the ' + lbl + (q ? ' matching “' + q + '”' : '');
+      listEl.innerHTML = out.length ? out.join('')
+        : (karView === 'best' && !src.length
+           ? '<p style="color:#94a3b8;font-size:13px">' + karEsc(karWho) + '’s list is empty — open 🗂 Song Database and click the ☆ on their songs to build it.</p>'
+           : (karView === 'new' && !src.length
+              ? '<p style="color:#94a3b8;font-size:13px">Nothing downloaded in the last 30 days — new songs land here automatically when they arrive.</p>'
+              : '<p style="color:#94a3b8;font-size:13px">No songs match that search.</p>'));
+    }
+    function karEsc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    // ---- Now Playing bar with live pitch (adjust the key WHILE the song plays) ----
+    var karLivePitch = 0;
+    function karNowBar(){
+      // The bar stays on screen AT ALL TIMES (the owner, 2026-09-06) — a fixed home for
+      // Stop/Again/pitch/tempo, nothing appearing and disappearing. Idle = a grey hint.
+      var sng = document.getElementById('kar-now-song');
+      if (!karNowPlaying) {
+        sng.textContent = 'nothing yet — press ▶ Play on a song';
+        sng.style.color = '#64748b'; sng.style.fontStyle = 'italic';
+        document.getElementById('kar-now-player').textContent = '';
+        document.getElementById('kar-live-val').textContent = '0';
+        document.getElementById('kar-tempo-val').textContent = '100%';
+        return;
+      }
+      sng.style.color = '#e2e8f0'; sng.style.fontStyle = 'normal';
+      sng.textContent = karNowPlaying.replace(/\.[a-z0-9]{2,4}$/i,'');
+      document.getElementById('kar-now-player').textContent = karNowPlayingPlayer === 'mpv' ? '· casAI player' : '· QMidi';
+      document.getElementById('kar-live-val').textContent = (karLivePitch > 0 ? '+' : '') + karLivePitch;
+    }
+    var karLiveTempo = 100;
+    // The Now Playing bar (with the Live pitch and Tempo controls) is page memory — without
+    // this it vanished on every reload/⟳ Refresh while the song kept playing, taking the
+    // tempo buttons with it. Saved to localStorage and restored for up to 15 minutes.
+    function karNowSave(){
+      try {
+        if (karNowPlaying) localStorage.setItem('kar_now', JSON.stringify({s: karNowPlaying, p: karNowPlayingPlayer, lp: karLivePitch, lt: karLiveTempo, t: Date.now()}));
+        else localStorage.removeItem('kar_now');
+      } catch(e){}
+    }
+    function karNowRestore(){
+      try {
+        var raw = localStorage.getItem('kar_now');
+        if (!raw) return;
+        var st = JSON.parse(raw);
+        if (!st || !st.s || (Date.now() - (st.t || 0)) > 15 * 60 * 1000) { localStorage.removeItem('kar_now'); return; }
+        karNowPlaying = st.s;
+        karNowPlayingPlayer = st.p || 'qmidi';
+        karLivePitch = typeof st.lp === 'number' ? st.lp : 0;
+        karLiveTempo = typeof st.lt === 'number' ? st.lt : 100;
+        document.getElementById('kar-tempo-val').textContent = karLiveTempo + '%';
+        karNowBar();
+      } catch(e){}
+    }
+    function karTempoAdj(d){
+      if (!karNowPlaying) return;
+      if (karNowPlayingPlayer !== 'mpv') { alert('Tempo control works with the casAI player — play the song with the green ▶ casAI button.'); return; }
+      var nt = Math.max(50, Math.min(150, karLiveTempo + d));
+      if (nt === karLiveTempo) return;
+      karLiveTempo = nt;
+      karNowSave();
+      document.getElementById('kar-tempo-val').textContent = nt + '%';
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_live_tempo'); fd.append('mac', karMac());
+      fd.append('tempo', String(nt));
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d2){
+        if (!d2.ok) alert('The tempo change was not sent' + (d2.error ? ': ' + d2.error : '') + '.');
+      }).catch(function(){ alert('Network error — the tempo change was not sent.'); });
+    }
+    function karLiveAdj(d){
+      if (!karNowPlaying) return;
+      var np = Math.max(-12, Math.min(12, karLivePitch + d));
+      if (np === karLivePitch) return;
+      karLivePitch = np;
+      karNowSave();
+      karNowBar();
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_live_pitch'); fd.append('mac', karMac());
+      fd.append('pitch', String(np));
+      fd.append('player', karNowPlayingPlayer);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d2){
+        if (!d2.ok) alert('The pitch change was not sent' + (d2.error ? ': ' + d2.error : '') + '.');
+      }).catch(function(){ alert('Network error — the pitch change was not sent.'); });
+    }
+    function karPlayAgain(){
+      // Restart the now-playing song from the top — same player, at the pitch as
+      // adjusted live (so a mid-song key change carries into the restart).
+      if (!karNowPlaying) return;
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_play'); fd.append('mac', karMac());
+      fd.append('song', karNowPlaying);
+      fd.append('player', karNowPlayingPlayer);
+      fd.append('pitch_once', String(karLivePitch));
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert('Could not restart the song' + (d.error ? ': ' + d.error : '') + '.'); return; }
+        karLiveTempo = 100;   // a fresh start comes back at normal speed
+        karNowSave();
+        document.getElementById('kar-tempo-val').textContent = '100%';
+        karNowBar();
+      }).catch(function(){ alert('Network error — the restart was not sent.'); });
+    }
+    function karStop(){
+      var btn = document.getElementById('kar-stop-btn');
+      btn.disabled = true; btn.textContent = '…';
+      var fd = new FormData(); fd.append('form_type', 'karaoke_stop'); fd.append('mac', karMac());
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        btn.disabled = false; btn.textContent = '⏹ Stop';
+        if (!d.ok) { alert('Could not send the stop — your session may have expired; reload and sign in again.'); return; }
+        // Clear the now-playing highlight — the Mac silences both players within ~3 seconds.
+        karNowPlaying = null;
+        karNowSave();
+        karNowBar();
+        var listEl = document.getElementById('kar-list');
+        var st = listEl.scrollTop;
+        karRender();
+        listEl.scrollTop = st;
+      }).catch(function(){
+        btn.disabled = false; btn.textContent = '⏹ Stop';
+        alert('Network error — the stop was not sent.');
+      });
+    }
+    function karSavedPitch(song){
+      if (Object.prototype.hasOwnProperty.call(KAR_PITCH, song)) return KAR_PITCH[song];
+      var fp = karFnPitch(song);
+      return fp === null ? 0 : fp;
+    }
+    function karStylePitchBox(inp, song){
+      var ovr = Object.prototype.hasOwnProperty.call(KAR_PITCH, song);
+      inp.style.borderStyle = 'solid';
+      inp.style.borderColor = ovr ? '#D2AD6C' : '#334155';
+      inp.style.color = ovr ? '#D2AD6C' : '#94a3b8';
+    }
+    // Delete confirmation: a small popover NEXT TO the clicked ✕, at the same level —
+    // not the browser's confirm() box, which always lands top-center far from the row.
+    var karDelSong = null;
+    function karDelShow(btn, song){
+      karDelSong = song;
+      document.getElementById('kar-del-song').textContent = song.replace(/\.[a-z0-9]{2,4}$/i, '');
+      var pop = document.getElementById('kar-del-pop');
+      pop.style.display = 'block';
+      var r = btn.getBoundingClientRect();
+      var pw = pop.offsetWidth, ph = pop.offsetHeight;
+      // The ✕ sits in the control block on the LEFT, so open to its RIGHT (over the song name),
+      // vertically centered on the button; fall back to the left if there's no room.
+      var left = r.right + 10;
+      if (left + pw > window.innerWidth - 8) left = Math.max(8, r.left - pw - 10);
+      var top = r.top + r.height / 2 - ph / 2;
+      if (top < 8) top = 8;
+      if (top + ph > window.innerHeight - 8) top = window.innerHeight - ph - 8;
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+    }
+    function karDelHide(){
+      karDelSong = null;
+      document.getElementById('kar-del-pop').style.display = 'none';
+    }
+    // Close the popover on any outside click, and if the list scrolls under it.
+    document.addEventListener('click', function(ev){
+      var pop = document.getElementById('kar-del-pop');
+      if (pop.style.display === 'none') return;
+      if (pop.contains(ev.target)) return;
+      if (ev.target.closest && ev.target.closest('.kar-del')) return;
+      karDelHide();
+    });
+    document.getElementById('kar-list').addEventListener('scroll', function(){
+      if (karDelSong !== null) karDelHide();
+    });
+    function karDelDo(){
+      var songD = karDelSong;
+      karDelHide();
+      if (!songD) return;
+      var fdD = new FormData();
+      fdD.append('form_type', 'karaoke_delete');
+      fdD.append('song', songD);
+      fetch(KAR_API, {method:'POST', body: fdD}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert('Not removed' + (d.error ? ': ' + d.error : '') + '.'); return; }
+        var ixDb = KAR_DATA.db.indexOf(songD);
+        if (ixDb !== -1) KAR_DATA.db.splice(ixDb, 1);
+        var ixNw = KAR_DATA.new.indexOf(songD);
+        if (ixNw !== -1) KAR_DATA.new.splice(ixNw, 1);
+        Object.keys(KAR_BEST_BY).forEach(function(p){
+          var a = KAR_BEST_BY[p]; var ix = a.indexOf(songD);
+          if (ix !== -1) a.splice(ix, 1);
+        });
+        delete KAR_PITCH[songD];
+        karRebuildBest();
+        karRender();
+      }).catch(function(){ alert('Network error — the removal was not sent.'); });
+    }
+    // One delegated listener for Play and Reset — rows themselves carry no handlers (People-tab DOM lesson).
+    document.getElementById('kar-list').addEventListener('click', function(ev){
+      var src = KAR_DATA[karRenderedView] || [];
+      // ➕: add this song to the Up Next singing line for the selected person.
+      var qb = ev.target.closest ? ev.target.closest('.kar-q-add') : null;
+      if (qb) {
+        var songQ = src[parseInt(qb.getAttribute('data-i'), 10)];
+        if (!songQ) return;
+        var inpQ = qb.parentElement.querySelector('.kar-pitch');
+        var pv = inpQ ? parseInt(inpQ.value, 10) : 0;
+        if (isNaN(pv)) pv = 0;
+        var fdQ = new FormData();
+        fdQ.append('form_type', 'karaoke_q_add');
+        fdQ.append('singer', karWho);
+        fdQ.append('song', songQ);
+        fdQ.append('pitch', String(pv));
+        qb.textContent = '…';
+        karQPost(fdQ).then(function(d){
+          if (!d.ok) { qb.textContent = '➕'; alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
+          qb.textContent = '✓'; qb.style.color = '#6ee7b7';
+          setTimeout(function(){ qb.textContent = '➕'; qb.style.color = '#93c5fd'; }, 1500);
+        }).catch(function(){ qb.textContent = '➕'; alert('Network error — the request was not added.'); });
+        return;
+      }
+      // ⭐ / ☆: add or remove this song on the selected person's Best list.
+      var stb = ev.target.closest ? ev.target.closest('.kar-star') : null;
+      if (stb) {
+        var songS = src[parseInt(stb.getAttribute('data-i'), 10)];
+        if (!songS) return;
+        var nameS = songS.replace(/\.[a-z0-9]{2,4}$/i,'');
+        var wantS = !KAR_BEST_SET[nameS];
+        var fdS = new FormData();
+        fdS.append('form_type', 'karaoke_best_toggle');
+        fdS.append('song', songS);
+        fdS.append('person', karWho);
+        fdS.append('want', wantS ? '1' : '0');
+        fetch(KAR_API, {method:'POST', body: fdS}).then(function(r){ return r.json(); }).then(function(d){
+          if (!d.ok) { alert('Not saved' + (d.error ? ': ' + d.error : '') + '. Your session may have expired — reload and sign in again.'); return; }
+          var aS = KAR_BEST_BY[karWho] || (KAR_BEST_BY[karWho] = []);
+          var ixS = aS.indexOf(songS);
+          if (wantS && ixS === -1) aS.push(songS);
+          if (!wantS && ixS !== -1) aS.splice(ixS, 1);
+          karRebuildBest();
+          var listElS = document.getElementById('kar-list');
+          var stS = listElS.scrollTop;
+          karRender();
+          listElS.scrollTop = stS;
+        }).catch(function(){ alert('Network error — the star was not saved.'); });
+        return;
+      }
+      var rb = ev.target.closest ? ev.target.closest('.kar-reset') : null;
+      if (rb) {
+        // Reset = set the Pitch box to 0 for the NEXT play only. Nothing plays, nothing is saved.
+        var song0 = src[parseInt(rb.getAttribute('data-i'), 10)];
+        var inp0 = rb.parentElement.querySelector('.kar-pitch');
+        if (!song0 || !inp0) return;
+        inp0.value = 0;
+        inp0.dataset.temp = '1';
+        inp0.style.borderStyle = 'dashed'; inp0.style.borderColor = '#60A5FA'; inp0.style.color = '#60A5FA';
+        inp0.title = 'Temporary 0 for a guest — after Play, this goes back to the saved pitch (' + karSavedPitch(song0) + ')';
+        return;
+      }
+      var dl = ev.target.closest ? ev.target.closest('.kar-del') : null;
+      if (dl) {
+        var songD = src[parseInt(dl.getAttribute('data-i'), 10)];
+        if (!songD) return;
+        karDelShow(dl, songD);
+        return;
+      }
+      var rn = ev.target.closest ? ev.target.closest('.kar-ren') : null;
+      if (rn) {
+        var songR = src[parseInt(rn.getAttribute('data-i'), 10)];
+        if (!songR) return;
+        var extM = songR.match(/\.[a-z0-9]{2,4}$/i);
+        var ext = extM ? extM[0] : '';
+        var stemOld = ext ? songR.slice(0, -ext.length) : songR;
+        var stemNew = prompt('New name for this song (the file itself will be renamed):', stemOld);
+        if (stemNew === null) return;
+        stemNew = stemNew.trim();
+        if (stemNew === '' || stemNew === stemOld) return;
+        var fdR = new FormData();
+        fdR.append('form_type', 'karaoke_rename');
+        fdR.append('song', songR);
+        fdR.append('new_stem', stemNew);
+        fetch(KAR_API, {method:'POST', body: fdR}).then(function(r){ return r.json(); }).then(function(d){
+          if (!d.ok) { alert('Not renamed' + (d.error ? ': ' + d.error : '') + '.'); return; }
+          // Optimistic update so the tab shows the new name right away; the Mac renames the
+          // real file and refreshes the server catalog within ~15 seconds.
+          var ixDbR = KAR_DATA.db.indexOf(songR);
+          if (ixDbR !== -1) KAR_DATA.db[ixDbR] = d.new_name;
+          var ixNwR = KAR_DATA.new.indexOf(songR);
+          if (ixNwR !== -1) KAR_DATA.new[ixNwR] = d.new_name;
+          Object.keys(KAR_BEST_BY).forEach(function(p){
+            var a = KAR_BEST_BY[p]; var ix = a.indexOf(songR);
+            if (ix !== -1) a[ix] = d.new_name;
+          });
+          if (Object.prototype.hasOwnProperty.call(KAR_PITCH, songR)) {
+            KAR_PITCH[d.new_name] = KAR_PITCH[songR]; delete KAR_PITCH[songR];
+          }
+          karRebuildBest();
+          karRender();
+        }).catch(function(){ alert('Network error — the rename was not sent.'); });
+        return;
+      }
+      var b = ev.target.closest ? ev.target.closest('.kar-play') : null;
+      if (!b || b.disabled) return;
+      var song = src[parseInt(b.getAttribute('data-i'), 10)];
+      if (!song) return;
+      var player = b.getAttribute('data-player') || 'qmidi';
+      var lbl = player === 'mpv' ? '▶ casAI' : '▶ QMidi';
+      // Play ALWAYS plays the number currently showing in the Pitch box.
+      var inp = b.parentElement.querySelector('.kar-pitch');
+      var boxVal = inp ? parseInt(inp.value, 10) : NaN;
+      var pitch = isNaN(boxVal) ? karSavedPitch(song) : Math.max(-12, Math.min(12, boxVal));
+      var temp = inp && inp.dataset.temp === '1';
+      b.disabled = true; b.textContent = '…';
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_play'); fd.append('mac', karMac());
+      fd.append('song', song);
+      fd.append('pitch_once', String(pitch));
+      fd.append('player', player);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (d.ok) {
+          // Light up the playing row (gold row, red ♪ on the button that was clicked) —
+          // it stays lit until another song is played. Re-render rebuilds everything from
+          // state, which also brings a guest-reset pitch box back to the saved pitch;
+          // scroll position is preserved.
+          karNowPlaying = song;
+          karNowPlayingPlayer = player;
+          karLivePitch = pitch;
+          karLiveTempo = 100;
+          karNowSave();
+          document.getElementById('kar-tempo-val').textContent = '100%';
+          karNowBar();
+          var listEl = document.getElementById('kar-list');
+          var st = listEl.scrollTop;
+          karRender();
+          listEl.scrollTop = st;
+        } else {
+          b.textContent = lbl; b.style.color = '#EF4444'; b.disabled = false;
+          alert('Could not queue the song' + (d.error ? ': ' + d.error : '') + '. Your session may have expired — reload and sign in again.');
+        }
+      }).catch(function(){
+        b.textContent = lbl; b.style.color = '#EF4444'; b.disabled = false;
+        alert('Network error — the play request was not sent. Reload the page and try again.');
+      });
+    });
+    // − / + pitch steppers: nudge one semitone, then save through the exact same
+    // path as typing (a dispatched change event) so behavior can never drift.
+    document.getElementById('kar-list').addEventListener('click', function(ev){
+      var b = ev.target.closest ? ev.target.closest('.kar-pstep') : null;
+      if (!b) return;
+      var inp = b.parentElement.querySelector('.kar-pitch');
+      if (!inp) return;
+      var v = parseInt(inp.value, 10);
+      if (isNaN(v)) v = 0;
+      v += b.classList.contains('kar-pup') ? 1 : -1;
+      if (v > 12) v = 12;
+      if (v < -12) v = -12;
+      inp.value = v;
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    // Pitch box: type a number, it saves on its own (delegated — rows carry no handlers).
+    document.getElementById('kar-list').addEventListener('change', function(ev){
+      var inp = ev.target.closest ? ev.target.closest('.kar-pitch') : null;
+      if (!inp) return;
+      var src = KAR_DATA[karRenderedView] || [];
+      var song = src[parseInt(inp.getAttribute('data-i'), 10)];
+      if (!song) return;
+      delete inp.dataset.temp;  // typing a number is a real change — it saves, it is not the guest reset
+      var val = inp.value.trim();
+      if (val !== '' && (isNaN(parseInt(val, 10)) || parseInt(val, 10) < -12 || parseInt(val, 10) > 12)) {
+        alert('Pitch must be a whole number between -12 and +12.');
+        return;
+      }
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_set_pitch');
+      fd.append('song', song);
+      fd.append('pitch', val);
+      inp.disabled = true;
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        inp.disabled = false;
+        if (!d.ok) { alert('The pitch was NOT saved' + (d.error ? ': ' + d.error : '') + '. Your session may have expired — reload and sign in again.'); return; }
+        if (val === '' || !d.stored) {
+          // cleared, or the typed value equals the song's own default — no override kept, box stays grey
+          delete KAR_PITCH[song];
+          if (val === '') {
+            var fp = karFnPitch(song);
+            inp.value = (fp === null ? 0 : fp);
+          }
+          karStylePitchBox(inp, song);
+        } else {
+          KAR_PITCH[song] = parseInt(val, 10);
+          karStylePitchBox(inp, song);
+        }
+      }).catch(function(){ inp.disabled = false; alert('Network error — the pitch was NOT saved.'); });
+    });
+    // ---- YouTube download queue ----
+    var karDlTimer = null;
+    // YouTube serves Cross-Origin-Opener-Policy, which SEVERS the tab from this page
+    // the moment youtube.com loads — window handles go dead, the window name is
+    // cleared, and no script can focus or reuse that tab again. Verified live
+    // 2026-09-06 (curl: coop same-origin-allow-popups); the earlier named-window
+    // reuse could never work. So: open ONCE per session (sessionStorage survives a
+    // reload of this page), and afterwards the button points him at the tab instead
+    // of piling up copies. His catch: "still creating a new YouTube tab every time."
+    function karYtGo(){
+      var p = document.getElementById('kar-dl-panel');
+      if (p.style.display === 'none') karDlToggle();
+      var opened = false;
+      try { opened = sessionStorage.getItem('kar_yt_opened') === '1'; } catch (e) {}
+      if (!opened) {
+        window.open('https://www.youtube.com', '_blank');
+        try { sessionStorage.setItem('kar_yt_opened', '1'); } catch (e) {}
+        karYtHint(false);
+      } else {
+        karYtHint(true);
+      }
+    }
+    function karYtFresh(){
+      // He closed the YouTube tab and wants a new one — explicit, so no duplicate risk.
+      window.open('https://www.youtube.com', '_blank');
+      karYtHint(false);
+      return false;
+    }
+    function karYtHint(already){
+      var el = document.getElementById('kar-yt-hint');
+      if (!el) return;
+      el.style.display = '';
+      el.innerHTML = (already
+        ? '<b style="color:#D2AD6C">YouTube is already open in another tab</b> — click the <b>YouTube tab at the top of the browser</b> (or press ⌘ + Tab keys) to go back to it. Your search is still there. '
+        : 'YouTube opened in the tab next to this one — go back and forth by <b>clicking the tabs at the top of the browser</b>. ')
+        + 'Closed it? <a href="#" onclick="return karYtFresh()" style="color:#60A5FA">Open a fresh YouTube tab</a>.';
+    }
+    // ▶ QMidi column: HIDDEN by default since 2026-09-06 (the owner moved to the casAI
+    // player) — hidden, never deleted. The Guide's checkbox brings it back any time;
+    // the choice is remembered per browser (localStorage kar_show_qmidi).
+    var karShowQmidi = false;
+    try { karShowQmidi = localStorage.getItem('kar_show_qmidi') === '1'; } catch(e){}
+    function karApplyQmidiVis(){
+      var h = document.getElementById('kar-h-qmidi');
+      if (h) h.style.display = karShowQmidi ? '' : 'none';
+      var hc = document.getElementById('kar-h-casai');
+      if (hc) hc.innerHTML = karShowQmidi ? 'Play<br>casAI' : 'Play';
+      var cb = document.getElementById('kar-qmidi-cb');
+      if (cb) cb.checked = karShowQmidi;
+      // The Up Next player picker only means anything while BOTH players are on screen
+      // (the owner, 2026-09-07: "that was when we had two choices — now we only have casAI").
+      // Tied to the same switch as the column, so it returns by itself if QMidi ever does.
+      var ps = document.getElementById('kar-q-player');
+      if (ps) {
+        ps.style.display = karShowQmidi ? '' : 'none';
+        if (!karShowQmidi) ps.value = 'mpv';
+      }
+    }
+    function karQmidiToggle(cb){
+      karShowQmidi = cb.checked;
+      try { localStorage.setItem('kar_show_qmidi', karShowQmidi ? '1' : ''); } catch(e){}
+      karApplyQmidiVis();
+      karRender();
+    }
+    // One panel at a time (the owner, 2026-09-07: Downloads + Up Next + QR all open at
+    // once buried the song list — "I find this all very confusing"). Opening any panel
+    // closes the others; clicking the open one's button just closes it.
+    var KAR_PANELS = {
+      'kar-guide-panel': ['kar-guide-btn', '#94a3b8'],
+      'kar-dl-panel':    ['kar-dl-btn',    '#94a3b8'],
+      'kar-q-panel':     ['kar-q-btn',     '#D2AD6C'],
+      'kar-qr-panel':    ['kar-qr-btn',    '#94a3b8']
+    };
+    // ── Per-panel "? How it works" blocks ───────────────────────────────────────────────
+    // One shared mechanism so every panel behaves the same way (the owner wants this on the
+    // others too). Shown by DEFAULT — a fresh machine teaches whoever sits down at it —
+    // and hidden for good on that computer once its owner has read it and pressed ?.
+    function karHelpOn(key){
+      try { return localStorage.getItem('kar_help_' + key) !== '0'; } catch(e) { return true; }
+    }
+    function karHelpApply(key){
+      var on  = karHelpOn(key);
+      var box = document.getElementById('kar-help-' + key);
+      if (box) box.style.display = on ? '' : 'none';
+      var btn = document.getElementById('kar-helpbtn-' + key);
+      if (btn) {
+        btn.style.color       = on ? '#93c5fd' : '#94a3b8';
+        btn.style.borderColor = on ? '#60A5FA' : '#334155';
+        btn.textContent       = on ? '? Hide this' : '? How it works';
+      }
+    }
+    function karHelpToggle(key){
+      try { localStorage.setItem('kar_help_' + key, karHelpOn(key) ? '0' : '1'); } catch(e){}
+      karHelpApply(key);
+    }
+    // ── "Choose the karaoke songs folder…" (Guide, step 2) ──────────────────────────────
+    // The picker runs ON THE MAC, not here: a browser is never given a real filesystem
+    // path (only a folder's name), so the page asks the watcher to show a native macOS
+    // chooser and then waits for the answer. Same queue every other Mac action uses.
+    function karPickPost(body){
+      return fetch(KAR_API, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body })
+        .then(function(r){ return r.json(); });
+    }
+    function karPickDone(ok, text, path){
+      var btn = document.getElementById('kar-pick-btn');
+      btn.disabled = false;
+      btn.textContent = '📁 Choose the karaoke songs folder…';
+      var msg = document.getElementById('kar-pick-msg');
+      msg.innerHTML = ok
+        ? '<b style="color:#6ee7b7">✅ Saved.</b> Using now: <b id="kar-pick-cur" style="color:#6ee7b7">' + karEsc(path) + '</b>'
+          + (text ? '<br><span style="color:#64748b">' + karEsc(text) + '</span>' : '')
+        : '<span style="color:#f87171">' + karEsc(text) + '</span>';
+    }
+    // Ask the Mac to do one job and wait for its answer. Shared by both Guide buttons
+    // (choose the songs folder · check the Terminal step worked) — same queue, same poll.
+    function karMacAsk(task, onWorking, onDone){
+      karPickPost('form_type=karaoke_pick_folder&mode=start&task=' + task + '&mac=' + encodeURIComponent(karMac())).then(function(d){
+        if (!d.ok) throw new Error('start failed');
+        var tries = 0;
+        var poll = setInterval(function(){
+          if (++tries > 90) {   // 3 minutes, then stop asking
+            clearInterval(poll);
+            onDone(false, 'No answer from the Mac. Is it switched on, awake, and running casAI karaoke?');
+            return;
+          }
+          karPickPost('form_type=karaoke_pick_folder&mode=check&task=' + task + '&id=' + d.id).then(function(s){
+            if (!s.ok || s.status === 'Pending' || s.status === 'Claimed') return;
+            // 'Working' = the Mac has it in hand and is waiting for a person.
+            if (s.status === 'Working') { if (onWorking) onWorking(); return; }
+            clearInterval(poll);
+            onDone(s.status === 'Played', s.note || '');
+          }).catch(function(){});
+        }, 2000);
+      }).catch(function(){ onDone(false, 'Network error — the Mac was not asked.'); });
+    }
+    function karPickFolder(){
+      var btn = document.getElementById('kar-pick-btn');
+      var msg = document.getElementById('kar-pick-msg');
+      btn.disabled = true;
+      btn.textContent = '📁 Waiting…';
+      msg.innerHTML = '<span style="color:#D2AD6C">Go to the Mac — a folder chooser is opening there. Pick your songs folder and press Choose.</span>';
+      karMacAsk('folder',
+        function(){ msg.innerHTML = '<span style="color:#6ee7b7">The chooser is open on the Mac now — pick your songs folder and press Choose.</span>'; },
+        function(ok, note){
+          if (ok) { var bits = note.split(' — '); karPickDone(true, bits.slice(1).join(' — '), bits[0]); }
+          else    { karPickDone(false, note || 'The songs folder was not changed.'); }
+        });
+    }
+    function karCheckTools(){
+      var btn = document.getElementById('kar-tools-btn');
+      var msg = document.getElementById('kar-tools-msg');
+      btn.disabled = true;
+      btn.textContent = '⏳ Asking the Mac…';
+      msg.innerHTML = '<span style="color:#D2AD6C">Checking what is installed on the Mac…</span>';
+      karMacAsk('tools', null, function(ok, note){
+        btn.disabled = false;
+        btn.textContent = '✅ Check it worked';
+        msg.innerHTML = ok
+          ? '<span style="color:#6ee7b7"><b>✅ All set.</b> ' + karEsc(note) + '</span>'
+          : '<span style="color:#f87171"><b>Not ready yet.</b> ' + karEsc(note) + '</span>';
+      });
+    }
+    function karPanelClose(){
+      Object.keys(KAR_PANELS).forEach(function(pid){
+        document.getElementById(pid).style.display = 'none';
+        var b = document.getElementById(KAR_PANELS[pid][0]);
+        if (b) b.style.color = KAR_PANELS[pid][1];
+      });
+      if (karDlTimer) { clearTimeout(karDlTimer); karDlTimer = null; }
+    }
+    // Esc closes whatever panel is open — as long as you're not typing in a box.
+    document.addEventListener('keydown', function(ev){
+      if (ev.key !== 'Escape') return;
+      var t = ev.target && ev.target.tagName;
+      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+      karPanelClose();
+    });
+    function karPanelShow(id){
+      var wasOpen = document.getElementById(id).style.display !== 'none';
+      karPanelClose();
+      if (wasOpen) return false;
+      document.getElementById(id).style.display = '';
+      var b = document.getElementById(KAR_PANELS[id][0]);
+      if (b) b.style.color = '#f3d9a4';
+      return true;
+    }
+    function karGuideToggle(){ karPanelShow('kar-guide-panel'); }
+    function karDlToggle(){ if (karPanelShow('kar-dl-panel')) karDlRefresh(); }
+    function karDlStatusStyle(st){
+      if (st === 'Done') return 'color:#10B981';
+      if (st === 'Error') return 'color:#EF4444';
+      if (st === 'Downloading') return 'color:#D2AD6C';
+      if (st === 'Pending') return 'color:#60A5FA';
+      return 'color:#94a3b8'; // Queued
+    }
+    function karDlRender(rows){
+      var el = document.getElementById('kar-dl-list');
+      if (!rows.length) {
+        // Must not imply "nothing happened" — a song that arrived leaves this panel within
+        // 10 minutes, and the old wording ("Nothing in the list yet") read as a failure
+        // (the owner, 2026-09-07: "he didn't download it... the link disappeared" — it had in
+        // fact downloaded fine 20 seconds after he pasted it).
+        el.innerHTML = '<p style="color:#64748b;font-size:12.5px;margin:4px 0 0">Nothing being fetched right now.</p>';
+        return;
+      }
+      var h = rows.map(function(r){
+        var name = r.title ? karEsc(r.title) : '<span style="color:#64748b">looking up the title…</span>';
+        if (r.requested_by) { name += ' <span style="font-size:11px;color:#c084fc;font-weight:700">· requested by ' + karEsc(r.requested_by) + '</span>'; }
+        // A failure's reason is the whole point of the row — show it in red, not grey.
+        var noteCol = r.status === 'Error' ? '#f87171'
+          : ((r.note.indexOf('already') !== -1 || r.note.indexOf('own') !== -1) ? '#D2AD6C' : '#64748b');
+        var note = r.note ? '<div style="font-size:11px;color:' + noteCol + ';margin-top:1px">' + karEsc(r.note) + '</div>' : '';
+        var canRemove = (r.status === 'Queued' || r.status === 'Error');
+        return '<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #1e293b">'
+          + '<span style="flex:0 0 106px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;' + karDlStatusStyle(r.status) + '">'
+          + (r.status === 'Downloading' ? '⬇ Downloading' : r.status === 'Done' ? '✓ Done' : r.status === 'Error' ? '✕ Didn\'t work' : r.status) + '</span>'
+          + '<div style="flex:1;min-width:0"><div style="font-size:13px;color:#e2e8f0;word-break:break-word">' + name + '</div>' + note + '</div>'
+          + (canRemove ? '<button type="button" onclick="karDlRemove(' + r.id + ')" title="Remove this line from the list (the URL only — no file is touched)" style="font-family:inherit;flex:0 0 auto;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:0 2px">✕</button>' : '')
+          + '</div>';
+      }).join('');
+      el.innerHTML = h;
+    }
+    function karDlRefresh(){
+      if (karDlTimer) { clearTimeout(karDlTimer); karDlTimer = null; }
+      var fd = new FormData(); fd.append('form_type', 'karaoke_dl_state');
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) return;
+        karDlRender(d.rows);
+        var qn = d.rows.filter(function(r){ return r.status === 'Queued'; }).length;
+        var sb = document.getElementById('kar-dl-start');
+        sb.textContent = qn ? ('⬇ Download ' + qn + (qn === 1 ? ' song' : ' songs')) : '⬇ Download the list';
+        // Keep polling while anything is still moving (title lookups, pending/active downloads).
+        var busy = d.rows.some(function(r){ return r.status === 'Pending' || r.status === 'Downloading' || (r.status === 'Queued' && !r.title); });
+        if (busy && document.getElementById('kar-dl-panel').style.display !== 'none') {
+          karDlTimer = setTimeout(karDlRefresh, 4000);
+        }
+      }).catch(function(){});
+    }
+    function karDlAdd(){
+      var inp = document.getElementById('kar-dl-url');
+      var url = inp.value.trim();
+      if (!url) return;
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_dl_add');
+      fd.append('url', url);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
+        inp.value = '';
+        karDlRefresh();
+      }).catch(function(){ alert('Network error — the link was not added.'); });
+    }
+    document.getElementById('kar-dl-url').addEventListener('keydown', function(ev){
+      if (ev.key === 'Enter') { ev.preventDefault(); karDlAdd(); }
+    });
+    function karDlStart(){
+      var fd = new FormData(); fd.append('form_type', 'karaoke_dl_start');
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert('Could not start' + (d.error ? ': ' + d.error : '') + '.'); return; }
+        if (!d.started) { alert('Nothing to download — add a YouTube link first.'); return; }
+        karDlRefresh();
+      }).catch(function(){ alert('Network error — the download was not started.'); });
+    }
+    function karDlClear(){
+      if (!confirm('Empty the download list?\n\nClears the links still waiting and any that failed. Songs that already arrived are untouched — they stay in your library and under 🆕 New. A download in progress keeps going.')) return;
+      var fd = new FormData(); fd.append('form_type', 'karaoke_dl_clear');
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert('Could not clear the list.'); return; }
+        karDlRefresh();
+      }).catch(function(){ alert('Network error — the list was not cleared.'); });
+    }
+    function karDlRemove(id){
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_dl_remove');
+      fd.append('id', String(id));
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert('Not removed' + (d.error ? ': ' + d.error : '') + '.'); return; }
+        karDlRefresh();
+      }).catch(function(){ alert('Network error.'); });
+    }
+    // ===== Up Next singing queue (the party MC line, 2026-09-06) =====
+    var karQ = [];
+    var karQSung = {};   // songs sung tonight per person — drives the Fair-turns rotation
+    function karQPost(fd){
+      return fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (d.queue) { karQ = d.queue; karQSung = d.sung || {}; karQRender(); }
+        return d;
+      });
+    }
+    function karQFetch(){
+      var fd = new FormData(); fd.append('form_type', 'karaoke_q_state');
+      karQPost(fd).catch(function(){});
+    }
+    function karQToggle(){ if (karPanelShow('kar-q-panel')) karQFetch(); }
+    function karQRender(){
+      var waiting = karQ.filter(function(e){ return e.status === 'Waiting'; });
+      var singing = karQ.filter(function(e){ return e.status === 'Singing'; })[0];
+      var cnt = document.getElementById('kar-q-count');
+      if (cnt) cnt.textContent = waiting.length;
+      var nowEl = document.getElementById('kar-q-now');
+      if (nowEl) {
+        if (singing) {
+          nowEl.style.display = '';
+          nowEl.textContent = '🎤 Now singing: ' + singing.singer + ' — '
+            + singing.song.replace(/\.[a-z0-9]{2,4}$/i,'') + '  (' + (singing.pitch > 0 ? '+' : '') + singing.pitch + ')';
+        } else nowEl.style.display = 'none';
+      }
+      var out = [];
+      for (var i = 0; i < waiting.length; i++) {
+        var e = waiting[i];
+        out.push('<div style="display:flex;align-items:center;gap:10px;padding:6px 6px;border-top:1px solid #1e293b">'
+          + '<span style="flex:0 0 22px;color:#64748b;font-size:12px;font-weight:700">' + (i + 1) + '.</span>'
+          + '<span style="flex:0 0 auto;color:#D2AD6C;font-size:13.5px;font-weight:700">' + karEsc(e.singer) + '</span>'
+          + '<span style="color:#e2e8f0;font-size:13px">' + karEsc(e.song.replace(/\.[a-z0-9]{2,4}$/i,'')) + '</span>'
+          + '<span style="color:#94a3b8;font-size:12px">(' + (e.pitch > 0 ? '+' : '') + e.pitch + ')</span>'
+          + '<span style="margin-left:auto;display:flex;gap:4px">'
+          + '<button type="button" class="kar-q-up" data-id="' + e.id + '" title="Move up the line" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;padding:2px 8px;border-radius:6px">↑</button>'
+          + '<button type="button" class="kar-q-dn" data-id="' + e.id + '" title="Move down the line" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;padding:2px 8px;border-radius:6px">↓</button>'
+          + '<button type="button" class="kar-q-rm" data-id="' + e.id + '" title="Remove this request from the line" style="font-family:inherit;background:none;border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:12px;padding:2px 8px;border-radius:6px">✕</button>'
+          + '</span></div>');
+      }
+      document.getElementById('kar-q-list').innerHTML = out.length ? out.join('')
+        : '<p style="color:#64748b;font-size:12.5px;margin:8px 0 0">The line is empty — pick a singer in the dropdown and click ➕ on a song.</p>';
+    }
+    function karQNext(){
+      var waiting = karQ.filter(function(e){ return e.status === 'Waiting'; });
+      if (!waiting.length) { alert('The line is empty — add a request first: pick the singer in the dropdown, then click ➕ on a song.'); return; }
+      var singingE = karQ.filter(function(e){ return e.status === 'Singing'; })[0];
+      var lastSinger = singingE ? singingE.singer : null;
+      var pick = waiting[0];
+      if (document.getElementById('kar-q-fair').checked) {
+        // FULL ROTATION (the owner, 2026-09-06): nobody sings a 2nd song until everyone
+        // waiting has sung their 1st — and nobody a 3rd until everyone their 2nd.
+        // Pick = whoever has sung the LEAST tonight; ties go to queue order, except that
+        // the person who just sang goes last among equals (no back-to-back on a tie).
+        var bestCnt = null, bestJust = null;
+        for (var i = 0; i < waiting.length; i++) {
+          var cnt = karQSung[waiting[i].singer] || 0;
+          var just = (lastSinger && waiting[i].singer === lastSinger) ? 1 : 0;
+          if (bestCnt === null || cnt < bestCnt || (cnt === bestCnt && just < bestJust)) {
+            pick = waiting[i]; bestCnt = cnt; bestJust = just;
+          }
+        }
+      }
+      var player = document.getElementById('kar-q-player').value === 'mpv' ? 'mpv' : 'qmidi';
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_q_play'); fd.append('mac', karMac());
+      fd.append('id', String(pick.id));
+      fd.append('player', player);
+      karQPost(fd).then(function(d){
+        if (!d.ok) { alert('Could not start the next singer' + (d.error ? ': ' + d.error : '') + '.'); return; }
+        karNowPlaying = pick.song;
+        karNowPlayingPlayer = player;
+        karLivePitch = pick.pitch;
+        karLiveTempo = 100;
+        karNowSave();
+        var tv = document.getElementById('kar-tempo-val'); if (tv) tv.textContent = '100%';
+        karNowBar();
+        var listEl = document.getElementById('kar-list');
+        var st = listEl.scrollTop;
+        karRender();
+        listEl.scrollTop = st;
+      }).catch(function(){ alert('Network error — the play was not sent.'); });
+    }
+    function karQClear(){
+      if (!confirm('Clear the whole Up Next line?\n\nOnly the requests list empties — songs, pitches and Best lists are untouched.')) return;
+      var fd = new FormData(); fd.append('form_type', 'karaoke_q_clear');
+      karQPost(fd).catch(function(){ alert('Network error.'); });
+    }
+    document.getElementById('kar-q-list').addEventListener('click', function(ev){
+      var b = ev.target.closest ? ev.target.closest('button') : null;
+      if (!b) return;
+      var fd = new FormData();
+      if (b.classList.contains('kar-q-rm')) { fd.append('form_type', 'karaoke_q_remove'); }
+      else if (b.classList.contains('kar-q-up')) { fd.append('form_type', 'karaoke_q_move'); fd.append('dir', 'up'); }
+      else if (b.classList.contains('kar-q-dn')) { fd.append('form_type', 'karaoke_q_move'); fd.append('dir', 'down'); }
+      else return;
+      fd.append('id', b.getAttribute('data-id'));
+      karQPost(fd).catch(function(){ alert('Network error.'); });
+    });
+    // Guest QR: its own panel behind the 📱 header button (the owner's design, 2026-09-07 —
+    // "a small QR icon... you click on that icon, and that opens up that all process").
+    var karQrShown = '';
+    function karQrToggle(){
+      if (karPanelShow('kar-qr-panel') && !karQrShown) karQrLoad('get');
+    }
+    function karQrRotate(){
+      if (!confirm('Issue a NEW guest code?\n\nEvery QR code shown or scanned before will stop working — guests will need to scan the new one.')) return;
+      karQrLoad('rotate');
+    }
+    function karQrLoad(action){
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_qr');
+      fd.append('action', action);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert('Could not load the guest code' + (d.error ? ': ' + d.error : '') + '.'); return; }
+        karQrShown = d.url;
+        document.getElementById('kar-qr-url').textContent = d.url;
+        var holder = document.getElementById('kar-qr-code');
+        holder.innerHTML = '';
+        new QRCode(holder, { text: d.url, width: 216, height: 216, correctLevel: QRCode.CorrectLevel.M });
+      }).catch(function(){ alert('Network error — could not load the guest code.'); });
+    }
+    try { var _qp = localStorage.getItem('kar_q_player'); if (_qp) document.getElementById('kar-q-player').value = _qp; } catch(e){}
+    // With the QMidi button hidden, ▶ Next singer follows to the casAI player too — and
+    // the picker itself is hidden by karApplyQmidiVis(), which runs after this line.
+    if (!karShowQmidi) document.getElementById('kar-q-player').value = 'mpv';
+    try { if (localStorage.getItem('kar_q_fair') === '1') document.getElementById('kar-q-fair').checked = true; } catch(e){}
+    karQFetch();
+    setInterval(function(){
+      var p = document.getElementById('kar-q-panel');
+      if (p.style.display !== 'none' || karQ.length) karQFetch();
+    }, 10000);
+    // Live activity line (the owner, 2026-09-07): his phone showed download progress while
+    // the Mac stayed silent — the host page only knew if the Downloads panel was open.
+    // This strip watches on its own, every 12s, no panel needed: guest requests show as
+    // they download, and completions stay on screen a couple of minutes.
+    var karActPrev = null;   // id -> status from the previous poll (null = first poll, no announcements)
+    var karActDone = {};     // id -> {msg, until} — finished lines kept visible ~2 min
+    function karActivityPoll(){
+      var fd = new FormData(); fd.append('form_type', 'karaoke_dl_state');
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) return;
+        var lines = [], now = Date.now(), queueChanged = false;
+        d.rows.forEach(function(r){
+          var name = r.title || 'a song';
+          if (r.status === 'Pending' || r.status === 'Downloading' || (r.status === 'Queued' && !r.title)) {
+            lines.push(r.requested_by
+              ? '🎁 <b>' + karEsc(r.requested_by) + '</b> brought a song — <b>' + karEsc(name) + '</b> is downloading…'
+              : '⬇ Downloading <b>' + karEsc(name) + '</b>…');
+          }
+          if (karActPrev && karActPrev[r.id] && karActPrev[r.id] !== r.status) {
+            if (r.status === 'Done') {
+              karActDone[r.id] = { until: now + 120000, msg: r.requested_by
+                ? '✅ <b>' + karEsc(name) + '</b> is ready — <b>' + karEsc(r.requested_by) + '</b> is in line to sing it. Press ⟳ — you\'ll find it under 🆕 New.'
+                : '✅ <b>' + karEsc(name) + '</b> is in the Song Database. Press ⟳ — you\'ll find it under 🆕 New.' };
+              if (r.requested_by) queueChanged = true;
+            } else if (r.status === 'Error' && r.requested_by) {
+              karActDone[r.id] = { until: now + 120000,
+                msg: '✕ <b>' + karEsc(r.requested_by) + '</b>\'s song didn\'t work out — ' + karEsc(r.note || 'ask them to try a different YouTube version') + '.' };
+            }
+          }
+        });
+        karActPrev = {};
+        d.rows.forEach(function(r){ karActPrev[r.id] = r.status; });
+        Object.keys(karActDone).forEach(function(id){
+          if (karActDone[id].until > now) lines.push(karActDone[id].msg); else delete karActDone[id];
+        });
+        var el = document.getElementById('kar-activity');
+        if (lines.length) { el.style.display = ''; el.innerHTML = lines.join('<br>'); }
+        else el.style.display = 'none';
+        if (queueChanged) karQFetch();  // the guest joined the singing line — refresh the count
+      }).catch(function(){});
+    }
+    karActivityPoll();
+    setInterval(karActivityPoll, 12000);
+    // First render on page load — without this, ⟳ Refresh (a plain reload) left the
+    // list empty until a chip was clicked (the owner, 2026-09-06). The Song Database
+    // chip is already marked active in the HTML, and karView starts as 'db' to match.
+    karRebuildBest();
+    karApplyQmidiVis();  // hide/show the QMidi column per the remembered Guide setting
+    karHelpApply('dl');  // the "? How it works" blocks, per this computer's remembered choice
+    karHelpApply('q');
+    karHelpApply('qr');
+    karNowRestore();   // bring back the playing song's name/pitch/tempo after a reload
+    karNowBar();       // the bar itself is always on screen — render its idle state too
+    karRender();
+    </script>
+    <?php endif; ?>
+  </div>
+</div>
+</body>
+</html>
