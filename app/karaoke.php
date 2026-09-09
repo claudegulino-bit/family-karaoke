@@ -83,8 +83,13 @@ if (!$KAR_LOCAL) {
      narrow… it will look better if it was rectangular but longest left to right"). A tall
      column pinned to the right edge is genuinely hard to read; the same words across a wide
      box are two or three short rows instead of a long ladder. Nothing sits under it, so the
-     width costs nothing. */
-  .kar-help { position: fixed; right: 18px; top: 96px;
+     width costs nothing.
+     TOP IS MEASURED, NOT FIXED (the owner, 2026-09-08: "it comes up too high, it covers half
+     of the buttons… it should be lower, where the songs begin"). karHelpPlace() reads the
+     song list's own top and puts the card there, so it lies OVER THE SONGS and never over
+     the header buttons or the panel it is explaining — including when an open panel has
+     pushed the list down. The 230px here is only the value before the first measurement. */
+  .kar-help { position: fixed; right: 18px; top: 230px;
     width: min(760px, calc(100vw - 36px)); max-height: calc(100vh - 130px);
     overflow-y: auto; z-index: 60; background: #161c28; border: 1px solid #D2AD6C;
     border-radius: 10px; padding: 13px 17px; font-size: 12.5px; line-height: 1.7;
@@ -1158,6 +1163,7 @@ if (!$KAR_LOCAL) {
           }
         }
         box.style.display = on ? '' : 'none';
+        if (on) karHelpPlace(box);
       }
       var btn = document.getElementById('kar-helpbtn-' + key);
       if (btn) {
@@ -1165,6 +1171,19 @@ if (!$KAR_LOCAL) {
         btn.style.borderColor = on ? '#D2AD6C' : '#334155';
         btn.textContent       = on ? '? Hide this' : '? How it works';
       }
+    }
+    // Put the card where the SONGS start, not under the header. Measured live because the
+    // list moves: an open panel pushes it down, and the header wraps on a narrow window.
+    // Clamped so a very tall panel can never push the card off the bottom of the screen.
+    function karHelpPlace(box){
+      if (window.innerWidth <= 900) { box.style.top = ''; box.style.maxHeight = ''; return; }
+      var list = document.getElementById('kar-list');
+      var vh   = window.innerHeight;
+      var top  = list ? Math.round(list.getBoundingClientRect().top) : 230;
+      if (top < 120)      top = 120;
+      if (top > vh - 220) top = vh - 220;
+      box.style.top = top + 'px';
+      box.style.maxHeight = (vh - top - 16) + 'px';
     }
     function karHelpToggle(key){
       var turningOn = !karHelpOn(key);
