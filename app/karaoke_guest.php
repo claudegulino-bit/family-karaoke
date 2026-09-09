@@ -175,11 +175,15 @@ $_db = $tokenOk ? kar_catalog() : [];
   </div>
   <div id="g-whoami" style="margin-top:6px;font-size:12px;color:#6ee7b7"></div>
   <div id="g-line" style="margin-top:12px"></div>
-  <input id="g-search" type="text" placeholder="Search a song… (artist or title)" style="width:100%;margin-top:12px;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:15px;padding:11px 13px">
-  <div id="g-results" style="margin-top:8px"></div>
+  <div style="margin-top:16px;background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.35);border-radius:10px;padding:12px 14px">
+    <p style="margin:0;color:#93c5fd;font-size:13.5px;font-weight:700">🎵 Find your song</p>
+    <p style="margin:6px 0 8px;color:#94a3b8;font-size:12px"><b style="color:#cbd5e1"><?= count($_db) ?> songs</b> are already here. Start typing and they appear — no button to press.</p>
+    <input id="g-search" type="text" placeholder="Type an artist or a song title…" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:15px;padding:11px 13px">
+    <div id="g-results" style="margin-top:8px"></div>
+  </div>
   <div style="margin-top:16px;background:rgba(210,173,108,.07);border:1px solid rgba(210,173,108,.3);border-radius:10px;padding:12px 14px">
-    <p style="margin:0;color:#D2AD6C;font-size:13.5px;font-weight:700">🎁 Can't find your song?</p>
-    <p style="margin:6px 0 8px;color:#94a3b8;font-size:12px">Search YouTube for it right here — type the singer or the name of the song.</p>
+    <p style="margin:0;color:#D2AD6C;font-size:13.5px;font-weight:700">🎁 Not in the list above?</p>
+    <p style="margin:6px 0 8px;color:#94a3b8;font-size:12px">Then look on YouTube — type the singer or the name of the song. This brings in a <b style="color:#cbd5e1">new</b> song that nobody here has yet.</p>
     <div style="display:flex;gap:8px">
       <input id="g-yt" type="text" placeholder="e.g. Volare, or Andrea Bocelli" maxlength="120" style="flex:1;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:14px;padding:10px 12px">
       <button type="button" id="g-ytbtn" onclick="gYt()" style="flex:0 0 auto;font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:700;padding:10px 16px;border-radius:10px">Search</button>
