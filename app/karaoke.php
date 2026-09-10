@@ -437,13 +437,22 @@ if (!$KAR_LOCAL) {
       </div>
     </div>
     <div id="kar-count" style="margin-top:10px;color:#64748b;font-size:11.5px"></div>
+    <!-- Two group headings over the row: the left half is about setting a song up, the right half
+         about singing it. Widths here must stay in step with the row below — the left group is
+         124+12+48+12+48 = 244px, then a 16px spacer with a 12px gap either side. -->
+    <div style="display:flex;align-items:flex-end;gap:12px;margin-top:14px;padding:0 16px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
+      <span style="flex:0 0 auto;width:244px;text-align:center;color:#94a3b8;border-bottom:1px solid #334155;padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
+      <span style="flex:0 0 auto;width:16px"></span>
+      <span style="flex:1;min-width:0;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Sing</span>
+    </div>
     <div style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
-      <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
-      <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
       <span style="flex:0 0 auto;width:124px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number — it saves by itself (gold = your saved pitch). ⟲ drops it to 0 for one play only, for a guest singer, then your pitch comes back.">Pitch</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
-      <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
+      <span style="flex:0 0 auto;width:16px"></span>
+      <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
+      <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
+      <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
       <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
     </div>
@@ -678,16 +687,6 @@ if (!$KAR_LOCAL) {
         var pMv = playing && karNowPlayingPlayer === 'mpv';
         out.push('<div class="kar-row' + (playing ? ' kar-row-playing' : '') + '" style="display:flex;align-items:center;gap:12px;padding:4px 6px;border-top:1px solid #1e293b;border-radius:6px'
           + (playing ? ';background:rgba(210,173,108,.16)' : '') + '">'
-          + (karShowQmidi
-            ? '<button type="button" class="kar-play" data-player="qmidi" data-i="' + i + '" title="' + (pQm ? 'This song is playing now in QMidi — click to start it again' : 'Play this song in QMidi on the Mac, at the pitch shown in the Pitch box') + '" '
-              + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
-              + (pQm ? 'background:#EF4444;border:1px solid #EF4444;color:#fff;font-weight:700' : 'background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd')
-              + '">' + (pQm ? '♪ ♪ ♪' : '▶ QMidi') + '</button>'
-            : '')
-          + '<button type="button" class="kar-play" data-player="mpv" data-i="' + i + '" title="' + (pMv ? 'This song is playing now in the casAI player — click to start it again' : 'Play this song with casAI\'s player on the Mac, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window') + '" '
-          + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
-          + (pMv ? 'background:#EF4444;border:1px solid #EF4444;color:#fff;font-weight:700' : 'background:rgba(16,185,129,.10);border:1px solid #334155;color:#6ee7b7')
-          + '">' + (pMv ? '♪ ♪ ♪' : (karShowQmidi ? '▶ casAI' : '▶ Play')) + '</button>'
           + '<span class="kar-pgrp' + (ovr ? ' is-saved' : '') + '">'
           + '<button type="button" class="kar-pstep kar-pdn" data-i="' + i + '" title="Pitch DOWN one semitone — saves right away">−</button>'
           + '<input type="number" class="kar-pitch" data-i="' + i + '" min="-12" max="12" step="1" value="' + (eff === null ? '' : eff) + '" '
@@ -703,10 +702,23 @@ if (!$KAR_LOCAL) {
           + '" style="color:#D2AD6C">⟲</button>'
           + '</span>'
           + star
-          + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the Up Next queue for ' + karEsc(karWho) + ', at the pitch shown" '
-          + 'style="font-family:inherit;flex:0 0 auto;width:58px;background:rgba(96,165,250,.15);border:1px solid #60A5FA;color:#93c5fd;cursor:pointer;font-size:15px;font-weight:800;line-height:1;padding:2px 0;text-align:center;border-radius:6px">＋</button>'
           + '<button type="button" class="kar-del" data-i="' + i + '" title="Remove this song from the database — the file is moved to the 09-Deleted by casAI folder (recoverable), not destroyed" '
           + 'style="font-family:inherit;flex:0 0 auto;width:48px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:0;text-align:center">✕</button>'
+          // The gap that splits the row in two: SET UP on the left (what the song is), SING on
+          // the right (what you do with it). the owner's arrangement, 2026-09-10.
+          + '<span style="flex:0 0 auto;width:16px"></span>'
+          + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the Up Next queue for ' + karEsc(karWho) + ', at the pitch shown" '
+          + 'style="font-family:inherit;flex:0 0 auto;width:58px;background:rgba(96,165,250,.15);border:1px solid #60A5FA;color:#93c5fd;cursor:pointer;font-size:15px;font-weight:800;line-height:1;padding:2px 0;text-align:center;border-radius:6px">＋</button>'
+          + (karShowQmidi
+            ? '<button type="button" class="kar-play" data-player="qmidi" data-i="' + i + '" title="' + (pQm ? 'This song is playing now in QMidi — click to start it again' : 'Play this song in QMidi on the Mac, at the pitch shown in the Pitch box') + '" '
+              + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
+              + (pQm ? 'background:#EF4444;border:1px solid #EF4444;color:#fff;font-weight:700' : 'background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd')
+              + '">' + (pQm ? '♪ ♪ ♪' : '▶ QMidi') + '</button>'
+            : '')
+          + '<button type="button" class="kar-play" data-player="mpv" data-i="' + i + '" title="' + (pMv ? 'This song is playing now in the casAI player — click to start it again' : 'Play this song with casAI\'s player on the Mac, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window') + '" '
+          + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
+          + (pMv ? 'background:#EF4444;border:1px solid #EF4444;color:#fff;font-weight:700' : 'background:rgba(16,185,129,.10);border:1px solid #334155;color:#6ee7b7')
+          + '">' + (pMv ? '♪ ♪ ♪' : (karShowQmidi ? '▶ casAI' : '▶ Play')) + '</button>'
           // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
           // characters, 90% ≤66); the long ones wrap to a second line rather than pushing
           // the Duplicate column out to the far right where it read as stranded.
