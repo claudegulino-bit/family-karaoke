@@ -618,6 +618,29 @@ function kar_mc_applause(): string {
     return '';
 }
 
+/** The applause, looped long enough to actually cover the presentation.
+ *
+ * The recording itself is about six seconds. The walk to the microphone alone is fourteen, and
+ * the announcement is on top of that — so played once it stopped a third of the way in and left
+ * the room in silence, which is exactly how it sounded. This loops it out to a comfortable
+ * length once, caches it, and fades the last second so the end is never a cliff. */
+function kar_mc_applause_loop(float $seconds = 45.0): string {
+    $src = kar_mc_applause();
+    if ($src === '') return '';
+    $ff = kar_tool('ffmpeg');
+    if ($ff === '') return $src;                     // no ffmpeg: better six seconds than none
+    $dir = kar_data_dir() . '/mc';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $out = $dir . '/applause_' . (int)$seconds . 's_' . substr(sha1($src . filemtime($src)), 0, 10) . '.wav';
+    if (is_file($out) && filesize($out) > 0) return $out;
+    $cmd = escapeshellarg($ff) . ' -y -v error -stream_loop -1 -i ' . escapeshellarg($src)
+         . ' -t ' . (int)$seconds
+         . ' -af ' . escapeshellarg('afade=t=out:st=' . ((int)$seconds - 1) . ':d=1')
+         . ' -ar 44100 -ac 2 ' . escapeshellarg($out) . ' 2>/dev/null';
+    @exec($cmd);
+    return (is_file($out) && filesize($out) > 0) ? $out : $src;
+}
+
 /** Start the introduction in the background so the web request returns at once. */
 function kar_mc_spawn(string $song, string $singer, int $pitch): void {
     $worker = __DIR__ . '/karaoke_worker.php';

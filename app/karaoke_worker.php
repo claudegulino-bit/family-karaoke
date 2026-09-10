@@ -70,7 +70,7 @@ if ($job === 'announce') {
         $t0    = microtime(true);
         $wav   = kar_mc_build($singer, $title, $artist);
         $spent = microtime(true) - $t0;
-        $ap    = kar_mc_applause();
+        $ap    = kar_mc_applause_loop();     // looped long enough to cover all of this
         $mclog(sprintf('%s / %s%s — voice %s (%.1fs), applause %s',
             $singer, $title, ($artist !== '' ? ' / ' . $artist : ''),
             ($wav !== '' ? 'ready' : 'FAILED TO BUILD'), $spent,
@@ -81,21 +81,33 @@ if ($job === 'announce') {
         $left = KAR_MC_LEAD_IN - $spent;
         if ($left > 0) usleep((int)($left * 1000000));
 
+        // A room already clapping, UNDER the announcement (the owner, 10 Sep 2026: "during the
+        // presentation I want the applause and the cheering"). Held well down so the voice
+        // still wins — that was the whole point of moving it out from under the voice earlier,
+        // and turning it down is the way to have both.
+        //
+        // Keep every PID and kill THOSE. An earlier version matched the process by its command
+        // line, which is fragile when the path contains spaces and could leave clapping running
+        // into the song.
+        $play = function (string $file, float $vol) : int {
+            if ($file === '') return 0;
+            $out = [];
+            @exec('afplay -v ' . escapeshellarg((string)$vol) . ' ' . escapeshellarg($file)
+                . ' >/dev/null 2>&1 & echo $!', $out);
+            return (int)($out[0] ?? 0);
+        };
+        $kill = function (int $pid) { if ($pid > 0) @exec('kill ' . $pid . ' >/dev/null 2>&1'); };
+
+        $soft = $play($ap, 0.30);                          // the room, under the voice
         if ($wav !== '') {
             @exec('afplay ' . escapeshellarg($wav) . ' >/dev/null 2>&1');   // blocks until spoken
         }
+        $kill($soft);
 
-        // The applause, and the walk to the microphone. Keep its PID and kill THAT — an
-        // earlier version matched the process by its command line, which is fragile when the
-        // path contains spaces, and left the clapping running into the song.
-        $apPid = 0;
-        if ($ap !== '') {
-            $out = [];
-            @exec('afplay ' . escapeshellarg($ap) . ' >/dev/null 2>&1 & echo $!', $out);
-            $apPid = (int)($out[0] ?? 0);
-        }
-        usleep((int)(KAR_MC_WALK_UP * 1000000));           // stand, cross the floor, take the mic
-        if ($apPid > 0) @exec('kill ' . $apPid . ' >/dev/null 2>&1');
+        // And now the room lets go, while he stands, crosses the floor and takes the microphone.
+        $loud = $play($ap, 1.0);
+        usleep((int)(KAR_MC_WALK_UP * 1000000));
+        $kill($loud);
 
         $mclog('presentation finished — starting the song');
         kar_mpv_send(['show-text', '', 1]);
