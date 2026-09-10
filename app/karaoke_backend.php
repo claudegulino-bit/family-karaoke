@@ -576,11 +576,33 @@ function kar_mc_build(string $singer, string $title, string $artist): string {
     return (is_file($out) && filesize($out) > 0) ? $out : '';
 }
 
-/** The applause that carries the walk to the microphone. */
+/** The applause that carries the walk to the microphone.
+ *
+ * ⚠ NO APPLAUSE RECORDING SHIPS WITH CANTORIA, and that is deliberate. The one used in the
+ * original house came from YouTube under an uploader's "no copyright" label — a claim, not a
+ * licence. Fine inside one family; not something to publish in a public repository.
+ *
+ * So it is looked for instead, in three places, in this order:
+ *   1. whatever "applause" names in karaoke_standalone.json
+ *   2. sounds/applause.wav next to the app
+ *   3. NEXT TO THE SONGS — "@ Cantoria/sounds/applause.wav" beside the songs folder
+ *
+ * Three is the useful one. A family that shares its songs through Drive shares this too: put
+ * the file there once and every Mac in the house has it, with nothing to copy and nothing
+ * published. With no file at all the walk-up simply runs in silence. */
 function kar_mc_applause(): string {
-    $c = kar_cfg();
-    $named = trim((string)($c['applause'] ?? ''));
-    foreach ([$named, __DIR__ . '/sounds/applause.wav', __DIR__ . '/sounds/applause.mp3'] as $p) {
+    $c     = kar_cfg();
+    $songs = kar_songs_dir();
+    $near  = $songs !== '' ? dirname($songs) . '/@ Cantoria/sounds/' : '';
+    $tries = [
+        trim((string)($c['applause'] ?? '')),
+        __DIR__ . '/sounds/applause.wav',
+        __DIR__ . '/sounds/applause.mp3',
+        $near !== '' ? $near . 'applause.wav' : '',
+        $near !== '' ? $near . 'applause.mp3' : '',
+        $songs !== '' ? $songs . '/applause.wav' : '',
+    ];
+    foreach ($tries as $p) {
         if ($p !== '' && is_file($p)) return $p;
     }
     return '';
