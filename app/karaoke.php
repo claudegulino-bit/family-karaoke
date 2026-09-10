@@ -236,7 +236,7 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Setting up the Mac</h3>
           <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">A once-only job. If you are already singing, there is nothing to do here.</p>
           <?php if ($KAR_LOCAL): ?>
-          <p style="margin:0 0 6px"><b>Putting the karaoke on another Mac.</b> Open <b>Terminal</b> on that Mac — hold ⌘, press Space, type <code>Terminal</code>, press Return — then paste this one line and press Return. It does everything: the player, the karaoke, the songs folder and the Desktop icon.</p>
+          <p style="margin:0 0 6px"><b>Putting Cantoria on another Mac.</b> Open <b>Terminal</b> on that Mac — hold ⌘, press Space, type <code>Terminal</code>, press Return — then paste this one line and press Return. It does everything: the player, Cantoria itself, the songs folder and the Desktop icon.</p>
           <div style="margin:0 0 12px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
           <p style="margin:0 0 12px;color:#94a3b8;font-size:12.5px">It asks for the Mac password once, if that Mac has never had Homebrew. <b>Nothing appears on screen as you type it</b> — no dots, no stars. That is normal.</p>
           <?php else: ?>
@@ -328,7 +328,7 @@ if (!$KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-update" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Software updates</h3>
           <p style="margin:0 0 8px">When a new version is released, this installs it. <b>Your songs, your settings, everyone's lists and every saved key are left exactly as they are</b> — only the program itself is replaced.</p>
-          <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Update the karaoke</button>
+          <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Update Cantoria</button>
           <div id="kar-upd-state" style="display:none;margin-top:8px;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;line-height:1.6"></div>
           <span id="kar-upd-msg" style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">This version: <b id="kar-upd-ver" style="color:#cbd5e1"><?= h(kar_installed_version()) ?></b></span>
         </div>
@@ -1447,7 +1447,7 @@ if (!$KAR_LOCAL) {
       karMacAsk('update', null, function(ok, note){
         btn.disabled = false;
         btn.style.opacity = 1;
-        btn.textContent = '⬆︎ Update the karaoke';
+        btn.textContent = '⬆︎ Update Cantoria';
         if (!ok) {
           karUpdState('failed', '✕ <b>Not updated.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">' + karEsc(note) + '</div>');
           return;
