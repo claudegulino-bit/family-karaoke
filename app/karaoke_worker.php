@@ -34,6 +34,13 @@ $lock = kar_data_dir() . '/worker.lock';
 if ($job === 'announce') {
     // Deliberately outside the worker lock: a YouTube download in progress is no reason
     // for the party to lose its announcements.
+    // A short log, because the MC runs unattended in the background: when it goes wrong
+    // there is otherwise nothing at all to look at. Timings included — the failure this
+    // exists for was a sequencing one, and only the timings showed it.
+    $mclog = function (string $m) {
+        $d = kar_data_dir();
+        @file_put_contents($d . '/mc.log', date('Y-m-d H:i:s') . '  ' . $m . "\n", FILE_APPEND);
+    };
     $spec   = json_decode((string)base64_decode((string)($argv[3] ?? '')), true) ?: [];
     $song   = (string)($spec['song'] ?? '');
     $singer = (string)($spec['singer'] ?? '');
@@ -42,22 +49,41 @@ if ($job === 'announce') {
     // Nothing below may stop the music. If any step fails, put the volume back and let
     // the song play — a party does not care that the announcer failed.
     try {
-        [$artist, $title] = kar_title_artist($song);
-        $wav = kar_mc_build($singer, $title, $artist);
-
-        // mpv may still be opening its socket: the file can exist a moment before anything
-        // is listening on it. Wait for it to actually ANSWER.
+        // ORDER MATTERS HERE, and getting it wrong is audible.
+        //
+        // Take the song down and put the screen up FIRST — both are instant. Only then build
+        // the announcement, which on the very first outing for a song runs `say` three times
+        // and an ffmpeg mix and can take several seconds. Built first (as this originally was)
+        // those seconds are spent with the song at full volume and the voice arriving late,
+        // over the top of it — which is exactly what it sounded like: two things at once.
+        // Now a slow build simply means a longer quiet moment with the singer's name on
+        // screen, which looks deliberate. After the first time the clips are cached and it
+        // is instant anyway.
         for ($i = 0; $i < 40; $i++) {
             if (kar_mpv_alive()) break;
             usleep(250000);
         }
         if (!kar_mpv_alive()) throw new RuntimeException('the player never answered');
 
+        [$artist, $title] = kar_title_artist($song);      // pure text, costs nothing
         kar_mpv_send(['set_property', 'volume', KAR_MC_BED]);
         $screen = $singer . ' will sing' . "\n" . $title . ($artist !== '' ? "\nfrom " . $artist : '');
         kar_mpv_send(['show-text', $screen, 60000]);
 
-        usleep((int)(KAR_MC_LEAD_IN * 1000000));        // time to read it
+        $t0  = microtime(true);
+        $wav = kar_mc_build($singer, $title, $artist);    // slow the first time, cached after
+        $spent = microtime(true) - $t0;
+        $mclog(sprintf('%s / %s%s — voice %s, built in %.1fs',
+            $singer, $title, ($artist !== '' ? ' / ' . $artist : ''),
+            ($wav !== '' ? 'ready' : 'FAILED TO BUILD'), $spent));
+
+        // Whatever the build already used counts towards the reading time, so a cached
+        // announcement still gets its full pause and a slow one does not get a double wait.
+        $left = KAR_MC_LEAD_IN - $spent;
+        if ($left > 0) usleep((int)($left * 1000000));
+
+        // Belt and braces: make certain the song is still down before the voice speaks.
+        kar_mpv_send(['set_property', 'volume', KAR_MC_BED]);
         if ($wav !== '') {
             @exec('afplay ' . escapeshellarg($wav) . ' >/dev/null 2>&1');   // blocks until spoken
         }
@@ -67,6 +93,7 @@ if ($job === 'announce') {
         usleep((int)(KAR_MC_WALK_UP * 1000000));        // stand, cross the floor, take the mic
         if ($ap !== '') @exec('pkill -f ' . escapeshellarg('afplay ' . $ap) . ' >/dev/null 2>&1');
 
+        $mclog('applause done — song from the top, volume back up');
         kar_mpv_send(['show-text', '', 1]);
         kar_mpv_send(['seek', 0, 'absolute']);          // from the top: the whole song is theirs
         for ($i = 1; $i <= 14; $i++) {
@@ -74,6 +101,7 @@ if ($job === 'announce') {
             usleep(45000);
         }
     } catch (Throwable $e) {
+        $mclog('FAILED: ' . $e->getMessage() . ' — playing the song anyway');
         @kar_mpv_send(['show-text', '', 1]);
         @kar_mpv_send(['set_property', 'volume', 100]);
     }
