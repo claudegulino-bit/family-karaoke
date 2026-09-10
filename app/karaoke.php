@@ -431,7 +431,7 @@ if (!$KAR_LOCAL) {
       <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="✎ renames the song — changes the REAL file name in the music folder">Edit<br>Name</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
-      <span style="flex:0 0 auto;width:460px" title="The song's real file name — artist, title, pitch, and any singer initials you use">Song Filename</span>
+      <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click to sort by name — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
     </div>
     <div id="kar-list" style="margin-top:4px;background:#121620;border:1px solid #334155;border-radius:10px;padding:6px 16px;height:calc(100vh - 275px);min-height:300px;overflow-y:auto"></div>
@@ -536,6 +536,9 @@ if (!$KAR_LOCAL) {
       karRender();
     }
     var karRenderedView = 'db';
+    // Sorting the SONG FILENAME column. '' = the view's natural order (alphabetical for the
+    // library, newest-first for 🆕 New), then A→Z, then Z→A, then back to natural.
+    var karSort = '';
     // Which Mac every button on this page talks to. Remembered per browser, so the
     // TV Mac in one house and the laptop in another each keep their own choice.
     var karMacName = '';
@@ -604,6 +607,11 @@ if (!$KAR_LOCAL) {
       return '<span style="flex:0 0 auto;width:300px;font-size:10.5px;line-height:1.35;color:#94a3b8" title="' + karEsc(d) + '">'
         + '<b style="color:#D2AD6C;font-size:11px">⚠ You may already have this</b><br>' + karEsc(d) + '</span>';
     }
+    function karSortToggle(){
+      karSort = (karSort === '') ? 'az' : (karSort === 'az') ? 'za' : '';
+      karRender();
+    }
+
     function karRender(){
       var listEl = document.getElementById('kar-list');
       if (!listEl) return;
@@ -612,8 +620,23 @@ if (!$KAR_LOCAL) {
       karRenderedView = karView;
       var hd = document.getElementById('kar-h-dup');
       if (hd) hd.style.display = (karView === 'new') ? '' : 'none';
+      // ⚠ Sort the ORDER, not the array. Every click handler below resolves its data-i against
+      // KAR_DATA[karRenderedView], so reordering the array itself would make Play, ✎ and ✕ act on
+      // the wrong song. Building an index list keeps data-i meaning what it has always meant.
+      var order = [];
+      for (var oi = 0; oi < src.length; oi++) order.push(oi);
+      if (karSort === 'az' || karSort === 'za') {
+        var dir = (karSort === 'az') ? 1 : -1;
+        order.sort(function(a, b){
+          return dir * src[a].localeCompare(src[b], undefined, { sensitivity: 'base', numeric: true });
+        });
+      }
+      var hs = document.getElementById('kar-h-song');
+      if (hs) hs.textContent = 'Song Filename' + (karSort === 'az' ? '  ▲' : karSort === 'za' ? '  ▼' : '');
+
       var out = [];
-      for (var i = 0; i < src.length; i++) {
+      for (var k = 0; k < order.length; k++) {
+        var i = order[k];
         var full = src[i];
         if (q && full.toLowerCase().indexOf(q) === -1) continue;
         var name = full.replace(/\.[a-z0-9]{2,4}$/i,'');
