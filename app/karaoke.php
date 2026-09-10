@@ -75,13 +75,19 @@ if (!$KAR_LOCAL) {
      group (.kar-pgrp) and the parts have no borders of their own — the owner, 2026-09-10: "it looks
      like there are four columns within pitch". The group's border also carries the state that
      used to live on the number box: gold = a saved pitch, dashed blue = a temporary guest reset. */
-  .kar-pgrp { display: inline-flex; align-items: center; flex: 0 0 auto;
+  .kar-pgrp { display: inline-flex; align-items: center; flex: 0 0 auto; width: 114px;
     background: #121620; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+  /* The ⟲ is HIDDEN, not dimmed, on a song already at 0 — nothing to reset, so nothing to see.
+     Its space is still reserved (visibility, not display) because collapsing it would make the
+     rows ragged: every column after Pitch would shift left on those rows only. */
+  .kar-preset.is-idle { visibility: hidden; }
   .kar-pgrp.is-saved { border-color: #D2AD6C; }
   .kar-pgrp.is-temp  { border-style: dashed; border-color: #60A5FA; }
-  .kar-pstep, .kar-preset { flex: 0 0 auto; width: 26px; height: 24px; font-size: 16px; font-weight: 700; line-height: 1;
+  .kar-pstep { flex: 0 0 auto; width: 26px; height: 24px; font-size: 16px; font-weight: 700; line-height: 1;
     background: transparent; border: 0; color: #94a3b8; border-radius: 0; cursor: pointer;
     font-family: inherit; padding: 0; }
+  .kar-preset { flex: 0 0 auto; width: 26px; height: 24px; font-size: 19px; font-weight: 400; line-height: 1;
+    background: transparent; border: 0; border-radius: 0; cursor: pointer; font-family: inherit; padding: 0; }
   .kar-pstep:hover, .kar-preset:hover { background: rgba(96,165,250,.18); color: #e2e8f0; }
   .kar-pstep:active, .kar-preset:active { background: rgba(96,165,250,.30); }
   .kar-pgrp .kar-pitch { background: transparent; border: 0; border-radius: 0; }
@@ -690,11 +696,11 @@ if (!$KAR_LOCAL) {
           + '<button type="button" class="kar-pstep kar-pup" data-i="' + i + '" title="Pitch UP one semitone — saves right away">+</button>'
           // Guest reset lives INSIDE the pitch control now, not in a column of its own — it is a
           // thing you do TO the pitch, so it belongs beside it (the owner, 2026-09-10: too many columns).
-          + '<button type="button" class="kar-preset kar-reset" data-i="' + i + '" title="'
+          + '<button type="button" class="kar-preset kar-reset' + (eff === 0 ? ' is-idle' : '') + '" data-i="' + i + '" title="'
           + (eff === 0
               ? 'Already at the original key — nothing to reset'
               : 'Guest singer: drops the pitch to 0 for the NEXT PLAY ONLY — your saved pitch comes back by itself afterwards')
-          + '" style="font-size:13px;color:#D2AD6C' + (eff === 0 ? ';opacity:.3;cursor:default' : '') + '">⟲</button>'
+          + '" style="color:#D2AD6C">⟲</button>'
           + '</span>'
           + star
           + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the Up Next queue for ' + karEsc(karWho) + ', at the pitch shown" '
@@ -870,8 +876,7 @@ if (!$KAR_LOCAL) {
       if (!rb) return;
       var v = parseInt(inp.value, 10);
       var idle = (isNaN(v) || v === 0) && inp.dataset.temp !== '1';
-      rb.style.opacity = idle ? '.3' : '1';
-      rb.style.cursor  = idle ? 'default' : 'pointer';
+      rb.classList.toggle('is-idle', idle);
       rb.title = idle
         ? 'Already at the original key — nothing to reset'
         : 'Guest singer: drops the pitch to 0 for the NEXT PLAY ONLY — your saved pitch comes back by itself afterwards';
