@@ -447,16 +447,20 @@ if (!$KAR_LOCAL) {
     </div>
     <div id="kar-count" style="margin-top:10px;color:#64748b;font-size:11.5px"></div>
     <!-- Two group headings over the row: the left half is about setting a song up, the right half
-         about singing it. Widths here must stay in step with the row below — the left group is
-         124+12+48+12+48 = 244px, then a 16px spacer with a 12px gap either side. -->
-    <div style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
-      <span style="flex:0 0 auto;width:260px;text-align:center;color:#94a3b8;border-bottom:1px solid #334155;padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
-      <span class="kar-sectgap"></span>
-      <span style="flex:1;min-width:0;padding-left:8px;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Sing</span>
+         about singing it. These are hand-aligned to the controls below, so the numbers must stay in
+         step with them. Measured from the container's own left edge: the list box adds 1px of border
+         and each row 6px of padding, so BOTH heading rows carry 7px of extra left padding (16+7=23)
+         to sit over the row. The SET UP label then spans its three controls — pitch 114 + star 48 +
+         delete 48 with 12px gaps = 234, inset 9px (the section band's 8px padding + 1px border) —
+         and the spacer runs to where the ＋ Add button starts. -->
+    <div style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px 0 23px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
+      <span style="flex:0 0 auto;width:234px;margin-left:9px;text-align:center;color:#94a3b8;border-bottom:1px solid #334155;padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
+      <span style="flex:0 0 auto;width:70px"></span>
+      <span style="flex:1;min-width:0;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Play and sing</span>
     </div>
-    <div style="display:flex;align-items:flex-end;gap:0;margin-top:6px;padding:0 16px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
+    <div style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px 0 23px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
       <span class="kar-sect kar-sect-a">
-      <span style="flex:0 0 auto;width:124px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number — it saves by itself (gold = your saved pitch). ⟲ drops it to 0 for one play only, for a guest singer, then your pitch comes back.">Pitch</span>
+      <span style="flex:0 0 auto;width:114px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number — it saves by itself (gold = your saved pitch). ⟲ drops it to 0 for one play only, for a guest singer, then your pitch comes back.">Pitch</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
       </span>
