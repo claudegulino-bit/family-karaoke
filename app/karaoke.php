@@ -159,7 +159,7 @@ if (!$KAR_LOCAL) {
         <option value="__add__">＋ Add a person…</option>
         <option value="__remove__">− Remove a person…</option>
       </select>
-      <input id="kar-search" type="text" placeholder="Search songs, pitch, CSG, names…" oninput="karRender()" style="font-family:inherit;flex:1;min-width:150px;background:#121620;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+      <input id="kar-search" type="text" placeholder="Search songs, pitch, CSG, names…" oninput="karRender()" onkeydown="if(event.key==='Escape'){karClearSearch(true);}" title="Type to filter. Esc clears it — and switching views clears it too." style="font-family:inherit;flex:1;min-width:150px;background:#121620;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
       <button type="button" onclick="karYtGo()" title="Opens YouTube in the next tab — browse, copy a song's link, then click back to this tab and paste it" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px">▶ YouTube</button>
       <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The Up Next queue — who sings next, in order" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">🎶 Up Next <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
       <button type="button" onclick="karDlToggle()" id="kar-dl-btn" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">⬇ Downloads</button>
@@ -524,6 +524,15 @@ if (!$KAR_LOCAL) {
     }
     function karFnPitch(n){ var m = n.match(/\(([+-]?\d{1,2})\)/); return m ? parseInt(m[1], 10) : null; }
     var karView = 'db';
+    // One place that empties the search box. render=true when the caller is not about to
+    // re-render anyway (the ✕ Show all button); karSwitch passes false and renders itself.
+    function karClearSearch(render){
+      var el = document.getElementById('kar-search');
+      if (!el) return;
+      if (el.value !== '') { el.value = ''; }
+      if (render !== false) karRender();
+    }
+
     function karSwitch(view, btn){
       karView = view;
       document.querySelectorAll('.kar-chip').forEach(function(b){
@@ -532,6 +541,9 @@ if (!$KAR_LOCAL) {
       });
       btn.classList.add('kar-on');
       btn.style.background='#1d4ed8'; btn.style.borderColor='#2563eb'; btn.style.color='#fff';
+      // Switching views starts fresh. the owner, 2026-09-10: a search left in the box quietly
+      // filtered the next view too, so 🆕 New would come up empty and the reason was invisible.
+      karClearSearch(false);
       karRender();
     }
     var karRenderedView = 'db';
@@ -689,7 +701,24 @@ if (!$KAR_LOCAL) {
           + '</div>');
       }
       var lbl = karView === 'db' ? 'song database' : (karView === 'new' ? 'new downloads (last 30 days)' : (karWho + '’s Best list'));
-      document.getElementById('kar-count').textContent = out.length + ' of ' + src.length + ' songs in the ' + lbl + (q ? ' matching “' + q + '”' : '');
+      // While a search is active this line stops being a quiet caption and becomes a notice you
+      // cannot miss, with a one-click way out — the old 11.5px grey was easy to walk past, which
+      // is exactly how a forgotten search made a view look empty for no visible reason.
+      var cntEl = document.getElementById('kar-count');
+      if (q) {
+        cntEl.style.cssText = 'margin-top:10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.5);'
+          + 'border-radius:8px;padding:7px 12px;color:#fcd34d;font-size:13px;font-weight:700;'
+          + 'display:flex;align-items:center;gap:10px;flex-wrap:wrap';
+        cntEl.innerHTML = '<span>🔍 Filtered — showing ' + out.length + ' of ' + src.length + ' in the '
+          + karEsc(lbl) + '</span>'
+          + '<span style="font-weight:600;color:#e2e8f0">“' + karEsc(q) + '”</span>'
+          + '<button type="button" onclick="karClearSearch(true)" style="font-family:inherit;margin-left:auto;'
+          + 'background:#3b3324;border:1px solid #D2AD6C;color:#f3d9a4;cursor:pointer;font-size:12px;'
+          + 'font-weight:700;padding:4px 12px;border-radius:999px">✕ Show all</button>';
+      } else {
+        cntEl.style.cssText = 'margin-top:10px;color:#64748b;font-size:11.5px';
+        cntEl.textContent = out.length + ' of ' + src.length + ' songs in the ' + lbl;
+      }
       listEl.innerHTML = out.length ? out.join('')
         : (karView === 'best' && !src.length
            ? '<p style="color:#94a3b8;font-size:13px">' + karEsc(karWho) + '’s list is empty — open 🗂 Song Database and click the ☆ on their songs to build it.</p>'
