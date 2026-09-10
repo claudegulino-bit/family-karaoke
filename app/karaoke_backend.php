@@ -266,6 +266,10 @@ function kar_songs_fresh_in(string $dir): array {
         foreach (scandir($dir) ?: [] as $f) {
             if ($f === '' || $f[0] === '.') continue;
             if (!is_file($dir . '/' . $f)) continue;
+            // The applause is allowed to live in the songs folder — that is the one folder
+            // every Mac in the family definitely has — but it is not a song and must never
+            // appear in the list or be picked by scheduling fairness.
+            if (strcasecmp(pathinfo($f, PATHINFO_FILENAME), 'applause') === 0) continue;
             if (in_array(strtolower(pathinfo($f, PATHINFO_EXTENSION)), KAR_MEDIA_EXT, true)) $out[] = $f;
         }
     }
