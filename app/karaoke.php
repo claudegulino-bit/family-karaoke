@@ -75,6 +75,15 @@ if (!$KAR_LOCAL) {
      group (.kar-pgrp) and the parts have no borders of their own — the owner, 2026-09-10: "it looks
      like there are four columns within pitch". The group's border also carries the state that
      used to live on the number box: gold = a saved pitch, dashed blue = a temporary guest reset. */
+  /* The row reads as two sections: SET UP (what the song is) and SING (what you do with it).
+     Same tint on both, told apart by the gap between them — the owner, 2026-09-10. The widths in
+     the group-heading row above are tied to these: left content 124+12+48+12+48 = 244, +16 padding
+     = 260. Change a column width and that number has to change with it. */
+  .kar-sect { display: flex; align-items: center; gap: 12px; padding: 3px 8px;
+    background: rgba(148,163,184,.10); border: 1px solid rgba(148,163,184,.10); border-radius: 8px; }
+  .kar-sect-a { flex: 0 0 auto; }
+  .kar-sect-b { flex: 1; min-width: 0; }
+  .kar-sectgap { flex: 0 0 auto; width: 28px; }
   .kar-pgrp { display: inline-flex; align-items: center; flex: 0 0 auto; width: 114px;
     background: #121620; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
   /* The ⟲ is HIDDEN, not dimmed, on a song already at 0 — nothing to reset, so nothing to see.
@@ -440,21 +449,25 @@ if (!$KAR_LOCAL) {
     <!-- Two group headings over the row: the left half is about setting a song up, the right half
          about singing it. Widths here must stay in step with the row below — the left group is
          124+12+48+12+48 = 244px, then a 16px spacer with a 12px gap either side. -->
-    <div style="display:flex;align-items:flex-end;gap:12px;margin-top:14px;padding:0 16px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
-      <span style="flex:0 0 auto;width:244px;text-align:center;color:#94a3b8;border-bottom:1px solid #334155;padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
-      <span style="flex:0 0 auto;width:16px"></span>
-      <span style="flex:1;min-width:0;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Sing</span>
+    <div style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
+      <span style="flex:0 0 auto;width:260px;text-align:center;color:#94a3b8;border-bottom:1px solid #334155;padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
+      <span class="kar-sectgap"></span>
+      <span style="flex:1;min-width:0;padding-left:8px;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Sing</span>
     </div>
-    <div style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
+    <div style="display:flex;align-items:flex-end;gap:0;margin-top:6px;padding:0 16px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
+      <span class="kar-sect kar-sect-a">
       <span style="flex:0 0 auto;width:124px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number — it saves by itself (gold = your saved pitch). ⟲ drops it to 0 for one play only, for a guest singer, then your pitch comes back.">Pitch</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
-      <span style="flex:0 0 auto;width:16px"></span>
+      </span>
+      <span class="kar-sectgap"></span>
+      <span class="kar-sect kar-sect-b">
       <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
       <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
+      </span>
     </div>
     <div id="kar-list" style="margin-top:4px;background:#121620;border:1px solid #334155;border-radius:10px;padding:6px 16px;height:calc(100vh - 275px);min-height:300px;overflow-y:auto"></div>
     <p style="margin:10px 0 0;color:#64748b;font-size:11.5px">List updated <?= h($_kjGen ?: 'unknown') ?> from the Google Drive song folders on the Mac · how everything works is under <b style="color:#94a3b8">📖 Guide</b> at the top.</p>
@@ -687,6 +700,7 @@ if (!$KAR_LOCAL) {
         var pMv = playing && karNowPlayingPlayer === 'mpv';
         out.push('<div class="kar-row' + (playing ? ' kar-row-playing' : '') + '" style="display:flex;align-items:center;gap:12px;padding:4px 6px;border-top:1px solid #1e293b;border-radius:6px'
           + (playing ? ';background:rgba(210,173,108,.16)' : '') + '">'
+          + '<span class="kar-sect kar-sect-a">'
           + '<span class="kar-pgrp' + (ovr ? ' is-saved' : '') + '">'
           + '<button type="button" class="kar-pstep kar-pdn" data-i="' + i + '" title="Pitch DOWN one semitone — saves right away">−</button>'
           + '<input type="number" class="kar-pitch" data-i="' + i + '" min="-12" max="12" step="1" value="' + (eff === null ? '' : eff) + '" '
@@ -704,11 +718,14 @@ if (!$KAR_LOCAL) {
           + star
           + '<button type="button" class="kar-del" data-i="' + i + '" title="Remove this song from the database — the file is moved to the 09-Deleted by casAI folder (recoverable), not destroyed" '
           + 'style="font-family:inherit;flex:0 0 auto;width:48px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:0;text-align:center">✕</button>'
-          // The gap that splits the row in two: SET UP on the left (what the song is), SING on
-          // the right (what you do with it). the owner's arrangement, 2026-09-10.
-          + '<span style="flex:0 0 auto;width:16px"></span>'
+          + '</span>'                                   // end SET UP
+          + '<span class="kar-sectgap"></span>'
+          + '<span class="kar-sect kar-sect-b">'       // begin SING
+          // Add and Play sit side by side in SING and are the two things you can DO with a song,
+          // so they are built to the same shape — only the colour tells them apart.
           + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the Up Next queue for ' + karEsc(karWho) + ', at the pitch shown" '
-          + 'style="font-family:inherit;flex:0 0 auto;width:58px;background:rgba(96,165,250,.15);border:1px solid #60A5FA;color:#93c5fd;cursor:pointer;font-size:15px;font-weight:800;line-height:1;padding:2px 0;text-align:center;border-radius:6px">＋</button>'
+          + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
+          + 'background:rgba(96,165,250,.12);border:1px solid #334155;color:#93c5fd">＋ Add</button>'
           + (karShowQmidi
             ? '<button type="button" class="kar-play" data-player="qmidi" data-i="' + i + '" title="' + (pQm ? 'This song is playing now in QMidi — click to start it again' : 'Play this song in QMidi on the Mac, at the pitch shown in the Pitch box') + '" '
               + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
@@ -729,6 +746,7 @@ if (!$KAR_LOCAL) {
           // 🆕 New is the review bench, so it gets its own Duplicate column — what this
           // song looked like when it came down, side by side with the name.
           + (karView === 'new' ? karDupCell(full) : '')
+          + '</span>'                                   // end SING
           + '</div>');
       }
       var lbl = karView === 'db' ? 'song database' : (karView === 'new' ? 'new downloads (last 30 days)' : (karWho + '’s Best list'));
@@ -958,7 +976,10 @@ if (!$KAR_LOCAL) {
       if (qb) {
         var songQ = src[parseInt(qb.getAttribute('data-i'), 10)];
         if (!songQ) return;
-        var inpQ = qb.parentElement.querySelector('.kar-pitch');
+        // .kar-row, not parentElement — the Pitch box now lives in the SET UP section while this
+        // button is in SING, so a parent lookup would find nothing.
+        var rowQ = qb.closest ? qb.closest('.kar-row') : qb.parentElement;
+        var inpQ = rowQ ? rowQ.querySelector('.kar-pitch') : null;
         var pv = inpQ ? parseInt(inpQ.value, 10) : 0;
         if (isNaN(pv)) pv = 0;
         var fdQ = new FormData();
@@ -1085,8 +1106,10 @@ if (!$KAR_LOCAL) {
       if (!song) return;
       var player = b.getAttribute('data-player') || 'qmidi';
       var lbl = player === 'mpv' ? '▶ casAI' : '▶ QMidi';
-      // Play ALWAYS plays the number currently showing in the Pitch box.
-      var inp = b.parentElement.querySelector('.kar-pitch');
+      // Play ALWAYS plays the number currently showing in the Pitch box. Look it up from the ROW —
+      // Pitch sits in the SET UP section and Play in SING, so parentElement would miss it.
+      var rowP = b.closest ? b.closest('.kar-row') : b.parentElement;
+      var inp = rowP ? rowP.querySelector('.kar-pitch') : null;
       var boxVal = inp ? parseInt(inp.value, 10) : NaN;
       var pitch = isNaN(boxVal) ? karSavedPitch(song) : Math.max(-12, Math.min(12, boxVal));
       var temp = inp && inp.dataset.temp === '1';
