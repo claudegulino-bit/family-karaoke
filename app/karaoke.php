@@ -71,11 +71,11 @@ if (!$KAR_LOCAL) {
      browser's tiny built-in spinner is hidden — the buttons replace it. */
   .kar-pitch::-webkit-inner-spin-button, .kar-pitch::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .kar-pitch { -moz-appearance: textfield; appearance: textfield; }
-  .kar-pstep { flex: 0 0 auto; width: 26px; height: 24px; font-size: 16px; font-weight: 700; line-height: 1;
+  .kar-pstep, .kar-preset { flex: 0 0 auto; width: 26px; height: 24px; font-size: 16px; font-weight: 700; line-height: 1;
     background: #1c2331; border: 1px solid #334155; color: #94a3b8; border-radius: 6px; cursor: pointer;
     font-family: inherit; padding: 0; }
-  .kar-pstep:hover { background: #28324a; color: #e2e8f0; border-color: #60A5FA; }
-  .kar-pstep:active { background: #334155; }
+  .kar-pstep:hover, .kar-preset:hover { background: #28324a; color: #e2e8f0; border-color: #60A5FA; }
+  .kar-pstep:active, .kar-preset:active { background: #334155; }
   /* The "? How it works" cards FLOAT — they used to sit inside their panel and make it
      twice as tall, which is what made the panels feel heavy. Now they stand beside the
      work instead of on top of it, and stay put until closed.
@@ -425,8 +425,7 @@ if (!$KAR_LOCAL) {
     <div style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
-      <span style="flex:0 0 auto;width:56px;text-align:center" title="Sets the Pitch box to 0 (original key) for one play — for a guest singer. Your saved pitch comes back by itself after the song is sent">Guest<br>Reset</span>
-      <span style="flex:0 0 auto;width:92px;text-align:center" title="The pitch the Play button uses. Click − / + to change it one semitone at a time, or type a number — it saves by itself (gold = your saved pitch)">Pitch</span>
+      <span style="flex:0 0 auto;width:124px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number — it saves by itself (gold = your saved pitch). ⟲ drops it to 0 for one play only, for a guest singer, then your pitch comes back.">Pitch</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
       <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
@@ -674,14 +673,16 @@ if (!$KAR_LOCAL) {
           + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
           + (pMv ? 'background:#EF4444;border:1px solid #EF4444;color:#fff;font-weight:700' : 'background:rgba(16,185,129,.10);border:1px solid #334155;color:#6ee7b7')
           + '">' + (pMv ? '♪ ♪ ♪' : (karShowQmidi ? '▶ casAI' : '▶ Play')) + '</button>'
-          + '<button type="button" class="kar-reset" data-i="' + i + '" title="Guest singer: sets the Pitch box to 0 (original key) for the next play only — the saved pitch comes back by itself" '
-          + 'style="font-family:inherit;flex:0 0 auto;width:56px;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:10.5px;padding:3px 0;border-radius:6px">Reset</button>'
           + '<span style="display:flex;flex:0 0 auto;align-items:center;gap:3px">'
           + '<button type="button" class="kar-pstep kar-pdn" data-i="' + i + '" title="Pitch DOWN one semitone — saves right away">−</button>'
           + '<input type="number" class="kar-pitch" data-i="' + i + '" min="-12" max="12" step="1" value="' + (eff === null ? '' : eff) + '" '
           + 'title="Pitch this song plays at. Use − / + or type a number — blank goes back to the filename pitch." '
           + 'style="font-family:inherit;flex:0 0 auto;width:34px;background:#121620;border:1px solid ' + (ovr ? '#D2AD6C' : '#334155') + ';color:' + (ovr ? '#D2AD6C' : '#94a3b8') + ';font-size:13px;padding:2px 2px;border-radius:6px;text-align:center">'
           + '<button type="button" class="kar-pstep kar-pup" data-i="' + i + '" title="Pitch UP one semitone — saves right away">+</button>'
+          // Guest reset lives INSIDE the pitch control now, not in a column of its own — it is a
+          // thing you do TO the pitch, so it belongs beside it (the owner, 2026-09-10: too many columns).
+          + '<button type="button" class="kar-preset kar-reset" data-i="' + i + '" title="Guest singer: drops the pitch to 0 (original key) for the NEXT PLAY ONLY — your saved pitch comes back by itself afterwards" '
+          + 'style="font-size:13px;color:#D2AD6C;border-color:#3b3324">⟲</button>'
           + '</span>'
           + star
           + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the Up Next queue for ' + karEsc(karWho) + ', at the pitch shown" '
@@ -1077,6 +1078,10 @@ if (!$KAR_LOCAL) {
     document.getElementById('kar-list').addEventListener('click', function(ev){
       var b = ev.target.closest ? ev.target.closest('.kar-pstep') : null;
       if (!b) return;
+      // ⚠ The guest-reset button sits inside this same group and once carried .kar-pstep for its
+      // looks — which made THIS listener fire too, stepping the pitch down and SAVING it. Styling
+      // and behaviour must never share a class here.
+      if (b.classList.contains('kar-reset')) return;
       var inp = b.parentElement.querySelector('.kar-pitch');
       if (!inp) return;
       var v = parseInt(inp.value, 10);
