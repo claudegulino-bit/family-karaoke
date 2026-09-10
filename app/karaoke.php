@@ -145,6 +145,13 @@ if (!$KAR_LOCAL) {
       $_kjDb  = kar_songs();
       $_kjGen = date('Y-m-d H:i');
       $_kj    = ['songs_folder' => kar_songs_dir()];   // never "not published yet"
+      // What this Mac REALLY has for the MC. Worth showing rather than leaving people to
+      // discover it at a party: a missing applause file simply falls back to a silent
+      // walk-up, which looks like a fault and is impossible to tell apart from a bug.
+      $_mcAp    = function_exists('kar_mc_applause') ? kar_mc_applause() : '';
+      $_mcVid   = ($_mcAp !== '' && function_exists('kar_mc_applause_has_video') && kar_mc_applause_has_video($_mcAp));
+      $_mcVoice = function_exists('kar_mc_voice') ? (kar_mc_voice() ?: 'the Mac\'s default voice') : '';
+      $_mcOn    = !function_exists('kar_mc_on') || kar_mc_on();
   } else {
       $_kjPath = '/var/www/getcasa.ai/karaoke_songs.json';
       $_kj = is_file($_kjPath) ? json_decode((string)file_get_contents($_kjPath), true) : null;
@@ -246,6 +253,21 @@ if (!$KAR_LOCAL) {
           <p style="margin:0 0 4px"><b>Where the songs are.</b> One folder, holding the song files.</p>
           <button type="button" onclick="karPickFolder()" id="kar-pick-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">📁 Choose the karaoke songs folder…</button>
           <span id="kar-pick-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Using now: <b id="kar-pick-cur" style="color:#cbd5e1"><?= h($_kj['songs_folder'] ?? 'not chosen yet') ?></b><br><span style="color:#94a3b8">The chooser opens on the Mac that plays the music — a web page is never allowed to see a real folder path.</span></span>
+          <p style="margin:0 0 4px"><b>What this Mac has for the announcements.</b></p>
+          <div style="margin:0 0 12px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-size:12.5px;line-height:1.7">
+            <div>Announcements: <b style="color:<?= $_mcOn ? '#6ee7b7' : '#94a3b8' ?>"><?= $_mcOn ? 'on' : 'off' ?></b></div>
+            <div>Voice: <b style="color:#cbd5e1"><?= h($_mcVoice) ?></b></div>
+            <div>Applause:
+              <?php if ($_mcVid): ?>
+                <b style="color:#6ee7b7">a crowd on screen</b> <span style="color:#64748b"><?= h(basename($_mcAp)) ?></span>
+              <?php elseif ($_mcAp !== ''): ?>
+                <b style="color:#D2AD6C">sound only</b> <span style="color:#64748b"><?= h(basename($_mcAp)) ?></span>
+              <?php else: ?>
+                <b style="color:#d98888">none found — the walk-up will be silent</b>
+                <div style="color:#94a3b8;margin-top:3px">Put <code>applause.mp4</code> (or <code>.wav</code>) either in <code>~/Karaoke/sounds/</code> or in <code>@ Cantoria/sounds/</code> beside your songs, and it is used straight away.</div>
+              <?php endif; ?>
+            </div>
+          </div>
           <p style="margin:0 0 4px"><b>The player.</b> Two free programs do the playing and the downloading. In Terminal:</p>
           <div style="margin:0 0 4px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#cbd5e1">brew install mpv yt-dlp</div>
           <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If it answers <i>command not found: brew</i>, paste this first, let it finish, then repeat the line above:</p>
