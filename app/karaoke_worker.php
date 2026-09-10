@@ -49,47 +49,49 @@ if ($job === 'announce') {
     // Nothing below may stop the music. If any step fails, put the volume back and let
     // the song play — a party does not care that the announcer failed.
     try {
-        // ORDER MATTERS HERE, and getting it wrong is audible.
+        // TWO SHAPES, depending on what applause this Mac has.
         //
-        // The song arrives already PAUSED (kar_play loads it that way), so nothing can play
-        // over the presentation no matter how long any of this takes. Put the screen up
-        // straight away — that is instant — and only then build the voice, which on the very
-        // first outing for a song runs `say` three times and an ffmpeg mix and can take
-        // seconds. After the first time the clips are cached and it is immediate.
+        //   a crowd VIDEO — the player is already showing it, cheering, and the song is
+        //                   loaded only when the presentation ends
+        //   sound, or none — the song is loaded but held PAUSED, first frame on screen
+        //
+        // Either way the song itself is not heard until the introduction is over. An early
+        // version played it quietly underneath as walk-on music, and on a Mac announcing a song
+        // for the first time — where building the voice takes seconds — the announcement landed
+        // on top of the music. Do not go back to that.
         for ($i = 0; $i < 40; $i++) {
             if (kar_mpv_alive()) break;
             usleep(250000);
         }
         if (!kar_mpv_alive()) throw new RuntimeException('the player never answered');
 
-        kar_mpv_send(['set_property', 'pause', true]);     // certain, not assumed
-        [$artist, $title] = kar_title_artist($song);       // pure text, costs nothing
+        $ap    = kar_mc_applause();
+        $crowd = ($ap !== '' && kar_mc_applause_has_video($ap));
+
+        if (!$crowd) kar_mpv_send(['set_property', 'pause', true]);   // certain, not assumed
+        [$artist, $title] = kar_title_artist($song);                  // pure text, costs nothing
         $screen = $singer . ' will sing' . "\n" . $title . ($artist !== '' ? "\nfrom " . $artist : '');
         kar_mpv_send(['show-text', $screen, 60000]);
+
+        // The crowd sits under the voice so the words win; it comes up for the walk.
+        if ($crowd) kar_mpv_send(['set_property', 'volume', 38]);
 
         $t0    = microtime(true);
         $wav   = kar_mc_build($singer, $title, $artist);
         $spent = microtime(true) - $t0;
-        $ap    = kar_mc_applause_loop();     // looped long enough to cover all of this
         $mclog(sprintf('%s / %s%s — voice %s (%.1fs), applause %s',
             $singer, $title, ($artist !== '' ? ' / ' . $artist : ''),
             ($wav !== '' ? 'ready' : 'FAILED TO BUILD'), $spent,
-            ($ap !== '' ? $ap : 'NONE FOUND — walk-up will be silent')));
+            ($ap === '' ? 'NONE FOUND — silent walk-up' : ($crowd ? 'ON SCREEN: ' : 'sound only: ') . $ap)));
 
         // Time already spent building counts towards the reading pause, so a cached
         // announcement still gets its full beat and a slow one does not wait twice.
         $left = KAR_MC_LEAD_IN - $spent;
         if ($left > 0) usleep((int)($left * 1000000));
 
-        // A room already clapping, UNDER the announcement (the owner, 10 Sep 2026: "during the
-        // presentation I want the applause and the cheering"). Held well down so the voice
-        // still wins — that was the whole point of moving it out from under the voice earlier,
-        // and turning it down is the way to have both.
-        //
-        // Keep every PID and kill THOSE. An earlier version matched the process by its command
-        // line, which is fragile when the path contains spaces and could leave clapping running
-        // into the song.
-        $play = function (string $file, float $vol) : int {
+        // Sound-only applause needs a separate player, and needs looping — a raw recording is
+        // far shorter than the presentation and stops a third of the way through otherwise.
+        $play = function (string $file, float $vol): int {
             if ($file === '') return 0;
             $out = [];
             @exec('afplay -v ' . escapeshellarg((string)$vol) . ' ' . escapeshellarg($file)
@@ -97,28 +99,41 @@ if ($job === 'announce') {
             return (int)($out[0] ?? 0);
         };
         $kill = function (int $pid) { if ($pid > 0) @exec('kill ' . $pid . ' >/dev/null 2>&1'); };
+        $loop = (!$crowd && $ap !== '') ? kar_mc_applause_loop() : '';
 
-        $soft = $play($ap, 0.30);                          // the room, under the voice
+        $soft = $crowd ? 0 : $play($loop, 0.30);
         if ($wav !== '') {
             @exec('afplay ' . escapeshellarg($wav) . ' >/dev/null 2>&1');   // blocks until spoken
         }
         $kill($soft);
 
-        // And now the room lets go, while he stands, crosses the floor and takes the microphone.
-        $loud = $play($ap, 1.0);
+        // And now the room lets go, while they stand, cross the floor and take the microphone.
+        if ($crowd) kar_mpv_send(['set_property', 'volume', 100]);
+        $loud = $crowd ? 0 : $play($loop, 1.0);
         usleep((int)(KAR_MC_WALK_UP * 1000000));
         $kill($loud);
 
         $mclog('presentation finished — starting the song');
         kar_mpv_send(['show-text', '', 1]);
-        kar_mpv_send(['seek', 0, 'absolute']);
-        kar_mpv_send(['set_property', 'pause', false]);    // NOW the song starts
+        if ($crowd) {
+            // Off the crowd and onto the song, which starts at its very first note.
+            kar_mpv_send(['set_property', 'loop-file', 'no']);
+            kar_mpv_send(['loadfile', kar_songs_dir() . '/' . $song, 'replace']);
+            kar_mpv_send(['set_property', 'volume', 100]);
+        } else {
+            kar_mpv_send(['seek', 0, 'absolute']);
+        }
+        kar_mpv_send(['set_property', 'pause', false]);
     } catch (Throwable $e) {
         // Whatever went wrong, the song must still play — it is being held paused, so the
         // one thing that must never be skipped is releasing it.
         $mclog('FAILED: ' . $e->getMessage() . ' — starting the song anyway');
         @kar_mpv_send(['show-text', '', 1]);
+        // Whatever went wrong, the song must still play. If the crowd is on screen it has to
+        // be replaced; if the song is held it has to be released. Do both, blindly.
+        @kar_mpv_send(['set_property', 'loop-file', 'no']);
         @kar_mpv_send(['set_property', 'volume', 100]);
+        @kar_mpv_send(['loadfile', kar_songs_dir() . '/' . $song, 'replace']);
         @kar_mpv_send(['set_property', 'pause', false]);
     }
     exit;

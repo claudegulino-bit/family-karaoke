@@ -363,14 +363,19 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     $path = kar_songs_dir() . '/' . $song;
     if (!is_file($path)) return [false, 'file not found in the songs folder'];
     $scale = round(2 ** ($pitch / 12.0), 6);
-    // A named singer means an introduction, so the song is loaded PAUSED and the worker
-    // releases it when the presentation is over. A plain ▶ Play from the song list has no
-    // singer and is completely unchanged.
-    $mc = ($singer !== '' && kar_mc_on());
+    // A named singer means an introduction. Two shapes, depending on what we have:
+    //   with a crowd VIDEO — the applause plays on screen and the song is loaded at the end
+    //   without one       — the song is loaded PAUSED and released when the voice is done
+    // Either way nothing of the song is heard until the presentation is over.
+    $mc    = ($singer !== '' && kar_mc_on());
+    $crowd = $mc ? kar_mc_applause() : '';
+    if ($crowd !== '' && !kar_mc_applause_has_video($crowd)) $crowd = '';
+    if ($crowd !== '') $path = $crowd;          // the player opens on the crowd, not the song
     if (kar_mpv_alive()) {
         // Pause BEFORE loading: mpv keeps the property across a loadfile, so the new song
         // arrives already held. Setting it after would let a moment of audio escape.
-        kar_mpv_send(['set_property', 'pause', $mc]);
+        kar_mpv_send(['set_property', 'pause', $mc && $crowd === '']);
+        kar_mpv_send(['set_property', 'loop-file', $crowd !== '' ? 'inf' : 'no']);
         kar_mpv_send(['set_property', 'volume', 100]);
         kar_mpv_send(['loadfile', $path, 'replace']);
         // Speed persists across loads — every song starts at normal tempo.
@@ -414,7 +419,8 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     if (!empty($cfg['words_on_top'])) $args[] = '--ontop';
     $args[] = '--osd-font-size=48';
     if ($mc) {
-        $args[] = '--pause';                 // held until the presentation is finished
+        if ($crowd !== '') $args[] = '--loop-file=inf';   // the crowd keeps going
+        else               $args[] = '--pause';           // held until the presentation is done
         $args[] = '--osd-align-x=center';
         $args[] = '--osd-align-y=center';
         $args[] = '--osd-duration=60000';
@@ -604,18 +610,26 @@ function kar_mc_applause(): string {
     $c     = kar_cfg();
     $songs = kar_songs_dir();
     $near  = $songs !== '' ? dirname($songs) . '/@ Cantoria/sounds/' : '';
-    $tries = [
-        trim((string)($c['applause'] ?? '')),
-        __DIR__ . '/sounds/applause.wav',
-        __DIR__ . '/sounds/applause.mp3',
-        $near !== '' ? $near . 'applause.wav' : '',
-        $near !== '' ? $near . 'applause.mp3' : '',
-        $songs !== '' ? $songs . '/applause.wav' : '',
-    ];
+    // A VIDEO is preferred over a sound file: a cheering crowd on screen while the singer
+    // walks up beats a frozen frame of the song, and it plays through the player itself
+    // rather than a separate afplay — one less thing to go wrong on someone else's Mac.
+    $tries = [trim((string)($c['applause'] ?? ''))];
+    foreach (['mp4', 'mov', 'm4v', 'wav', 'mp3', 'm4a'] as $ext) {
+        $tries[] = __DIR__ . '/sounds/applause.' . $ext;
+        if ($near  !== '') $tries[] = $near . 'applause.' . $ext;
+        if ($songs !== '') $tries[] = $songs . '/applause.' . $ext;
+    }
     foreach ($tries as $p) {
         if ($p !== '' && is_file($p)) return $p;
     }
     return '';
+}
+
+/** Does the applause we found have a picture, or is it only sound? */
+function kar_mc_applause_has_video(string $file = ''): bool {
+    $f = $file !== '' ? $file : kar_mc_applause();
+    if ($f === '') return false;
+    return in_array(strtolower(pathinfo($f, PATHINFO_EXTENSION)), ['mp4', 'mov', 'm4v'], true);
 }
 
 /** The applause, looped long enough to actually cover the presentation.
