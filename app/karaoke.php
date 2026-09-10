@@ -71,11 +71,20 @@ if (!$KAR_LOCAL) {
      browser's tiny built-in spinner is hidden — the buttons replace it. */
   .kar-pitch::-webkit-inner-spin-button, .kar-pitch::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .kar-pitch { -moz-appearance: textfield; appearance: textfield; }
+  /* The pitch controls are ONE control, not four. They live inside a single bordered, rounded
+     group (.kar-pgrp) and the parts have no borders of their own — the owner, 2026-09-10: "it looks
+     like there are four columns within pitch". The group's border also carries the state that
+     used to live on the number box: gold = a saved pitch, dashed blue = a temporary guest reset. */
+  .kar-pgrp { display: inline-flex; align-items: center; flex: 0 0 auto;
+    background: #121620; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+  .kar-pgrp.is-saved { border-color: #D2AD6C; }
+  .kar-pgrp.is-temp  { border-style: dashed; border-color: #60A5FA; }
   .kar-pstep, .kar-preset { flex: 0 0 auto; width: 26px; height: 24px; font-size: 16px; font-weight: 700; line-height: 1;
-    background: #1c2331; border: 1px solid #334155; color: #94a3b8; border-radius: 6px; cursor: pointer;
+    background: transparent; border: 0; color: #94a3b8; border-radius: 0; cursor: pointer;
     font-family: inherit; padding: 0; }
-  .kar-pstep:hover, .kar-preset:hover { background: #28324a; color: #e2e8f0; border-color: #60A5FA; }
-  .kar-pstep:active, .kar-preset:active { background: #334155; }
+  .kar-pstep:hover, .kar-preset:hover { background: rgba(96,165,250,.18); color: #e2e8f0; }
+  .kar-pstep:active, .kar-preset:active { background: rgba(96,165,250,.30); }
+  .kar-pgrp .kar-pitch { background: transparent; border: 0; border-radius: 0; }
   /* The "? How it works" cards FLOAT — they used to sit inside their panel and make it
      twice as tall, which is what made the panels feel heavy. Now they stand beside the
      work instead of on top of it, and stay put until closed.
@@ -673,16 +682,19 @@ if (!$KAR_LOCAL) {
           + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
           + (pMv ? 'background:#EF4444;border:1px solid #EF4444;color:#fff;font-weight:700' : 'background:rgba(16,185,129,.10);border:1px solid #334155;color:#6ee7b7')
           + '">' + (pMv ? '♪ ♪ ♪' : (karShowQmidi ? '▶ casAI' : '▶ Play')) + '</button>'
-          + '<span style="display:flex;flex:0 0 auto;align-items:center;gap:3px">'
+          + '<span class="kar-pgrp' + (ovr ? ' is-saved' : '') + '">'
           + '<button type="button" class="kar-pstep kar-pdn" data-i="' + i + '" title="Pitch DOWN one semitone — saves right away">−</button>'
           + '<input type="number" class="kar-pitch" data-i="' + i + '" min="-12" max="12" step="1" value="' + (eff === null ? '' : eff) + '" '
           + 'title="Pitch this song plays at. Use − / + or type a number — blank goes back to the filename pitch." '
-          + 'style="font-family:inherit;flex:0 0 auto;width:34px;background:#121620;border:1px solid ' + (ovr ? '#D2AD6C' : '#334155') + ';color:' + (ovr ? '#D2AD6C' : '#94a3b8') + ';font-size:13px;padding:2px 2px;border-radius:6px;text-align:center">'
+          + 'style="font-family:inherit;flex:0 0 auto;width:34px;color:' + (ovr ? '#D2AD6C' : '#94a3b8') + ';font-size:13px;padding:2px 2px;text-align:center">'
           + '<button type="button" class="kar-pstep kar-pup" data-i="' + i + '" title="Pitch UP one semitone — saves right away">+</button>'
           // Guest reset lives INSIDE the pitch control now, not in a column of its own — it is a
           // thing you do TO the pitch, so it belongs beside it (the owner, 2026-09-10: too many columns).
-          + '<button type="button" class="kar-preset kar-reset" data-i="' + i + '" title="Guest singer: drops the pitch to 0 (original key) for the NEXT PLAY ONLY — your saved pitch comes back by itself afterwards" '
-          + 'style="font-size:13px;color:#D2AD6C;border-color:#3b3324">⟲</button>'
+          + '<button type="button" class="kar-preset kar-reset" data-i="' + i + '" title="'
+          + (eff === 0
+              ? 'Already at the original key — nothing to reset'
+              : 'Guest singer: drops the pitch to 0 for the NEXT PLAY ONLY — your saved pitch comes back by itself afterwards')
+          + '" style="font-size:13px;color:#D2AD6C' + (eff === 0 ? ';opacity:.3;cursor:default' : '') + '">⟲</button>'
           + '</span>'
           + star
           + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the Up Next queue for ' + karEsc(karWho) + ', at the pitch shown" '
@@ -845,9 +857,24 @@ if (!$KAR_LOCAL) {
     }
     function karStylePitchBox(inp, song){
       var ovr = Object.prototype.hasOwnProperty.call(KAR_PITCH, song);
-      inp.style.borderStyle = 'solid';
-      inp.style.borderColor = ovr ? '#D2AD6C' : '#334155';
+      var grp = inp.closest ? inp.closest('.kar-pgrp') : inp.parentElement;
+      if (grp) { grp.classList.remove('is-temp'); grp.classList.toggle('is-saved', ovr); }
       inp.style.color = ovr ? '#D2AD6C' : '#94a3b8';
+      karStyleReset(inp);
+    }
+    // The ⟲ only means something when there is a pitch to come back FROM. At 0 there is nothing
+    // to reset, so it is dimmed and does nothing — otherwise it drew a "temporary" border round a
+    // number that was not going to change (the owner spotted this, 2026-09-10).
+    function karStyleReset(inp){
+      var rb = inp.parentElement ? inp.parentElement.querySelector('.kar-reset') : null;
+      if (!rb) return;
+      var v = parseInt(inp.value, 10);
+      var idle = (isNaN(v) || v === 0) && inp.dataset.temp !== '1';
+      rb.style.opacity = idle ? '.3' : '1';
+      rb.style.cursor  = idle ? 'default' : 'pointer';
+      rb.title = idle
+        ? 'Already at the original key — nothing to reset'
+        : 'Guest singer: drops the pitch to 0 for the NEXT PLAY ONLY — your saved pitch comes back by itself afterwards';
     }
     // Delete confirmation: a small popover NEXT TO the clicked ✕, at the same level —
     // not the browser's confirm() box, which always lands top-center far from the row.
@@ -962,10 +989,15 @@ if (!$KAR_LOCAL) {
         var song0 = src[parseInt(rb.getAttribute('data-i'), 10)];
         var inp0 = rb.parentElement.querySelector('.kar-pitch');
         if (!song0 || !inp0) return;
+        var cur0 = parseInt(inp0.value, 10);
+        if (isNaN(cur0) || cur0 === 0) return;   // already the original key — nothing to reset
         inp0.value = 0;
         inp0.dataset.temp = '1';
-        inp0.style.borderStyle = 'dashed'; inp0.style.borderColor = '#60A5FA'; inp0.style.color = '#60A5FA';
+        var grp0 = inp0.closest ? inp0.closest('.kar-pgrp') : inp0.parentElement;
+        if (grp0) { grp0.classList.remove('is-saved'); grp0.classList.add('is-temp'); }
+        inp0.style.color = '#60A5FA';
         inp0.title = 'Temporary 0 for a guest — after Play, this goes back to the saved pitch (' + karSavedPitch(song0) + ')';
+        karStyleReset(inp0);
         return;
       }
       var dl = ev.target.closest ? ev.target.closest('.kar-del') : null;
