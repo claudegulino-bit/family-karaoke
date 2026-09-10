@@ -429,9 +429,8 @@ if (!$KAR_LOCAL) {
       <span style="flex:0 0 auto;width:92px;text-align:center" title="The pitch the Play button uses. Click − / + to change it one semitone at a time, or type a number — it saves by itself (gold = your saved pitch)">Pitch</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
       <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
-      <span style="flex:0 0 auto;width:48px;text-align:center" title="✎ renames the song — changes the REAL file name in the music folder">Edit<br>Name</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
-      <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click to sort by name — A→Z, then Z→A, then back to the normal order">Song Filename</span>
+      <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
     </div>
     <div id="kar-list" style="margin-top:4px;background:#121620;border:1px solid #334155;border-radius:10px;padding:6px 16px;height:calc(100vh - 275px);min-height:300px;overflow-y:auto"></div>
@@ -675,14 +674,15 @@ if (!$KAR_LOCAL) {
           + star
           + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the Up Next queue for ' + karEsc(karWho) + ', at the pitch shown" '
           + 'style="font-family:inherit;flex:0 0 auto;width:58px;background:rgba(96,165,250,.15);border:1px solid #60A5FA;color:#93c5fd;cursor:pointer;font-size:15px;font-weight:800;line-height:1;padding:2px 0;text-align:center;border-radius:6px">＋</button>'
-          + '<button type="button" class="kar-ren" data-i="' + i + '" title="Rename this song — changes the REAL file name in the music folder" '
-          + 'style="font-family:inherit;flex:0 0 auto;width:48px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:0;text-align:center">✎</button>'
           + '<button type="button" class="kar-del" data-i="' + i + '" title="Remove this song from the database — the file is moved to the 09-Deleted by casAI folder (recoverable), not destroyed" '
           + 'style="font-family:inherit;flex:0 0 auto;width:48px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:0;text-align:center">✕</button>'
           // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
           // characters, 90% ≤66); the long ones wrap to a second line rather than pushing
           // the Duplicate column out to the far right where it read as stranded.
-          + '<span style="flex:0 0 auto;width:460px;word-break:break-word;font-size:13px;color:' + (playing ? '#D2AD6C;font-weight:700' : '#e2e8f0') + '">' + karEsc(name) + '</span>'
+          // The name IS the rename control — click it and it becomes a text box. There used to be
+          // a separate ✎ column; the owner asked for it back, the row already has enough buttons.
+          + '<span class="kar-name" data-i="' + i + '" title="Click to rename — this changes the REAL file name in the music folder" '
+          + 'style="flex:0 0 auto;width:460px;word-break:break-word;font-size:13px;cursor:text;color:' + (playing ? '#D2AD6C;font-weight:700' : '#e2e8f0') + '">' + karEsc(name) + '</span>'
           // 🆕 New is the review bench, so it gets its own Duplicate column — what this
           // song looked like when it came down, side by side with the name.
           + (karView === 'new' ? karDupCell(full) : '')
@@ -945,39 +945,59 @@ if (!$KAR_LOCAL) {
         karDelShow(dl, songD);
         return;
       }
-      var rn = ev.target.closest ? ev.target.closest('.kar-ren') : null;
-      if (rn) {
-        var songR = src[parseInt(rn.getAttribute('data-i'), 10)];
+      // Rename by clicking the song's own name — it turns into a text box in place.
+      // (Replaced a separate ✎ column and a browser prompt(), 2026-09-10.)
+      var nm = ev.target.closest ? ev.target.closest('.kar-name') : null;
+      if (nm) {
+        if (nm.querySelector('input')) return;              // already editing
+        var songR = src[parseInt(nm.getAttribute('data-i'), 10)];
         if (!songR) return;
         var extM = songR.match(/\.[a-z0-9]{2,4}$/i);
         var ext = extM ? extM[0] : '';
         var stemOld = ext ? songR.slice(0, -ext.length) : songR;
-        var stemNew = prompt('New name for this song (the file itself will be renamed):', stemOld);
-        if (stemNew === null) return;
-        stemNew = stemNew.trim();
-        if (stemNew === '' || stemNew === stemOld) return;
-        var fdR = new FormData();
-        fdR.append('form_type', 'karaoke_rename');
-        fdR.append('song', songR);
-        fdR.append('new_stem', stemNew);
-        fetch(KAR_API, {method:'POST', body: fdR}).then(function(r){ return r.json(); }).then(function(d){
-          if (!d.ok) { alert('Not renamed' + (d.error ? ': ' + d.error : '') + '.'); return; }
-          // Optimistic update so the tab shows the new name right away; the Mac renames the
-          // real file and refreshes the server catalog within ~15 seconds.
-          var ixDbR = KAR_DATA.db.indexOf(songR);
-          if (ixDbR !== -1) KAR_DATA.db[ixDbR] = d.new_name;
-          var ixNwR = KAR_DATA.new.indexOf(songR);
-          if (ixNwR !== -1) KAR_DATA.new[ixNwR] = d.new_name;
-          Object.keys(KAR_BEST_BY).forEach(function(p){
-            var a = KAR_BEST_BY[p]; var ix = a.indexOf(songR);
-            if (ix !== -1) a[ix] = d.new_name;
-          });
-          if (Object.prototype.hasOwnProperty.call(KAR_PITCH, songR)) {
-            KAR_PITCH[d.new_name] = KAR_PITCH[songR]; delete KAR_PITCH[songR];
-          }
-          karRebuildBest();
-          karRender();
-        }).catch(function(){ alert('Network error — the rename was not sent.'); });
+        var prevHtml = nm.innerHTML;
+        var box = document.createElement('input');
+        box.type = 'text'; box.value = stemOld;
+        box.style.cssText = 'width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #60A5FA;'
+          + 'border-radius:6px;color:#e2e8f0;font-size:13px;font-family:inherit;padding:3px 7px';
+        box.title = 'Enter to save · Esc to cancel. The extension (' + (ext || 'none') + ') is kept.';
+        nm.textContent = ''; nm.appendChild(box);
+        box.focus(); box.select();
+        var settled = false;
+        function finish(save) {
+          if (settled) return; settled = true;
+          var stemNew = box.value.trim();
+          if (!save || stemNew === '' || stemNew === stemOld) { nm.innerHTML = prevHtml; return; }
+          nm.textContent = stemNew + ' …';
+          var fdR = new FormData();
+          fdR.append('form_type', 'karaoke_rename');
+          fdR.append('song', songR);
+          fdR.append('new_stem', stemNew);
+          fetch(KAR_API, {method:'POST', body: fdR}).then(function(r){ return r.json(); }).then(function(d){
+            if (!d.ok) { nm.innerHTML = prevHtml; alert('Not renamed' + (d.error ? ': ' + d.error : '') + '.'); return; }
+            // Optimistic update so the tab shows the new name right away; the Mac renames the
+            // real file and refreshes the server catalog within ~15 seconds.
+            var ixDbR = KAR_DATA.db.indexOf(songR);
+            if (ixDbR !== -1) KAR_DATA.db[ixDbR] = d.new_name;
+            var ixNwR = KAR_DATA.new.indexOf(songR);
+            if (ixNwR !== -1) KAR_DATA.new[ixNwR] = d.new_name;
+            Object.keys(KAR_BEST_BY).forEach(function(p){
+              var a = KAR_BEST_BY[p]; var ix = a.indexOf(songR);
+              if (ix !== -1) a[ix] = d.new_name;
+            });
+            if (Object.prototype.hasOwnProperty.call(KAR_PITCH, songR)) {
+              KAR_PITCH[d.new_name] = KAR_PITCH[songR]; delete KAR_PITCH[songR];
+            }
+            karRebuildBest();
+            karRender();
+          }).catch(function(){ nm.innerHTML = prevHtml; alert('Network error — the rename was not sent.'); });
+        }
+        box.addEventListener('blur', function(){ finish(true); });
+        box.addEventListener('keydown', function(e){
+          e.stopPropagation();
+          if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+          else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+        });
         return;
       }
       var b = ev.target.closest ? ev.target.closest('.kar-play') : null;
