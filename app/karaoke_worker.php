@@ -51,59 +51,63 @@ if ($job === 'announce') {
     try {
         // ORDER MATTERS HERE, and getting it wrong is audible.
         //
-        // Take the song down and put the screen up FIRST — both are instant. Only then build
-        // the announcement, which on the very first outing for a song runs `say` three times
-        // and an ffmpeg mix and can take several seconds. Built first (as this originally was)
-        // those seconds are spent with the song at full volume and the voice arriving late,
-        // over the top of it — which is exactly what it sounded like: two things at once.
-        // Now a slow build simply means a longer quiet moment with the singer's name on
-        // screen, which looks deliberate. After the first time the clips are cached and it
-        // is instant anyway.
+        // The song arrives already PAUSED (kar_play loads it that way), so nothing can play
+        // over the presentation no matter how long any of this takes. Put the screen up
+        // straight away — that is instant — and only then build the voice, which on the very
+        // first outing for a song runs `say` three times and an ffmpeg mix and can take
+        // seconds. After the first time the clips are cached and it is immediate.
         for ($i = 0; $i < 40; $i++) {
             if (kar_mpv_alive()) break;
             usleep(250000);
         }
         if (!kar_mpv_alive()) throw new RuntimeException('the player never answered');
 
-        [$artist, $title] = kar_title_artist($song);      // pure text, costs nothing
-        kar_mpv_send(['set_property', 'volume', KAR_MC_BED]);
+        kar_mpv_send(['set_property', 'pause', true]);     // certain, not assumed
+        [$artist, $title] = kar_title_artist($song);       // pure text, costs nothing
         $screen = $singer . ' will sing' . "\n" . $title . ($artist !== '' ? "\nfrom " . $artist : '');
         kar_mpv_send(['show-text', $screen, 60000]);
 
-        $t0  = microtime(true);
-        $wav = kar_mc_build($singer, $title, $artist);    // slow the first time, cached after
+        $t0    = microtime(true);
+        $wav   = kar_mc_build($singer, $title, $artist);
         $spent = microtime(true) - $t0;
-        $mclog(sprintf('%s / %s%s — voice %s, built in %.1fs',
+        $ap    = kar_mc_applause();
+        $mclog(sprintf('%s / %s%s — voice %s (%.1fs), applause %s',
             $singer, $title, ($artist !== '' ? ' / ' . $artist : ''),
-            ($wav !== '' ? 'ready' : 'FAILED TO BUILD'), $spent));
+            ($wav !== '' ? 'ready' : 'FAILED TO BUILD'), $spent,
+            ($ap !== '' ? $ap : 'NONE FOUND — walk-up will be silent')));
 
-        // Whatever the build already used counts towards the reading time, so a cached
-        // announcement still gets its full pause and a slow one does not get a double wait.
+        // Time already spent building counts towards the reading pause, so a cached
+        // announcement still gets its full beat and a slow one does not wait twice.
         $left = KAR_MC_LEAD_IN - $spent;
         if ($left > 0) usleep((int)($left * 1000000));
 
-        // Belt and braces: make certain the song is still down before the voice speaks.
-        kar_mpv_send(['set_property', 'volume', KAR_MC_BED]);
         if ($wav !== '') {
             @exec('afplay ' . escapeshellarg($wav) . ' >/dev/null 2>&1');   // blocks until spoken
         }
 
-        $ap = kar_mc_applause();
-        if ($ap !== '') @exec('afplay ' . escapeshellarg($ap) . ' >/dev/null 2>&1 &');
-        usleep((int)(KAR_MC_WALK_UP * 1000000));        // stand, cross the floor, take the mic
-        if ($ap !== '') @exec('pkill -f ' . escapeshellarg('afplay ' . $ap) . ' >/dev/null 2>&1');
-
-        $mclog('applause done — song from the top, volume back up');
-        kar_mpv_send(['show-text', '', 1]);
-        kar_mpv_send(['seek', 0, 'absolute']);          // from the top: the whole song is theirs
-        for ($i = 1; $i <= 14; $i++) {
-            kar_mpv_send(['set_property', 'volume', (int)(KAR_MC_BED + (100 - KAR_MC_BED) * $i / 14)]);
-            usleep(45000);
+        // The applause, and the walk to the microphone. Keep its PID and kill THAT — an
+        // earlier version matched the process by its command line, which is fragile when the
+        // path contains spaces, and left the clapping running into the song.
+        $apPid = 0;
+        if ($ap !== '') {
+            $out = [];
+            @exec('afplay ' . escapeshellarg($ap) . ' >/dev/null 2>&1 & echo $!', $out);
+            $apPid = (int)($out[0] ?? 0);
         }
+        usleep((int)(KAR_MC_WALK_UP * 1000000));           // stand, cross the floor, take the mic
+        if ($apPid > 0) @exec('kill ' . $apPid . ' >/dev/null 2>&1');
+
+        $mclog('presentation finished — starting the song');
+        kar_mpv_send(['show-text', '', 1]);
+        kar_mpv_send(['seek', 0, 'absolute']);
+        kar_mpv_send(['set_property', 'pause', false]);    // NOW the song starts
     } catch (Throwable $e) {
-        $mclog('FAILED: ' . $e->getMessage() . ' — playing the song anyway');
+        // Whatever went wrong, the song must still play — it is being held paused, so the
+        // one thing that must never be skipped is releasing it.
+        $mclog('FAILED: ' . $e->getMessage() . ' — starting the song anyway');
         @kar_mpv_send(['show-text', '', 1]);
         @kar_mpv_send(['set_property', 'volume', 100]);
+        @kar_mpv_send(['set_property', 'pause', false]);
     }
     exit;
 }

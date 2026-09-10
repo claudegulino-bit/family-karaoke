@@ -363,13 +363,15 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     $path = kar_songs_dir() . '/' . $song;
     if (!is_file($path)) return [false, 'file not found in the songs folder'];
     $scale = round(2 ** ($pitch / 12.0), 6);
-    // A named singer means an introduction, so the song must come UP under it and
-    // therefore starts almost silent. A plain ▶ Play from the song list has no singer
-    // and is completely unchanged.
-    $mc  = ($singer !== '' && kar_mc_on());
-    $vol = $mc ? KAR_MC_BED : 100;
+    // A named singer means an introduction, so the song is loaded PAUSED and the worker
+    // releases it when the presentation is over. A plain ▶ Play from the song list has no
+    // singer and is completely unchanged.
+    $mc = ($singer !== '' && kar_mc_on());
     if (kar_mpv_alive()) {
-        kar_mpv_send(['set_property', 'volume', $vol]);
+        // Pause BEFORE loading: mpv keeps the property across a loadfile, so the new song
+        // arrives already held. Setting it after would let a moment of audio escape.
+        kar_mpv_send(['set_property', 'pause', $mc]);
+        kar_mpv_send(['set_property', 'volume', 100]);
         kar_mpv_send(['loadfile', $path, 'replace']);
         // Speed persists across loads — every song starts at normal tempo.
         kar_mpv_send(['set_property', 'speed', 1.0]);
@@ -411,8 +413,12 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     $cfg = kar_cfg();
     if (!empty($cfg['words_on_top'])) $args[] = '--ontop';
     $args[] = '--osd-font-size=48';
-    $args[] = '--volume=' . $vol;
-    if ($mc) { $args[] = '--osd-align-x=center'; $args[] = '--osd-align-y=center'; $args[] = '--osd-duration=60000'; }
+    if ($mc) {
+        $args[] = '--pause';                 // held until the presentation is finished
+        $args[] = '--osd-align-x=center';
+        $args[] = '--osd-align-y=center';
+        $args[] = '--osd-duration=60000';
+    }
     $args[] = $path;
     $cmd = implode(' ', array_map('escapeshellarg', $args)) . ' >/dev/null 2>&1 & echo $!';
     @exec($cmd);
@@ -429,22 +435,26 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
 // THE MC — the introduction that plays before a singer's song
 //
 // the owner's design, settled by ear on 10 September 2026:
-//   the song starts almost silent, so its own music is the walk-on music
+//   the song is loaded but HELD PAUSED, its first frame on screen
 //   the screen names the singer and the song
 //   the voice, ABOVE everything — "And now… <singer> will sing… <title>, from <artist>"
 //   applause with the screen still up, long enough to stand, cross the floor, take the
 //     microphone, turn round and say thank you
-//   then the music comes up and the song restarts FROM THE BEGINNING, so none of the
-//     performance is spent on the introduction
+//   only then does the song start, from the very beginning, with nothing over it
 //
 // Nothing here may stop the music. Every step is best-effort: if the voice cannot be
 // built, or mpv does not answer, the song plays anyway without an introduction. A party
 // does not care that the announcer failed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const KAR_MC_BED      = 4;     // how quiet the song sits under the voice
 const KAR_MC_LEAD_IN  = 3.0;   // seconds of screen before the voice, to read it
 const KAR_MC_WALK_UP  = 14.0;  // applause + screen, while the singer reaches the mic
+
+// ⚠ THE SONG IS HELD PAUSED FOR THE WHOLE INTRODUCTION (the owner, 10 Sep 2026:
+// "the song has to start after the presentation is complete"). An earlier version played it
+// quietly underneath as walk-on music, and on a Mac hearing a song for the first time — where
+// building the voice takes a few seconds — that came out as the announcement landing on top of
+// the music. Paused, the overlap is not merely quiet, it is impossible.
 
 /** Is the MC switched on? Off by "announce": false in karaoke_standalone.json. */
 function kar_mc_on(): bool {
