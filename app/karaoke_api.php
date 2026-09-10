@@ -204,13 +204,15 @@ try {
                 }
             } elseif ($ft === 'karaoke_q_play') {
                 $id = (int)($_POST['id'] ?? 0);
-                $cur = $db->prepare("SELECT id, filename, pitch FROM karaoke_sing_queue WHERE id = ? AND status = 'Waiting'");
+                $cur = $db->prepare("SELECT id, filename, pitch, singer FROM karaoke_sing_queue WHERE id = ? AND status = 'Waiting'");
                 $cur->execute([$id]);
                 if (!($row = $cur->fetch())) throw new Exception('entry not found (already played?)');
                 $db->exec("UPDATE karaoke_sing_queue SET status='Done' WHERE status='Singing'");
                 $db->prepare("UPDATE karaoke_sing_queue SET status='Singing' WHERE id = ?")->execute([$id]);
                 if ((string)($_POST['player'] ?? 'mpv') === 'qmidi') kar_play_qmidi($row['filename'], (int)$row['pitch']);
-                else                                                    kar_play($row['filename'], (int)$row['pitch']);
+                // The singer's name goes with the play, and that is what turns it into an
+                // introduction. A plain ▶ Play from the song list passes no name and is unchanged.
+                else                                                    kar_play($row['filename'], (int)$row['pitch'], (string)$row['singer']);
             } elseif ($ft === 'karaoke_q_clear') {
                 $db->exec('DELETE FROM karaoke_sing_queue');
             }

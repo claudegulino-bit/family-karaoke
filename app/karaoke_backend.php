@@ -359,18 +359,25 @@ function kar_lua_path(): string {
 }
 
 /** Play a song NOW. Returns [ok, note]. */
-function kar_play(string $song, int $pitch): array {
+function kar_play(string $song, int $pitch, string $singer = ''): array {
     $path = kar_songs_dir() . '/' . $song;
     if (!is_file($path)) return [false, 'file not found in the songs folder'];
     $scale = round(2 ** ($pitch / 12.0), 6);
+    // A named singer means an introduction, so the song must come UP under it and
+    // therefore starts almost silent. A plain ▶ Play from the song list has no singer
+    // and is completely unchanged.
+    $mc  = ($singer !== '' && kar_mc_on());
+    $vol = $mc ? KAR_MC_BED : 100;
     if (kar_mpv_alive()) {
+        kar_mpv_send(['set_property', 'volume', $vol]);
         kar_mpv_send(['loadfile', $path, 'replace']);
         // Speed persists across loads — every song starts at normal tempo.
         kar_mpv_send(['set_property', 'speed', 1.0]);
         // Through the lua script so the on-screen UP/DOWN counter stays in step.
         kar_mpv_send(['script-message', 'casai-set-pitch', (string)$pitch]);
-        kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it', $pitch), 5000]);
-        return [true, sprintf('pitch %+d applied', $pitch)];
+        if ($mc) { kar_mc_spawn($song, $singer, $pitch); }
+        else     { kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it', $pitch), 5000]); }
+        return [true, sprintf('pitch %+d applied%s', $pitch, $mc ? ', announcing ' . $singer : '')];
     }
     @unlink(KAR_MPV_SOCK);
     $lua = kar_lua_path();
@@ -404,6 +411,8 @@ function kar_play(string $song, int $pitch): array {
     $cfg = kar_cfg();
     if (!empty($cfg['words_on_top'])) $args[] = '--ontop';
     $args[] = '--osd-font-size=48';
+    $args[] = '--volume=' . $vol;
+    if ($mc) { $args[] = '--osd-align-x=center'; $args[] = '--osd-align-y=center'; $args[] = '--osd-duration=60000'; }
     $args[] = $path;
     $cmd = implode(' ', array_map('escapeshellarg', $args)) . ' >/dev/null 2>&1 & echo $!';
     @exec($cmd);
@@ -411,8 +420,183 @@ function kar_play(string $song, int $pitch): array {
         if (kar_mpv_alive()) break;
         usleep(250000);
     }
-    kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it · F fullscreen · Q closes', $pitch), 6000]);
-    return [true, sprintf('pitch %+d applied', $pitch)];
+    if ($mc) { kar_mc_spawn($song, $singer, $pitch); }
+    else     { kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it · F fullscreen · Q closes', $pitch), 6000]); }
+    return [true, sprintf('pitch %+d applied%s', $pitch, $mc ? ', announcing ' . $singer : '')];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THE MC — the introduction that plays before a singer's song
+//
+// the owner's design, settled by ear on 10 September 2026:
+//   the song starts almost silent, so its own music is the walk-on music
+//   the screen names the singer and the song
+//   the voice, ABOVE everything — "And now… <singer> will sing… <title>, from <artist>"
+//   applause with the screen still up, long enough to stand, cross the floor, take the
+//     microphone, turn round and say thank you
+//   then the music comes up and the song restarts FROM THE BEGINNING, so none of the
+//     performance is spent on the introduction
+//
+// Nothing here may stop the music. Every step is best-effort: if the voice cannot be
+// built, or mpv does not answer, the song plays anyway without an introduction. A party
+// does not care that the announcer failed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const KAR_MC_BED      = 4;     // how quiet the song sits under the voice
+const KAR_MC_LEAD_IN  = 3.0;   // seconds of screen before the voice, to read it
+const KAR_MC_WALK_UP  = 14.0;  // applause + screen, while the singer reaches the mic
+
+/** Is the MC switched on? Off by "announce": false in karaoke_standalone.json. */
+function kar_mc_on(): bool {
+    $c = kar_cfg();
+    return !array_key_exists('announce', $c) || !empty($c['announce']);
+}
+
+/** Which voice speaks. Evan (Enhanced) unless the config names another.
+ *
+ * ⚠ Voice CLASS is what matters, not the name. Of the 185 voices macOS ships, almost all
+ * are "compact" and sound like a robot — nine Italian ones were rejected one after another
+ * before this was understood. Evan is Enhanced. If he is missing on this Mac, download him:
+ * System Settings ▸ Accessibility ▸ Spoken Content ▸ System voice ▸ ⓘ. */
+function kar_mc_voice(): string {
+    $c = kar_cfg();
+    $want = trim((string)($c['announce_voice'] ?? ''));
+    $have = (string)@shell_exec('say -v "?" 2>/dev/null');
+    if ($want !== '' && strpos($have, $want) !== false) return $want;
+    if (strpos($have, 'Evan (Enhanced)') !== false) return 'Evan (Enhanced)';
+    return '';   // whatever the Mac's own default voice is — worse, but it still speaks
+}
+
+/** Split a karaoke filename into the artist and the title a person would say aloud.
+ *
+ * Measured against the owner's real 2,058-song library: artist AND title both correct on 97%.
+ * Everything stripped here describes the FILE, never the song — pitch markers like (-3),
+ * CSG codes, the karaoke singers' own names, [C]/[D] key tags, USA1/2/3 numbering, and words
+ * such as Video, Lyrics, Testo, Cori, Karaoke. */
+function kar_title_artist(string $file): array {
+    $junk = 'lyrics?|letras?|testo|testi|karaokes?|official|video|audio|hd|hq|4k|instrumental|base|'
+          . 'cover|remaster(?:ed)?|cori|con\s+cori|senza\s+voce|con\s+voce|full|version|'
+          . 'originale?|live|remix|edit|clip|spanish|italian|english|usa\d*|ita\d*|esp\d*';
+    $s = preg_replace('/\.[A-Za-z0-9]{2,4}$/', '', $file);
+    $s = preg_replace('/\(\s*[+-]?\d{1,2}\s*\)/', ' ', $s);          // (0) (-3) pitch
+    $s = preg_replace('/\bCSG\d*\b/i', ' ', $s);
+    foreach (kar_singer_names() as $p) {
+        $s = preg_replace('/\b' . preg_quote($p, '/') . '\b/iu', ' ', $s);
+    }
+    $s = preg_replace('/[\(\[\{][^()\[\]{}]*(?:' . $junk . ')[^()\[\]{}]*[\)\]\}]/iu', ' ', $s);
+    for ($i = 0; $i < 4; $i++) {
+        $s = preg_replace('/\s*[-–—]\s*(?:' . $junk . ')(?:\s+(?:' . $junk . '))*\s*$/iu', '', $s);
+    }
+    $s = preg_replace('/\[[^\]]{0,3}\]/', ' ', $s);                  // [C] [D] [+1] key tags
+    $s = preg_replace('/^\s*party\s*[-–—]\s*/i', '', $s);            // compilation prefix
+    $s = trim(preg_replace('/\s{2,}/', ' ', $s), " -–—_@");
+
+    $parts = preg_split('/\s+[-–—]\s*|\s*[-–—]\s+/u', $s, 2);
+    $artist = (count($parts) === 2 && trim($parts[1]) !== '') ? $parts[0] : '';
+    $title  = (count($parts) === 2 && trim($parts[1]) !== '') ? $parts[1] : $s;
+
+    $tidy = function (string $v) use ($junk): string {
+        $v = preg_replace('/^[\s@#]+/', '', $v);
+        $v = preg_replace('/\s*\b(?:feat\.?|ft\.?|featuring)\b.*$/iu', '', $v);
+        $v = preg_replace('/[\(\[\{].*?[\)\]\}]/u', ' ', $v);
+        for ($i = 0; $i < 5; $i++) {
+            $v = preg_replace('/\s+(?:' . $junk . ')\s*$/iu', '', $v);
+        }
+        return trim(preg_replace('/\s{2,}/', ' ', $v), " -–—_.,&");
+    };
+    $artist = $tidy($artist);
+    $title  = preg_replace('/\s+\d$/', '', $tidy($title));           // trailing copy number
+    if ($title === '') { $artist = ''; $title = $tidy($s); }
+    return [$artist, $title];
+}
+
+/** Every singer name Cantoria knows, so they can be stripped out of a filename. */
+function kar_singer_names(): array {
+    static $names = null;
+    if ($names !== null) return $names;
+    $names = [];
+    try {
+        foreach (kar_db()->query('SELECT DISTINCT person FROM karaoke_best') as $r) {
+            $n = trim((string)$r['person']);
+            if ($n !== '' && mb_strlen($n) >= 3) $names[] = $n;
+        }
+    } catch (Throwable $e) { /* a brand-new install has no lists yet */ }
+    return $names;
+}
+
+/** One spoken line, as a wav. Cached: a line is spoken once in the life of the system. */
+function kar_mc_clip(string $text, string $voice, int $rate): string {
+    $dir = kar_data_dir() . '/mc';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $out = $dir . '/' . substr(sha1($voice . '|' . $rate . '|' . $text), 0, 16) . '.aiff';
+    if (is_file($out) && filesize($out) > 0) return $out;
+    $cmd = 'say';
+    if ($voice !== '') $cmd .= ' -v ' . escapeshellarg($voice);
+    $cmd .= ' -r ' . (int)$rate . ' -o ' . escapeshellarg($out) . ' ' . escapeshellarg($text) . ' 2>/dev/null';
+    @exec($cmd);
+    return (is_file($out) && filesize($out) > 0) ? $out : '';
+}
+
+/** The whole announcement as one wav: three lines, real silence between them, loud.
+ *
+ * Kept as three separate clips joined by silence rather than one sentence — that is what
+ * makes the pause a dial instead of a guess, and it survives changing the voice. */
+function kar_mc_build(string $singer, string $title, string $artist): string {
+    $c      = kar_cfg();
+    $lead   = (string)($c['announce_lead'] ?? 'And now');
+    $verb   = (string)($c['announce_verb'] ?? 'will sing');
+    $by     = (string)($c['announce_by']   ?? 'from');
+    $pause  = (float)($c['announce_pause'] ?? 0.9);
+    $voice  = kar_mc_voice();
+
+    $tail = $title . ($artist !== '' ? ', ' . $by . ' ' . $artist : '');
+    $a = kar_mc_clip($lead, $voice, 178);
+    $b = kar_mc_clip($singer . ' ' . $verb, $voice, 178);
+    $d = kar_mc_clip($tail, $voice, 115);
+    if ($a === '' || $b === '' || $d === '') return '';
+
+    $dir = kar_data_dir() . '/mc';
+    $out = $dir . '/' . substr(sha1($voice . '|' . $lead . '|' . $singer . '|' . $verb . '|' . $tail . '|' . $pause), 0, 16) . '.wav';
+    if (is_file($out) && filesize($out) > 0) return $out;
+
+    $ff = kar_tool('ffmpeg');
+    if ($ff === '') return '';
+    // Loud and plain. loudnorm ERRORS above I=-5 rather than clamping, so normalise to its
+    // ceiling and drive that into a limiter — louder than loudnorm alone can go, still clean.
+    $filter = '[0:a]volume=3.2[s1];[1:a]volume=3.3[s2];[2:a]atempo=0.94,volume=3.8[s3];'
+            . 'aevalsrc=0:d=' . $pause . ':s=24000[p1];aevalsrc=0:d=' . $pause . ':s=24000[p2];'
+            . '[s1][p1][s2][p2][s3]concat=n=5:v=0:a=1,'
+            . 'acompressor=threshold=0.06:ratio=6:attack=3:release=100,'
+            . 'loudnorm=I=-5:TP=-0.5,volume=1.7,alimiter=limit=0.98:level=disabled';
+    $cmd = escapeshellarg($ff) . ' -y -v error'
+         . ' -i ' . escapeshellarg($a) . ' -i ' . escapeshellarg($b) . ' -i ' . escapeshellarg($d)
+         . ' -filter_complex ' . escapeshellarg($filter)
+         . ' -ar 44100 -ac 2 ' . escapeshellarg($out) . ' 2>/dev/null';
+    @exec($cmd);
+    return (is_file($out) && filesize($out) > 0) ? $out : '';
+}
+
+/** The applause that carries the walk to the microphone. */
+function kar_mc_applause(): string {
+    $c = kar_cfg();
+    $named = trim((string)($c['applause'] ?? ''));
+    foreach ([$named, __DIR__ . '/sounds/applause.wav', __DIR__ . '/sounds/applause.mp3'] as $p) {
+        if ($p !== '' && is_file($p)) return $p;
+    }
+    return '';
+}
+
+/** Start the introduction in the background so the web request returns at once. */
+function kar_mc_spawn(string $song, string $singer, int $pitch): void {
+    $worker = __DIR__ . '/karaoke_worker.php';
+    if (!is_file($worker)) return;
+    $php = PHP_BINARY ?: 'php';
+    $arg = base64_encode(json_encode(['song' => $song, 'singer' => $singer, 'pitch' => $pitch]));
+    // Deliberately NOT behind the worker lock: a download running is no reason for the
+    // party to lose its announcements.
+    @exec(escapeshellarg($php) . ' ' . escapeshellarg($worker) . ' '
+        . escapeshellarg(kar_marker_path() ?: '') . ' announce ' . escapeshellarg($arg)
+        . ' >/dev/null 2>&1 &');
 }
 
 function kar_qmidi_available(): bool { return is_dir('/Applications/QMidi Pro.app'); }

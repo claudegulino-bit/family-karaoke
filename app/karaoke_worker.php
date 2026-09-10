@@ -4,11 +4,12 @@
 // Two jobs, both of which must NOT happen inside a web request:
 //   downloads — a YouTube fetch takes minutes, and ▶ Play must stay instant
 //   pick      — the folder chooser waits for a person to walk to the Mac
+//   announce  — the MC introduction runs for ~25 seconds before the song comes up
 //
 // Started detached by karaoke_api.php; never reachable over HTTP (it refuses a
 // web SAPI outright). One at a time, guarded by a lock file.
 //
-//   php karaoke_worker.php <marker-path> [pick <queue-id>]
+//   php karaoke_worker.php <marker-path> [pick <queue-id> | announce <base64-json>]
 
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit('cli only'); }
 
@@ -27,6 +28,58 @@ $lock = kar_data_dir() . '/worker.lock';
 // ---------------------------------------------------------------------------
 // The folder chooser
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// The MC — the introduction, run out here so the web request never waits for it
+// ---------------------------------------------------------------------------
+if ($job === 'announce') {
+    // Deliberately outside the worker lock: a YouTube download in progress is no reason
+    // for the party to lose its announcements.
+    $spec   = json_decode((string)base64_decode((string)($argv[3] ?? '')), true) ?: [];
+    $song   = (string)($spec['song'] ?? '');
+    $singer = (string)($spec['singer'] ?? '');
+    if ($song === '' || $singer === '') exit;
+
+    // Nothing below may stop the music. If any step fails, put the volume back and let
+    // the song play — a party does not care that the announcer failed.
+    try {
+        [$artist, $title] = kar_title_artist($song);
+        $wav = kar_mc_build($singer, $title, $artist);
+
+        // mpv may still be opening its socket: the file can exist a moment before anything
+        // is listening on it. Wait for it to actually ANSWER.
+        for ($i = 0; $i < 40; $i++) {
+            if (kar_mpv_alive()) break;
+            usleep(250000);
+        }
+        if (!kar_mpv_alive()) throw new RuntimeException('the player never answered');
+
+        kar_mpv_send(['set_property', 'volume', KAR_MC_BED]);
+        $screen = $singer . ' will sing' . "\n" . $title . ($artist !== '' ? "\nfrom " . $artist : '');
+        kar_mpv_send(['show-text', $screen, 60000]);
+
+        usleep((int)(KAR_MC_LEAD_IN * 1000000));        // time to read it
+        if ($wav !== '') {
+            @exec('afplay ' . escapeshellarg($wav) . ' >/dev/null 2>&1');   // blocks until spoken
+        }
+
+        $ap = kar_mc_applause();
+        if ($ap !== '') @exec('afplay ' . escapeshellarg($ap) . ' >/dev/null 2>&1 &');
+        usleep((int)(KAR_MC_WALK_UP * 1000000));        // stand, cross the floor, take the mic
+        if ($ap !== '') @exec('pkill -f ' . escapeshellarg('afplay ' . $ap) . ' >/dev/null 2>&1');
+
+        kar_mpv_send(['show-text', '', 1]);
+        kar_mpv_send(['seek', 0, 'absolute']);          // from the top: the whole song is theirs
+        for ($i = 1; $i <= 14; $i++) {
+            kar_mpv_send(['set_property', 'volume', (int)(KAR_MC_BED + (100 - KAR_MC_BED) * $i / 14)]);
+            usleep(45000);
+        }
+    } catch (Throwable $e) {
+        @kar_mpv_send(['show-text', '', 1]);
+        @kar_mpv_send(['set_property', 'volume', 100]);
+    }
+    exit;
+}
+
 if ($job === 'pick') {
     $id = (int)($argv[3] ?? 0);
     $script = 'try' . "\n"
