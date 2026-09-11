@@ -377,7 +377,13 @@ try {
         $rows = $db->query("SELECT id, url, title, status, note, filename, requested_by FROM karaoke_downloads
             WHERE status IN ('Queued','Pending','Downloading')
                OR (status='Done'  AND COALESCE(done_at, requested_at) > datetime('now','localtime','-10 minutes'))
-               OR (status='Error' AND COALESCE(done_at, requested_at) > datetime('now','localtime','-7 days'))
+               OR (status='Error' AND COALESCE(done_at, requested_at) > datetime('now','localtime','-7 days')
+                   -- a failure that a LATER attempt at the same song got right is not a
+                   -- failure any more — leaving it in red beside a green success was read as
+                   -- still broken (NJ mini, 2026-09-11)
+                   AND NOT EXISTS (SELECT 1 FROM karaoke_downloads d2 WHERE d2.status='Done'
+                                   AND d2.id > karaoke_downloads.id
+                                   AND (d2.url = karaoke_downloads.url OR d2.title = karaoke_downloads.title)))
             ORDER BY id DESC LIMIT 20")->fetchAll();
         kar_worker_spawn();   // keeps a queue moving even if a worker died mid-fetch
         // The page polls this every few seconds whether or not a panel is open, which
