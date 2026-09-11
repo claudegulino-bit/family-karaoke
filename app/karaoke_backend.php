@@ -381,6 +381,11 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         kar_mpv_send(['set_property', 'pause', $mc && $crowd === '']);
         kar_mpv_send(['set_property', 'loop-file', $crowd !== '' ? 'inf' : 'no']);
         kar_mpv_send(['set_property', 'volume', 100]);
+        // Re-assert the words window's on-top setting on EVERY song, not only at launch.
+        // A running player keeps whatever it started with, so an instance that was already
+        // open when the switch was turned on would stay behind the browser for the rest of
+        // the night. Sent both ways, so unticking takes effect on the next song too.
+        kar_mpv_send(['set_property', 'ontop', !empty(kar_cfg()['words_on_top'])]);
         kar_mpv_send(['loadfile', $path, 'replace']);
         // Speed persists across loads — every song starts at normal tempo.
         kar_mpv_send(['set_property', 'speed', 1.0]);
