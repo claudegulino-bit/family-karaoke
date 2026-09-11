@@ -268,6 +268,14 @@ if (!$KAR_LOCAL) {
               <?php endif; ?>
             </div>
           </div>
+          <?php if (kar_is_local()): ?>
+          <p style="margin:0 0 4px"><b>The words window.</b></p>
+          <label style="display:flex;align-items:flex-start;gap:9px;margin:0 0 12px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;cursor:pointer;font-size:12.5px;line-height:1.6">
+            <input type="checkbox" id="kar-ontop" onchange="karSetOnTop(this)" <?= !empty(kar_cfg()['words_on_top']) ? 'checked' : '' ?> style="margin-top:3px;width:16px;height:16px;accent-color:#D2AD6C;cursor:pointer">
+            <span><b style="color:#cbd5e1">Keep the words on top of everything.</b><br>
+            <span style="color:#94a3b8">Without this the words can open <i>behind</i> the browser and you have to go hunting for them — which is exactly what happens when you play a song directly instead of through the queue. With it on, they always sit in front. Turn it off if you want the words and the song list side by side.</span></span>
+          </label>
+          <?php endif; ?>
           <p style="margin:0 0 4px"><b>The player.</b> Two free programs do the playing and the downloading. In Terminal:</p>
           <div style="margin:0 0 4px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#cbd5e1">brew install mpv yt-dlp</div>
           <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If it answers <i>command not found: brew</i>, paste this first, let it finish, then repeat the line above:</p>
@@ -1409,7 +1417,19 @@ if (!$KAR_LOCAL) {
         }, 2000);
       }).catch(function(){ onDone(false, 'Network error — the Mac was not asked.'); });
     }
-    function karPickFolder(){
+    // Keep the words window in front. Saved on the Mac, and applied to the player that is open
+// right now so the answer is immediate rather than "next time".
+function karSetOnTop(cb){
+  var on = cb.checked ? '1' : '0';
+  cb.disabled = true;
+  var fd = new FormData();
+  fd.append('form_type','karaoke_set_ontop'); fd.append('on', on);
+  fetch(KAR_API,{method:'POST',body:fd,credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(d){ cb.disabled=false; if(!d.ok){ cb.checked=!cb.checked; alert('Could not save that.'); } })
+    .catch(function(){ cb.disabled=false; cb.checked=!cb.checked; alert('Could not save that.'); });
+}
+function karPickFolder(){
       var btn = document.getElementById('kar-pick-btn');
       var msg = document.getElementById('kar-pick-msg');
       btn.disabled = true;

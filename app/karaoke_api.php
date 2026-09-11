@@ -141,6 +141,18 @@ try {
     }
 
     // ------------------------------------------------------------- guest link
+    // Keep the words window above everything, or let it sit behind. A setting since the
+    // beginning, but only in the config file — which is no use to someone standing at the Mac
+    // at a party, where the window opening behind the browser is exactly when it matters.
+    case 'karaoke_set_ontop': {
+        $on = (string)($_POST['on'] ?? '') === '1';
+        kar_cfg_save(['words_on_top' => $on]);
+        // Apply to the player that is open RIGHT NOW, so the answer is immediate rather than
+        // "it will be like that next time".
+        if (kar_mpv_alive()) kar_mpv_send(['set_property', 'ontop', $on]);
+        kj(['ok' => true, 'on' => $on]);
+    }
+
     case 'karaoke_qr': {
         $rotate = (string)($_POST['action'] ?? 'get') === 'rotate';
         kj(['ok'=>true, 'error'=>'', 'url'=>kar_guest_url(kar_guest_token($rotate))]);
