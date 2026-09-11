@@ -500,7 +500,7 @@ if (!$KAR_LOCAL) {
       <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
-      <span style="flex:0 0 auto;width:48px;text-align:right" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Song<br>Number</span>
+      <span style="flex:0 0 auto;width:48px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Song<br>Number</span>
       <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
       </span>
@@ -777,7 +777,7 @@ if (!$KAR_LOCAL) {
           // Nothing but the row's place in the list on screen, counted fresh on every render —
           // sort, search or switch list and it starts at 1 again. It is a way to say "play 129"
           // out loud, not an identity: it deliberately has no tie to the song or the database.
-          + '<span class="kar-num" style="flex:0 0 auto;width:48px;text-align:right;font-size:13px;'
+          + '<span class="kar-num" style="flex:0 0 auto;width:48px;text-align:center;font-size:13px;'
           + 'font-variant-numeric:tabular-nums;color:' + (playing ? '#D2AD6C' : '#94a3b8') + '">'
           + rowNo + '</span>'
           // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
