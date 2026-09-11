@@ -146,10 +146,6 @@ const KAR_SCHEMA = [
         filename TEXT PRIMARY KEY,
         pitch    INTEGER NOT NULL,
         updated_at TEXT DEFAULT (datetime('now','localtime')))",
-    "CREATE TABLE IF NOT EXISTS karaoke_numbers (
-        filename TEXT PRIMARY KEY,
-        num      INTEGER NOT NULL UNIQUE,
-        created_at TEXT DEFAULT (datetime('now','localtime')))",
     "CREATE TABLE IF NOT EXISTS karaoke_best (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         person   TEXT NOT NULL,
@@ -1102,46 +1098,6 @@ function kar_best_default(array $lists, ?PDO $db = null): string {
         if (isset($lists[(string)$person])) return (string)$person;
     }
     return $lists ? (string)array_key_first($lists) : '';
-}
-
-/** The catalogue number shown beside every song — filename => int.
- *  It is an IDENTITY, not a row position: it does not move when the list is
- *  searched, sorted, or switched to a Best list, so "song 129" means the same
- *  song tonight and next year. That is the whole point — a guest reads a number
- *  off the screen and the organiser types it into the search box. */
-function kar_num_map(PDO $db): array {
-    $out = [];
-    try {
-        foreach ($db->query("SELECT filename, num FROM karaoke_numbers") as $r) {
-            $out[$r['filename']] = (int)$r['num'];
-        }
-    } catch (Throwable $e) { $out = []; }
-    return $out;
-}
-
-/** Give a number to every song that has not got one yet, and return the full map.
- *  The first run numbers the whole library alphabetically, so the list reads 1, 2,
- *  3 … in order. After that a new song simply takes the next number — it lands at
- *  the end of the range rather than pushing everything else along, because a number
- *  that already belongs to a song must never change.
- *  A REMOVED song keeps its row on purpose: numbers are never reused (two different
- *  songs sharing "129" over time is exactly the confusion this is meant to end), and
- *  a file restored out of the deleted folder gets its own number back. */
-function kar_num_assign(PDO $db, array $catalog): array {
-    $have = kar_num_map($db);
-    $missing = [];
-    foreach ($catalog as $f) { if (!isset($have[$f])) $missing[] = $f; }
-    if (!$missing) return $have;
-    natcasesort($missing);                       // alphabetical, so the first run reads in order
-    try {
-        $next = (int)$db->query("SELECT COALESCE(MAX(num),0) FROM karaoke_numbers")->fetchColumn() + 1;
-        $ins  = $db->prepare("INSERT INTO karaoke_numbers (filename, num) VALUES (?,?)");
-        foreach ($missing as $f) {
-            try { $ins->execute([$f, $next]); $have[$f] = $next; $next++; }
-            catch (Throwable $e) { $next++; }    // a clash just moves on; never renumber anyone
-        }
-    } catch (Throwable $e) { /* numbering is a convenience — never break the page over it */ }
-    return $have;
 }
 
 function kar_pitch_map(PDO $db): array {
