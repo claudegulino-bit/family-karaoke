@@ -339,6 +339,34 @@ try {
         kj(['ok'=>true, 'removed'=>(int)$n]);
     }
 
+    // --------------------------------------------------------- YouTube search
+    // The host page cannot run yt-dlp any more than the guest page can, so a search
+    // is a request the Mac answers — same shape as a play or a download. This is the
+    // same machinery the guest page has used since 2026-09-08, brought to the host
+    // so the ▶ YouTube round-trip stops being the only way to find a song.
+    case 'karaoke_yt_search': {
+        $q = trim((string)($_POST['q'] ?? ''));
+        if ($q === '' || mb_strlen($q) > 120) kj(['ok'=>false,'error'=>'type the singer or the name of the song']);
+        $recent = $db->prepare("SELECT COUNT(*) FROM karaoke_searches
+                                WHERE requested_by = 'host' AND requested_at > " . kar_ago(1, 'minutes'));
+        $recent->execute();
+        if ((int)$recent->fetchColumn() >= 12) kj(['ok'=>false,'error'=>'give it a moment — too many searches at once']);
+        $db->prepare("INSERT INTO karaoke_searches (query, requested_by) VALUES (?, 'host')")->execute([$q]);
+        $sid = (int)$db->lastInsertId();
+        kar_worker_spawn();   // nothing polls a queue here — start it now
+        kj(['ok'=>true, 'error'=>'', 'sid'=>$sid]);
+    }
+
+    case 'karaoke_yt_poll': {
+        $st = $db->prepare('SELECT status, results, note FROM karaoke_searches WHERE id = ?');
+        $st->execute([(int)($_POST['sid'] ?? 0)]);
+        $r = $st->fetch();
+        if (!$r) kj(['ok'=>false,'error'=>'that search expired — try again']);
+        kj(['ok'=>true, 'error'=>'', 'status'=>$r['status'],
+            'results'=>$r['results'] ? json_decode($r['results'], true) : [],
+            'note'=>(string)$r['note']]);
+    }
+
     case 'karaoke_dl_state': {
         // The fetching machine, not an archive: successes retire in 10 minutes (the song
         // lives under 🆕 New), failures stay 7 days because this is the ONLY place a

@@ -382,6 +382,15 @@ if (!$KAR_LOCAL) {
       <div id="kar-help-dl" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('dl')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
 
       </div>
+      <!-- Search YouTube from here. The page cannot run yt-dlp, so the Mac answers it —
+           the same machinery the guest page has had since 2026-09-08. This is what
+           retires the ▶ YouTube round trip as the only way to find a song. -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+        <input id="kar-yt-q" type="text" placeholder="Search YouTube — type a singer or a song…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+        <button type="button" onclick="karYtSearch()" id="kar-yt-btn" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 16px;border-radius:8px">Search</button>
+      </div>
+      <div id="kar-yt-res" style="margin-bottom:10px"></div>
+      <div style="border-top:1px solid #1e293b;margin-bottom:10px"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
         <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
@@ -1627,6 +1636,82 @@ function karPickFolder(){
     }
     document.getElementById('kar-dl-url').addEventListener('keydown', function(ev){
       if (ev.key === 'Enter') { ev.preventDefault(); karDlAdd(); }
+    });
+
+    // ---- Search YouTube from the page -------------------------------------------------
+    // The page cannot run yt-dlp, so a search is a row the Mac answers: insert, then poll.
+    // Same machinery the guest page has used since 2026-09-08.
+    var KAR_YT_HITS = [], karYtPoll = null;
+    // karEsc does not escape quotes, which is fine for text but not for an attribute.
+    function karEscA(s){ return karEsc(String(s == null ? '' : s)).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+    function karYtSearch(){
+      var inp = document.getElementById('kar-yt-q'), q = inp.value.trim();
+      if (!q) { inp.focus(); return; }
+      var btn = document.getElementById('kar-yt-btn'), res = document.getElementById('kar-yt-res');
+      btn.disabled = true; btn.textContent = 'Searching…';
+      res.innerHTML = '<div style="color:#D2AD6C;font-size:12.5px;padding:6px 2px">Looking on YouTube…</div>';
+      if (karYtPoll) { clearInterval(karYtPoll); karYtPoll = null; }
+      var fd = new FormData(); fd.append('form_type','karaoke_yt_search'); fd.append('q', q);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { karYtDone(); res.innerHTML = '<div style="color:#f87171;font-size:12.5px;padding:6px 2px">' + karEsc(d.error || 'Search failed.') + '</div>'; return; }
+        var tries = 0;
+        karYtPoll = setInterval(function(){
+          tries++;
+          if (tries > 40) { clearInterval(karYtPoll); karYtPoll = null; karYtDone();
+            res.innerHTML = '<div style="color:#f87171;font-size:12.5px;padding:6px 2px">That took too long. Is the Mac awake?</div>'; return; }
+          var fp = new FormData(); fp.append('form_type','karaoke_yt_poll'); fp.append('sid', d.sid);
+          fetch(KAR_API, {method:'POST', body: fp}).then(function(r){ return r.json(); }).then(function(r){
+            if (!r.ok || r.status === 'Pending') return;
+            clearInterval(karYtPoll); karYtPoll = null; karYtDone();
+            if (r.status === 'Error') { res.innerHTML = '<div style="color:#f87171;font-size:12.5px;padding:6px 2px">' + karEsc(r.note || 'The search did not work.') + '</div>'; return; }
+            KAR_YT_HITS = r.results || [];
+            karYtRender();
+          }).catch(function(){});
+        }, 1200);
+      }).catch(function(){ karYtDone(); res.innerHTML = '<div style="color:#f87171;font-size:12.5px;padding:6px 2px">Network hiccup — try again.</div>'; });
+    }
+    function karYtDone(){ var b = document.getElementById('kar-yt-btn'); b.disabled = false; b.textContent = 'Search'; }
+
+    function karYtRender(){
+      var res = document.getElementById('kar-yt-res');
+      if (!KAR_YT_HITS.length) { res.innerHTML = '<div style="color:#94a3b8;font-size:12.5px;padding:6px 2px">Nothing found — try the singer\'s name, or fewer words.</div>'; return; }
+      var out = [];
+      for (var i = 0; i < KAR_YT_HITS.length; i++) {
+        var h = KAR_YT_HITS[i];
+        // A duplicate is a WARNING, never a refusal — he keeps several versions of a song
+        // on purpose, and tidies up from 🆕 New at the end of the night.
+        var dup = (h.have && h.have.length)
+          ? '<div style="color:#D2AD6C;font-size:11.5px;margin-top:2px">⚠ you may already have this — ' + karEsc(h.have[0].label) + '</div>'
+          : '';
+        out.push('<div style="display:flex;gap:10px;align-items:center;padding:7px 2px;border-top:1px solid #1e293b">'
+          + '<img src="' + karEscA(h.thumb) + '" alt="" style="flex:0 0 72px;width:72px;height:41px;object-fit:cover;border-radius:5px;background:#1e293b">'
+          + '<div style="flex:1;min-width:0">'
+          + '<div style="color:#e2e8f0;font-size:12.5px;font-weight:600;line-height:1.35">' + karEsc(h.title) + '</div>'
+          + '<div style="color:#64748b;font-size:11px">' + karEsc(h.chan) + (h.len ? ' · ' + karEsc(h.len) : '') + '</div>'
+          + dup + '</div>'
+          + '<button type="button" onclick="karYtAdd(' + i + ',this)" style="flex:0 0 auto;font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12px;font-weight:700;padding:7px 13px;border-radius:8px">+ Add</button>'
+          + '</div>');
+      }
+      res.innerHTML = out.join('');
+    }
+
+    // Adding goes through the SAME list as a pasted link, so ⬇ Download the list still
+    // does the fetching — one download path, not two.
+    function karYtAdd(i, btn){
+      var h = KAR_YT_HITS[i]; if (!h) return;
+      btn.disabled = true; btn.textContent = '…';
+      var fd = new FormData(); fd.append('form_type','karaoke_dl_add'); fd.append('url', h.url);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        btn.disabled = false;
+        btn.textContent = d.ok ? '✓ Added' : '+ Add';
+        if (!d.ok) { alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
+        btn.style.color = '#6ee7b7'; btn.style.borderColor = '#16a34a';
+        karDlRefresh();
+      }).catch(function(){ btn.disabled = false; btn.textContent = '+ Add'; alert('Network error — the song was not added.'); });
+    }
+    document.getElementById('kar-yt-q').addEventListener('keydown', function(ev){
+      if (ev.key === 'Enter') { ev.preventDefault(); karYtSearch(); }
     });
     function karDlStart(){
       var fd = new FormData(); fd.append('form_type', 'karaoke_dl_start');
