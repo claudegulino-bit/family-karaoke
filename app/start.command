@@ -9,4 +9,6 @@ echo "Karaoke is running."
 echo "  On this Mac:      http://localhost:$PORT/karaoke.php"
 echo "  Guests' phones:   the QR code on the page (http://$IP:$PORT/...)"
 echo "Leave this window open. Close it to stop."
+# Homebrew on the PATH, so anything that shells out (yt-dlp → ffmpeg) can find it.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 exec php -S "0.0.0.0:$PORT" -t .

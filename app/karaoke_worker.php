@@ -307,7 +307,12 @@ while ($row = $db->query("SELECT id, url, title, requested_by, auto_sing FROM ka
 
     // NOT --no-warnings: a warning is often the only thing that says why nothing arrived,
     // and since 2026-09-11 this output is what the person is shown.
+    // --ffmpeg-location: yt-dlp otherwise looks for ffmpeg on PATH, and the worker is
+    // started by the web server with a bare one — so on a Mac where ffmpeg is installed
+    // in /opt/homebrew/bin, yt-dlp still said "ffmpeg is not installed". Found the hard
+    // way on the Kitchen Mac, 2026-09-11.
     $cmd = escapeshellarg($ytdlp) . ' --no-playlist --newline'
+         . ' --ffmpeg-location ' . escapeshellarg(dirname($ffmpeg))
          . ' -f ' . escapeshellarg($fmt)
          . ' --merge-output-format mp4'
          . ' -o ' . escapeshellarg($dir . '/%(title)s' . $nameTag . '.%(ext)s')
