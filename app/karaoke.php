@@ -340,7 +340,8 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-downloads" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Downloads — songs from YouTube</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#93c5fd">1 · Add the song</b> — press <b>▶ YouTube</b> at the top, find the song, copy its link, paste it in the box below and press <b>+ Add to list</b>. Add as many as you like.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#93c5fd">1 · Find the song</b> — type a singer or a song name in the <b>Search YouTube</b> box and press <b>Search</b>. The results show how long each one is and warn you if you may already own it. Press <b>+ Add</b> on the ones you want. Add as many as you like.</div>
+        <div><b style="color:#93c5fd">Or paste a link</b> — if you found the song on YouTube yourself, press <b>▶ YouTube</b> at the top, copy the link, paste it in the box below and press <b>+ Add to list</b>.</div>
         <div><b style="color:#93c5fd">2 · Fetch them</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. They come down one at a time, a minute or two each. You can close this panel and carry on.</div>
         <div><b style="color:#93c5fd">3 · Where they end up</b> — a song that arrives leaves this panel and lives under <b style="color:#c084fc">🆕 New</b> for a month. One that <b style="color:#f87171">didn't work</b> stays here with the reason, so it can't slip past you.</div>
         <div><b style="color:#93c5fd">Guests can add songs too</b> — anything they send from their phone shows up here marked with their name, and downloads by itself.</div>
