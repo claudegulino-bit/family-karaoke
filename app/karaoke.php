@@ -289,9 +289,9 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Play a song</h3>
           <ul style="margin:0;padding-left:20px">
             <li><b>Find it</b> — type anything in the search box: the artist, the title, or the name of whoever sings it.</li>
-            <li><b>The Song Number column just counts the list</b> — the top song is always 1. So a singer can look at the screen and say <i>"play 129"</i>. Sort the list a different way, or open someone's Best list, and it counts again from 1.</li>
+            <li><b>The Seq Number column just counts the list</b> — the top song is always 1. So a singer can look at the screen and say <i>"play 129"</i>. Sort the list a different way, or open someone's Best list, and it counts again from 1.</li>
             <li><b>Press ▶ Play</b> — it plays on the Mac. On that Mac's keyboard, <b>F</b> makes it full screen and <b>Q</b> closes it.</li>
-            <li><b>The Pitch number is your key</b> — press − or + to move it up or down. It stays that way for next time. (That is the one on the left, in Set up — not the song's number.)</li>
+            <li><b>The Pitch number is your key</b> — press − or + to move it up or down. It stays that way for next time. (That is the one on the left, in Set up — not the Seq Number.)</li>
             <li><b>Someone else wants to sing it?</b> Press <b>Reset</b>, then Play. It plays once in the original key and your own key comes straight back.</li>
           </ul>
           <p style="margin:10px 0 0;color:#94a3b8;font-size:12.5px"><label style="cursor:pointer"><input type="checkbox" id="kar-qmidi-cb" onchange="karQmidiToggle(this)" style="vertical-align:-1px;margin-right:6px">Show the old blue ▶ QMidi play button too — hidden, not deleted.</label></p>
@@ -500,7 +500,7 @@ if (!$KAR_LOCAL) {
       <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
-      <span style="flex:0 0 auto;width:48px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Song<br>Number</span>
+      <span style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Seq<br>Number</span>
       <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
       </span>
@@ -777,7 +777,7 @@ if (!$KAR_LOCAL) {
           // Nothing but the row's place in the list on screen, counted fresh on every render —
           // sort, search or switch list and it starts at 1 again. It is a way to say "play 129"
           // out loud, not an identity: it deliberately has no tie to the song or the database.
-          + '<span class="kar-num" style="flex:0 0 auto;width:48px;text-align:center;font-size:13px;'
+          + '<span class="kar-num" style="flex:0 0 auto;width:54px;text-align:center;font-size:13px;'
           + 'font-variant-numeric:tabular-nums;color:' + (playing ? '#D2AD6C' : '#94a3b8') + '">'
           + rowNo + '</span>'
           // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
