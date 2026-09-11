@@ -191,7 +191,7 @@ if (!$KAR_LOCAL) {
         <option value="__remove__">− Remove a person…</option>
       </select>
       <input id="kar-search" type="text" placeholder="Search songs, pitch, CSG, names…" oninput="karRender()" onkeydown="if(event.key==='Escape'){karClearSearch(true);}" title="Type to filter. Esc clears it — and switching views clears it too." style="font-family:inherit;flex:1;min-width:150px;background:#121620;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
-      <button type="button" onclick="karYtGo()" title="Opens YouTube in the next tab — browse, copy a song's link, then click back to this tab and paste it" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px">▶ YouTube</button>
+      <a href="https://www.youtube.com" target="_blank" rel="noopener" onclick="karYtGo()" title="Opens YouTube in the next tab — browse, copy a song's link, then click back to this tab and paste it" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px;display:inline-block;text-decoration:none;line-height:1.25">▶ YouTube</a>
       <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The Up Next queue — who sings next, in order" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">🎶 Up Next <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
       <button type="button" onclick="karDlToggle()" id="kar-dl-btn" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">⬇ Downloads</button>
       <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(192,132,252,.45);color:#c084fc;transition:background .12s,border-color .12s,box-shadow .12s;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">📱</span> Guest QR</button>
@@ -1267,9 +1267,13 @@ if (!$KAR_LOCAL) {
     // detect that closure. So every click opens YouTube now. A spare tab is a much
     // smaller cost than a dead button that tells him something untrue.
     function karYtGo(){
+      // The YouTube control is a real link (anchor, target=_blank) — the browser opens it.
+      // window.open() used to do it here, and a popup blocker could silently swallow it
+      // (2026-09-11: that is exactly what was happening on the Mac mini). A link a person
+      // clicks is a navigation, not a popup, so it cannot be blocked. All this does now is
+      // open the paste box ready for the link he comes back with.
       var p = document.getElementById('kar-dl-panel');
       if (p.style.display === 'none') karDlToggle();
-      window.open('https://www.youtube.com', '_blank');
       karYtHint();
     }
     function karYtHint(){
