@@ -1718,7 +1718,7 @@ function karPickFolder(){
       var fd = new FormData(); fd.append('form_type', 'karaoke_dl_start');
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) { alert('Could not start' + (d.error ? ': ' + d.error : '') + '.'); return; }
-        if (!d.started) { alert('Nothing to download — add a YouTube link first.'); return; }
+        if (!d.started) { alert('Nothing to download — add a YouTube link first. (Songs that already arrived are under 🆕 New.)'); return; }
         karDlRefresh();
       }).catch(function(){ alert('Network error — the download was not started.'); });
     }

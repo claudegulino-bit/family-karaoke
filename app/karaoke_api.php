@@ -321,7 +321,10 @@ try {
     }
 
     case 'karaoke_dl_start': {
-        $n = $db->exec("UPDATE karaoke_downloads SET status='Pending' WHERE status='Queued'");
+        // A failed row is retried by the same button — otherwise the only way back after a
+        // failure was to paste the link again, which is what the NJ mini showed on
+        // 2026-09-11 ("Nothing to download" with two failed songs sitting right there).
+        $n = $db->exec("UPDATE karaoke_downloads SET status='Pending', note=NULL, done_at=NULL WHERE status IN ('Queued','Error')");
         kar_worker_spawn();
         kj(['ok'=>true, 'started'=>(int)$n]);
     }
