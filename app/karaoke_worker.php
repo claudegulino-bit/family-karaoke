@@ -292,7 +292,22 @@ while ($row = $db->query("SELECT id, url, title, requested_by, auto_sing FROM ka
         if ($who !== '') $nameTag = ' (0) ' . mb_substr($who, 0, 24);
     }
 
-    $cmd = escapeshellarg($ytdlp) . ' --no-playlist --no-warnings --newline'
+    // ffmpeg is what joins the picture to the sound. Without it the merge produces
+    // nothing at all — and with --no-warnings it does so almost silently, leaving only
+    // two "Title.f299.mp4" part-files behind. Say it plainly before trying, rather than
+    // report "the download did not finish" for a thing that was never going to.
+    $ffmpeg = kar_tool('ffmpeg');
+    if (!is_file($ffmpeg)) {
+        kar_set($db, $id, ['status'=>'Error', 'done_at'=>date('Y-m-d H:i:s'),
+            'note'=>'ffmpeg is missing on this Mac, so the picture and the sound cannot be joined'
+                  . ' into one file. In Terminal:  brew install ffmpeg']);
+        kar_log('download', 'row ' . $id . ': ffmpeg missing');
+        continue;
+    }
+
+    // NOT --no-warnings: a warning is often the only thing that says why nothing arrived,
+    // and since 2026-09-11 this output is what the person is shown.
+    $cmd = escapeshellarg($ytdlp) . ' --no-playlist --newline'
          . ' -f ' . escapeshellarg($fmt)
          . ' --merge-output-format mp4'
          . ' -o ' . escapeshellarg($dir . '/%(title)s' . $nameTag . '.%(ext)s')
@@ -300,13 +315,22 @@ while ($row = $db->query("SELECT id, url, title, requested_by, auto_sing FROM ka
          . $cookies . ' ' . escapeshellarg($row['url']) . ' 2>&1';
     $out = (string)@shell_exec($cmd);
 
-    $path = '';
+    // yt-dlp prints the name it MEANT to produce even when the merge fails, so a printed
+    // path is not proof of anything — the file has to actually be there.
+    $path = $intended = '';
     foreach (array_reverse(array_map('trim', explode("\n", $out))) as $line) {
-        if ($line !== '' && strpos($line, $dir . '/') === 0 && is_file($line)) { $path = $line; break; }
+        if ($line === '' || strpos($line, $dir . '/') !== 0) continue;
+        if ($intended === '') $intended = $line;
+        if (is_file($line)) { $path = $line; break; }
     }
     if ($path === '') {
-        kar_set($db, $id, ['status'=>'Error', 'note'=>'the download did not finish — try a different YouTube version',
+        // Clear the half-finished parts, or they sit in the songs folder for ever.
+        if ($intended !== '') {
+            foreach (glob(preg_replace('/\.[^.\/]+$/', '', $intended) . '.f*') ?: [] as $frag) @unlink($frag);
+        }
+        kar_set($db, $id, ['status'=>'Error', 'note'=>kar_dl_reason($out),
                            'done_at'=>date('Y-m-d H:i:s')]);
+        kar_log('download', 'row ' . $id . ' failed: ' . kar_dl_reason($out));
         continue;
     }
     $file = basename($path);

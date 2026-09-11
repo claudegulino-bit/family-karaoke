@@ -405,7 +405,9 @@ try {
             if ($task === 'tools') {
                 // Fast enough to answer inline — no chooser, nothing to wait for.
                 $parts = [];
-                foreach (['mpv', 'yt-dlp'] as $t) {
+                // ffmpeg is on this list because the download needs it to join the picture to
+                // the sound — and it was the one tool nothing ever checked.
+                foreach (['mpv', 'yt-dlp', 'ffmpeg'] as $t) {
                     $bin = kar_tool($t);
                     $v = is_file($bin) ? trim((string)@shell_exec(escapeshellarg($bin) . ' --version 2>/dev/null | head -1')) : '';
                     // "mpv 0.41.0 Copyright ..." and a bare "2026.08.19" both have to come out

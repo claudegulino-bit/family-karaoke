@@ -340,6 +340,56 @@ function kar_tool(string $name): string {
     return $which !== '' ? $which : "/opt/homebrew/bin/$name";
 }
 
+/**
+ * Turn yt-dlp's own output into a reason a person can act on.
+ *
+ * Every failed download used to say the same eleven words — "the download did not
+ * finish — try a different YouTube version" — while the real reason, which yt-dlp
+ * prints every time, was thrown away. That made a failure in another house
+ * impossible to diagnose at all. (the owner, 2026-09-11: "I have not been able to
+ * download any song.")
+ *
+ * So: keep yt-dlp's own words, and put a plain-English sentence in front of the few
+ * causes that have one. Never guess beyond that — the raw line is always the truth.
+ */
+function kar_dl_reason(string $out): string {
+    $lines = array_values(array_filter(array_map('trim', explode("\n", $out)), 'strlen'));
+    if (!$lines) return 'yt-dlp printed nothing at all, so it may not have run. Press "Check it worked" in the Guide.';
+
+    // yt-dlp names the problem on an ERROR line. Keep the LAST one: a retry chain can
+    // print several, and the final one is its verdict.
+    $err = '';
+    foreach ($lines as $l) { if (stripos($l, 'ERROR') === 0) $err = $l; }
+    // No ERROR line? Then a WARNING usually holds it. Failing that, the last line — but
+    // never a bare file path: yt-dlp prints the name it MEANT to write even when the
+    // merge fails, and handing that back as "the reason" explains nothing.
+    if ($err === '') { foreach ($lines as $l) { if (stripos($l, 'WARNING') === 0) $err = $l; } }
+    if ($err === '') $err = (string)end($lines);
+    if ($err !== '' && $err[0] === '/') {
+        $err = 'yt-dlp ran but no finished file arrived, and it gave no reason.'
+             . ' Usually the picture and sound could not be joined — check ffmpeg with'
+             . ' "Check it worked" in the Guide.';
+    }
+    $err = preg_replace('/^ERROR:\s*/i', '', $err);
+    $err = preg_replace('#^\[[^\]]+\]\s*[\w-]{6,}:\s*#', '', $err);   // drop "[youtube] dQw4w9WgXcQ:"
+
+    // Only causes whose wording is unambiguous get a translation.
+    $hints = [
+        'ffmpeg' => 'ffmpeg is missing on this Mac, so the picture and the sound could not be joined into one file. Install it: brew install ffmpeg',
+        'sign in to confirm'      => 'YouTube asked this Mac to prove it is not a robot. Try a different version of the song.',
+        'confirm your age'        => 'YouTube wants an age check on that video. Try a different version of the song.',
+        'private video'           => 'That video is private.',
+        'members-only'            => 'That video is for channel members only.',
+        'no space left'           => 'The disk is full.',
+        'permission denied'       => 'This Mac was not allowed to write into the songs folder.',
+    ];
+    $hint = '';
+    foreach ($hints as $needle => $text) {
+        if (stripos($err, $needle) !== false) { $hint = $text . ' — '; break; }
+    }
+    return mb_substr($hint . $err, 0, 240);
+}
+
 function kar_mpv_send(array $cmd, float $timeout = 2.0) {
     $sock = @stream_socket_client('unix://' . KAR_MPV_SOCK, $errno, $errstr, $timeout);
     if (!$sock) return null;
