@@ -1253,39 +1253,31 @@ if (!$KAR_LOCAL) {
     // ---- YouTube download queue ----
     var karDlTimer = null;
     // YouTube serves Cross-Origin-Opener-Policy, which SEVERS the tab from this page
-    // the moment youtube.com loads — window handles go dead, the window name is
-    // cleared, and no script can focus or reuse that tab again. Verified live
-    // 2026-09-06 (curl: coop same-origin-allow-popups); the earlier named-window
-    // reuse could never work. So: open ONCE per session (sessionStorage survives a
-    // reload of this page), and afterwards the button points him at the tab instead
-    // of piling up copies. His catch: "still creating a new YouTube tab every time."
+    // the moment youtube.com loads — the window handle goes dead, the window name is
+    // cleared, and no script can ever focus or reuse that tab again. Verified live
+    // 2026-09-06 (curl: coop same-origin-allow-popups). Tab REUSE is impossible; that
+    // part has not changed.
+    //
+    // 2026-09-11: the earlier answer to it — open once per session, then show a hint
+    // instead of opening — was worse than the problem it solved. His report: "when I
+    // click on YouTube, it does not go to YouTube. It stays there." Two faults. A
+    // button that does nothing reads as broken. And the hint could be FALSE: the flag
+    // recorded "we opened it once", not "it is still open", so once he closed the
+    // YouTube tab every later click insisted it was already open — and a page cannot
+    // detect that closure. So every click opens YouTube now. A spare tab is a much
+    // smaller cost than a dead button that tells him something untrue.
     function karYtGo(){
       var p = document.getElementById('kar-dl-panel');
       if (p.style.display === 'none') karDlToggle();
-      var opened = false;
-      try { opened = sessionStorage.getItem('kar_yt_opened') === '1'; } catch (e) {}
-      if (!opened) {
-        window.open('https://www.youtube.com', '_blank');
-        try { sessionStorage.setItem('kar_yt_opened', '1'); } catch (e) {}
-        karYtHint(false);
-      } else {
-        karYtHint(true);
-      }
-    }
-    function karYtFresh(){
-      // He closed the YouTube tab and wants a new one — explicit, so no duplicate risk.
       window.open('https://www.youtube.com', '_blank');
-      karYtHint(false);
-      return false;
+      karYtHint();
     }
-    function karYtHint(already){
+    function karYtHint(){
       var el = document.getElementById('kar-yt-hint');
       if (!el) return;
       el.style.display = '';
-      el.innerHTML = (already
-        ? '<b style="color:#D2AD6C">YouTube is already open in another tab</b> — click the <b>YouTube tab at the top of the browser</b> (or press ⌘ + Tab keys) to go back to it. Your search is still there. '
-        : 'YouTube opened in the tab next to this one — go back and forth by <b>clicking the tabs at the top of the browser</b>. ')
-        + 'Closed it? <a href="#" onclick="return karYtFresh()" style="color:#60A5FA">Open a fresh YouTube tab</a>.';
+      el.innerHTML = 'YouTube opened in a new tab — find the song there, copy its link, then '
+        + '<b>click back to this tab</b> and paste it in the box below.';
     }
     // ▶ QMidi column: HIDDEN by default since 2026-09-06 (the owner moved to the casAI
     // player) — hidden, never deleted. The Guide's checkbox brings it back any time;
