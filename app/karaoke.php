@@ -594,7 +594,14 @@ if (!$KAR_LOCAL) {
       // which read as random). karSwitch re-renders, so no separate karRender needed.
       karSwitch('best', document.getElementById('kar-best-chip'));
     }
-    function karFnPitch(n){ var m = n.match(/\(([+-]?\d{1,2})\)/); return m ? parseInt(m[1], 10) : null; }
+    // The pitch written into the file name. Two notations are in real use: (0) (-3) on most of
+    // the library, and [-2] [+1] on a couple of dozen older files. Parentheses win when both are
+    // present. Brackets are accepted ONLY when signed — a bare [2] is far more likely to mean
+    // "version 2" than a pitch, and [C] [Am] in those same names are chord tags, not numbers.
+    function karFnPitch(n){
+      var m = n.match(/\(([+-]?\d{1,2})\)/) || n.match(/\[([+-]\d{1,2})\]/);
+      return m ? parseInt(m[1], 10) : null;
+    }
     var karView = 'db';
     // One place that empties the search box. render=true when the caller is not about to
     // re-render anyway (the ✕ Show all button); karSwitch passes false and renders itself.
