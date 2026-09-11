@@ -254,6 +254,7 @@ try {
         // Everything that points at the old name follows it, or the song loses its pitch,
         // its place on someone's Best list, and its row under 🆕 New.
         foreach ([
+            'UPDATE karaoke_numbers  SET filename = ? WHERE filename = ?',
             'UPDATE karaoke_pitches   SET filename = ? WHERE filename = ?',
             'UPDATE karaoke_best      SET filename = ? WHERE filename = ?',
             'UPDATE karaoke_downloads SET filename = ? WHERE filename = ?',
@@ -290,6 +291,8 @@ try {
             $n++;
         }
         if (!@rename($dir . '/' . $song, $target)) kj(['ok'=>false,'error'=>'the file could not be moved']);
+        // karaoke_numbers is deliberately NOT cleared — a catalogue number is never reused,
+        // and a file restored out of the deleted folder comes back with its own number.
         foreach (['DELETE FROM karaoke_pitches WHERE filename = ?',
                   'DELETE FROM karaoke_best WHERE filename = ?'] as $sql) {
             try { $db->prepare($sql)->execute([$song]); } catch (Throwable $e) { }

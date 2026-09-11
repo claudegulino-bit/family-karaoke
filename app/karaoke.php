@@ -169,6 +169,8 @@ if (!$KAR_LOCAL) {
   $_kjWho     = kar_best_default($_kjBestBy, $pdo);   // whose list opens first — never a hardcoded name
   // Stored working pitches (the editable pitch box) — override the filename pitch on ▶ plays.
   $_kjPitch = $pdo ? kar_pitch_map($pdo) : [];
+  // Catalogue numbers: assigned once and permanent, so a guest can call a song by its number.
+  $_kjNum   = $pdo ? kar_num_assign($pdo, $_kjDb) : [];
   // 🆕 New — everything downloaded in the last 30 days, newest first (the owner, 2026-09-07:
   // "you don't remember what you downloaded last night... a temporary place, a simple click"),
   // each with the duplicate finding made at download time so the review list can still flag
@@ -190,7 +192,7 @@ if (!$KAR_LOCAL) {
         <option value="__add__">＋ Add a person…</option>
         <option value="__remove__">− Remove a person…</option>
       </select>
-      <input id="kar-search" type="text" placeholder="Search songs, pitch, CSG, names…" oninput="karRender()" onkeydown="if(event.key==='Escape'){karClearSearch(true);}" title="Type to filter. Esc clears it — and switching views clears it too." style="font-family:inherit;flex:1;min-width:150px;background:#121620;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+      <input id="kar-search" type="text" placeholder="Search a song number, a title, a singer…" oninput="karRender()" onkeydown="if(event.key==='Escape'){karClearSearch(true);}" title="Type to filter. A number on its own jumps to that song — type 129 for song 129. Esc clears it, and switching views clears it too." style="font-family:inherit;flex:1;min-width:150px;background:#121620;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
       <button type="button" onclick="karYtGo()" title="Opens YouTube in the next tab — browse, copy a song's link, then click back to this tab and paste it" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px">▶ YouTube</button>
       <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The Up Next queue — who sings next, in order" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">🎶 Up Next <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
       <button type="button" onclick="karDlToggle()" id="kar-dl-btn" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">⬇ Downloads</button>
@@ -289,8 +291,9 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Play a song</h3>
           <ul style="margin:0;padding-left:20px">
             <li><b>Find it</b> — type anything in the search box: the artist, the title, or the name of whoever sings it.</li>
+            <li><b>Every song has its own number</b>, in the <b>Song Number</b> column. It never changes, so a singer can just say <i>"play 129"</i> — type <b>129</b> in the search box and there it is. Much quicker than spelling out a title across a noisy room.</li>
             <li><b>Press ▶ Play</b> — it plays on the Mac. On that Mac's keyboard, <b>F</b> makes it full screen and <b>Q</b> closes it.</li>
-            <li><b>The number beside it is your key</b> — press − or + to move it up or down. It stays that way for next time.</li>
+            <li><b>The Pitch number is your key</b> — press − or + to move it up or down. It stays that way for next time. (That is the one on the left, in Set up — not the song's number.)</li>
             <li><b>Someone else wants to sing it?</b> Press <b>Reset</b>, then Play. It plays once in the original key and your own key comes straight back.</li>
           </ul>
           <p style="margin:10px 0 0;color:#94a3b8;font-size:12.5px"><label style="cursor:pointer"><input type="checkbox" id="kar-qmidi-cb" onchange="karQmidiToggle(this)" style="vertical-align:-1px;margin-right:6px">Show the old blue ▶ QMidi play button too — hidden, not deleted.</label></p>
@@ -499,6 +502,7 @@ if (!$KAR_LOCAL) {
       <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
+      <span style="flex:0 0 auto;width:56px;text-align:right" title="Every song has its own number, and it never changes — so a singer can just say &quot;play 129&quot;. Type a number into the search box at the top to jump straight to it.">Song<br>Number</span>
       <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
       </span>
@@ -520,6 +524,7 @@ if (!$KAR_LOCAL) {
     // Per-person Best lists — editable via the ⭐ on each row; person picked in the dropdown.
     var KAR_BEST_BY = <?= json_encode((object)$_kjBestBy, JSON_UNESCAPED_UNICODE) ?>;
     var KAR_PITCH = <?= json_encode((object)$_kjPitch, JSON_UNESCAPED_UNICODE) ?>;
+    var KAR_NUM = <?= json_encode((object)$_kjNum, JSON_UNESCAPED_UNICODE) ?>;
     // Songs the download-time check thought you might already own → shown in 🆕 New only.
     var KAR_DUP = <?= json_encode((object)$_kjDup, JSON_UNESCAPED_UNICODE) ?>;
     var karWho = <?= json_encode($_kjWho) ?>;
@@ -712,6 +717,14 @@ if (!$KAR_LOCAL) {
           return dir * src[a].localeCompare(src[b], undefined, { sensitivity: 'base', numeric: true });
         });
       }
+      // A number typed in full belongs at the top: "play 129" must not mean "find 129
+      // somewhere among 1290-1299". Stable sort, so everything else keeps its order.
+      if (/^[0-9]+$/.test(q)) {
+        order.sort(function(a, b){
+          return (String(KAR_NUM[src[a]]) === q ? 0 : 1) - (String(KAR_NUM[src[b]]) === q ? 0 : 1);
+        });
+      }
+
       var hs = document.getElementById('kar-h-song');
       if (hs) hs.textContent = 'Song Filename' + (karSort === 'az' ? '  ▲' : karSort === 'za' ? '  ▼' : '');
 
@@ -719,7 +732,15 @@ if (!$KAR_LOCAL) {
       for (var k = 0; k < order.length; k++) {
         var i = order[k];
         var full = src[i];
-        if (q && full.toLowerCase().indexOf(q) === -1) continue;
+        if (q) {
+          var hit = full.toLowerCase().indexOf(q) !== -1;
+          // Digits on their own search the catalogue number, so "129" finds song 129 wherever
+          // it sits in the list. Prefix match, so the list narrows while you are still typing.
+          if (!hit && /^[0-9]+$/.test(q) && KAR_NUM[full] !== undefined) {
+            hit = String(KAR_NUM[full]).indexOf(q) === 0;
+          }
+          if (!hit) continue;
+        }
         var name = full.replace(/\.[a-z0-9]{2,4}$/i,'');
         var inBest = !!KAR_BEST_SET[name];
         var star = '<button type="button" class="kar-star" data-i="' + i + '" title="'
@@ -770,6 +791,12 @@ if (!$KAR_LOCAL) {
           + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
           + (pMv ? 'background:#EF4444;border:1px solid #EF4444;color:#fff;font-weight:700' : 'background:rgba(16,185,129,.10);border:1px solid #334155;color:#6ee7b7')
           + '">' + (pMv ? '♪ ♪ ♪' : (karShowQmidi ? '▶ casAI' : '▶ Play')) + '</button>'
+          // The catalogue number, sitting right beside the name so the two are read together.
+          // It belongs to the song, not to the row, so it does not move when the list is
+          // searched or sorted — which is what makes "play 129" mean anything.
+          + '<span class="kar-num" style="flex:0 0 auto;width:56px;text-align:right;font-size:13px;'
+          + 'font-variant-numeric:tabular-nums;color:' + (playing ? '#D2AD6C' : '#94a3b8') + '">'
+          + (KAR_NUM[full] === undefined ? '' : KAR_NUM[full]) + '</span>'
           // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
           // characters, 90% ≤66); the long ones wrap to a second line rather than pushing
           // the Duplicate column out to the far right where it read as stranded.
