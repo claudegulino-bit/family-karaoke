@@ -240,6 +240,11 @@ if (!$KAR_LOCAL) {
         <span style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:220px;padding-right:16px;justify-content:center">
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">♪ Now playing</span>
           <span style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span id="kar-now-song" style="color:#f3f4f6;font-size:13.5px;font-weight:700"></span><span id="kar-now-player" style="color:#8a8070;font-size:11px"></span></span>
+          <span id="kar-prog" style="display:none;align-items:center;gap:10px;margin-top:2px">
+            <span id="kar-time-pos" style="color:#cbd5e1;font-size:11px;font-variant-numeric:tabular-nums;width:34px;text-align:right">0:00</span>
+            <input id="kar-seek" type="range" min="0" max="1000" value="0" title="Drag to move within the song" style="flex:1;min-width:160px;accent-color:#D2AD6C;cursor:pointer;margin:0">
+            <span id="kar-time-dur" style="color:#8a8070;font-size:11px;font-variant-numeric:tabular-nums;width:34px">0:00</span>
+          </span>
         </span>
         <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Key</span>
@@ -262,7 +267,7 @@ if (!$KAR_LOCAL) {
           <span style="display:flex;align-items:center;gap:8px">
             <button type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics screen, or bring it back in front of everything" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:11px;font-weight:800;line-height:1.1;padding:0 10px;height:36px;border-radius:8px;white-space:nowrap">🎬 Lyrics<br>Screen</button>
             <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">▶ Start</button>
-            <button type="button" onclick="karStop()" id="kar-stop-btn" title="Stop the music — the player goes silent within a few seconds" style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏹ Stop</button>
+            <button type="button" onclick="karPauseToggle(this)" id="kar-stop-btn" title="Stop the song where it is. Press again to resume. To end a song, close the lyrics screen (Q)." style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏹ Stop</button>
           </span>
         </span>
       </div>
@@ -377,7 +382,7 @@ if (!$KAR_LOCAL) {
           <ul style="margin:0;padding-left:20px">
             <li>The <b>gold bar</b> at the top of the page controls the song currently playing.</li>
             <li><b>Key</b> and <b>Speed</b> take effect immediately, mid-song.</li>
-            <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> stops playback. <b>🎬 Lyrics Screen</b> hides the lyrics screen or brings it back; it otherwise stays in front of the browser while a song plays.</li>
+            <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> pauses the song where it is; press it again (it reads <b>▶ Resume</b>) to continue. To end a song, close the lyrics screen. The line under the song name shows its progress — drag it to move within the song. <b>🎬 Lyrics Screen</b> hides the lyrics screen or brings it back; it otherwise stays in front of the browser while a song plays.</li>
             <li>Changes made in the gold bar apply to the current performance only. A song's saved key is the Pitch value on its row.</li>
           </ul>
         </div>
@@ -1124,6 +1129,63 @@ if (!$KAR_LOCAL) {
         if (d.note) { btn.innerHTML = '🎬 ' + (d.note.indexOf('hidden') !== -1 ? 'Screen<br>hidden' : 'Screen<br>shown'); setTimeout(function(){ btn.innerHTML = '🎬 Lyrics<br>Screen'; }, 2500); }
       }).catch(function(){ btn.disabled = false; alert('Network error — nothing changed.'); });
     }
+    // ── ⏹ Stop = pause; progress line; drag-to-seek (2026-09-12) ──────────────────────
+    function karPauseToggle(btn){
+      if (!karNowPlaying) return;
+      btn.disabled = true;
+      var fd = new FormData(); fd.append('form_type', 'karaoke_pause'); fd.append('mac', karMac());
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        btn.disabled = false;
+        if (!d.ok) { alert('Could not reach the player — reload and try again.'); return; }
+        if (d.note) karPauseLabel(d.note.indexOf('paused') !== -1);   // standalone answers at once; casAI via the poll
+        karNowPollSoon();
+      }).catch(function(){ btn.disabled = false; alert('Network error — nothing changed.'); });
+    }
+    function karPauseLabel(paused){
+      var b = document.getElementById('kar-stop-btn');
+      b.innerHTML = paused ? '▶ Resume' : '⏹ Stop';
+      b.style.background = paused ? '#d97706' : '#dc2626'; b.style.borderColor = b.style.background;
+    }
+    function karFmt(t){ t = Math.max(0, Math.round(t || 0)); return Math.floor(t / 60) + ':' + ('0' + (t % 60)).slice(-2); }
+    var karSeekDrag = false, karNowGone = 0, karNowTimer = null;
+    (function(){
+      var sl = document.getElementById('kar-seek');
+      sl.addEventListener('pointerdown', function(){ karSeekDrag = true; });
+      sl.addEventListener('input', function(){ if (karNowDur) document.getElementById('kar-time-pos').textContent = karFmt(sl.value / 1000 * karNowDur); });
+      sl.addEventListener('change', function(){
+        karSeekDrag = false;
+        if (!karNowDur) return;
+        var secs = Math.round(sl.value / 1000 * karNowDur);
+        var fd = new FormData(); fd.append('form_type', 'karaoke_seek'); fd.append('mac', karMac()); fd.append('seconds', String(secs));
+        fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){ if (!d.ok) alert('Could not move the song' + (d.error ? ': ' + d.error : '') + '.'); karNowPollSoon(); }).catch(function(){});
+      });
+    })();
+    var karNowDur = 0;
+    function karNowPoll(){
+      if (!karNowPlaying) { document.getElementById('kar-prog').style.display = 'none'; return; }
+      var fd = new FormData(); fd.append('form_type', 'karaoke_now_state'); fd.append('mac', karMac());
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) return;
+        var st = d.state || {};
+        if (!st.playing) {
+          // three quiet reads in a row = the song ended or the window was closed
+          if (++karNowGone >= 3) { karNowPlaying = null; karNowSave(); karNowBar(); karPauseLabel(false); var l = document.getElementById('kar-list'); var t = l.scrollTop; karRender(); l.scrollTop = t; }
+          return;
+        }
+        karNowGone = 0;
+        karNowDur = st.dur || 0;
+        var pr = document.getElementById('kar-prog'); pr.style.display = 'flex';
+        document.getElementById('kar-time-dur').textContent = karFmt(karNowDur);
+        if (!karSeekDrag) {
+          document.getElementById('kar-seek').value = karNowDur ? Math.round(st.pos / karNowDur * 1000) : 0;
+          document.getElementById('kar-time-pos').textContent = karFmt(st.pos);
+        }
+        karPauseLabel(!!st.paused);
+      }).catch(function(){});
+    }
+    function karNowPollSoon(){ setTimeout(karNowPoll, 1200); }
+    setInterval(karNowPoll, 1000);
+    // The old end-the-song path — no longer on a button (Stop pauses now); kept for the sentinel.
     function karStop(){
       var btn = document.getElementById('kar-stop-btn');
       btn.disabled = true; btn.textContent = '…';

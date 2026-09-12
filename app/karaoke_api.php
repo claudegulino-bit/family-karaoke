@@ -76,6 +76,31 @@ try {
         kj(['ok'=>true, 'error'=>'']);
     }
 
+    case 'karaoke_pause': {
+        // ⏹ Stop = pause where it is; again = resume. Never quits the player.
+        if (!kar_mpv_alive()) kj(['ok'=>true, 'note'=>'the player is not running']);
+        $r = (string)kar_mpv_send(['get_property', 'pause']);
+        $paused = strpos($r, '"data":true') !== false;
+        kar_mpv_send(['set_property', 'pause', !$paused]);
+        kar_mpv_send(['show-text', $paused ? 'RESUMED' : 'STOPPED — press Stop again to resume', 2500]);
+        kj(['ok'=>true, 'note'=>$paused ? 'resumed' : 'paused']);
+    }
+    case 'karaoke_seek': {
+        $sec = trim((string)($_POST['seconds'] ?? ''));
+        if (!preg_match('/^\d{1,5}$/', $sec) || (int)$sec > 30000) kj(['ok'=>false,'error'=>'invalid position']);
+        if (!kar_mpv_alive()) kj(['ok'=>false,'error'=>'nothing is playing']);
+        kar_mpv_send(['seek', (int)$sec, 'absolute']);
+        kj(['ok'=>true, 'error'=>'']);
+    }
+    case 'karaoke_now_state': {
+        // The progress line: read the player directly — page and player share this Mac.
+        if (!kar_mpv_alive()) kj(['ok'=>true, 'state'=>['playing'=>false]]);
+        $gp = function ($prop) { $r = (string)kar_mpv_send(['get_property', $prop]); $j = json_decode($r, true); return is_array($j) ? ($j['data'] ?? null) : null; };
+        $path = $gp('path');
+        if (!$path) kj(['ok'=>true, 'state'=>['playing'=>false]]);
+        kj(['ok'=>true, 'state'=>['playing'=>true, 'file'=>basename((string)$path), 'pos'=>round((float)($gp('time-pos') ?? 0), 1),
+                                  'dur'=>round((float)($gp('duration') ?? 0), 1), 'paused'=>(bool)$gp('pause')]]);
+    }
     case 'karaoke_live_tempo': {
         $t = trim((string)($_POST['tempo'] ?? ''));
         if (!preg_match('/^\d{2,3}$/', $t) || (int)$t < 50 || (int)$t > 150) kj(['ok'=>false,'error'=>'invalid tempo']);
