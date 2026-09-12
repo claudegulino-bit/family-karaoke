@@ -257,15 +257,12 @@ if (!$KAR_LOCAL) {
             <button type="button" onclick="karTempoAdj(5)" title="Speed the song up 5%; the key stays true. Takes a few seconds; not saved. casAI player only." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
           </span>
         </span>
-        <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
-          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">Lyrics</span>
-          <button type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics screen, or bring it back in front of everything" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:12px;font-weight:800;padding:6px 14px;border-radius:8px;white-space:nowrap">🎬 Lyrics Screen</button>
-        </span>
         <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28);padding-right:10px">
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">Playback</span>
           <span style="display:flex;align-items:center;gap:8px">
-            <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:6px 16px;border-radius:8px">▶ Start</button>
-            <button type="button" onclick="karStop()" id="kar-stop-btn" title="Stop the music — the player goes silent within a few seconds" style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:6px 16px;border-radius:8px">⏹ Stop</button>
+            <button type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics screen, or bring it back in front of everything" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:11px;font-weight:800;line-height:1.1;padding:0 10px;height:36px;border-radius:8px;white-space:nowrap">🎬 Lyrics<br>Screen</button>
+            <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">▶ Start</button>
+            <button type="button" onclick="karStop()" id="kar-stop-btn" title="Stop the music — the player goes silent within a few seconds" style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏹ Stop</button>
           </span>
         </span>
       </div>
@@ -1124,7 +1121,7 @@ if (!$KAR_LOCAL) {
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         btn.disabled = false;
         if (!d.ok) { alert('Could not reach the player — reload and try again.'); return; }
-        if (d.note) { btn.textContent = '🎬 ' + (d.note.indexOf('hidden') !== -1 ? 'Screen hidden' : 'Screen shown'); setTimeout(function(){ btn.textContent = '🎬 Lyrics Screen'; }, 2500); }
+        if (d.note) { btn.innerHTML = '🎬 ' + (d.note.indexOf('hidden') !== -1 ? 'Screen<br>hidden' : 'Screen<br>shown'); setTimeout(function(){ btn.innerHTML = '🎬 Lyrics<br>Screen'; }, 2500); }
       }).catch(function(){ btn.disabled = false; alert('Network error — nothing changed.'); });
     }
     function karStop(){
