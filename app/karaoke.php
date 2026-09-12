@@ -210,7 +210,7 @@ if (!$KAR_LOCAL) {
         <option value="__remove__">− Remove a person…</option>
       </select>
       <input id="kar-search" type="text" placeholder="Search songs, pitch, CSG, names…" oninput="karRender()" onkeydown="if(event.key==='Escape'){karClearSearch(true);}" title="Type to filter. Esc clears it — and switching views clears it too." style="font-family:inherit;flex:1;min-width:150px;background:#121620;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
-      <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The Up Next queue — who sings next, in order" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">🎶 Up Next <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
+      <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The singing queue — who sings next, in order" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">🎶 Singing Queue <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
       <button type="button" onclick="karDlToggle()" id="kar-dl-btn" title="Search YouTube from here and download songs into the library" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">▶ YouTube Downloads</button>
       <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(192,132,252,.45);color:#c084fc;transition:background .12s,border-color .12s,box-shadow .12s;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">📱</span> Guest QR</button>
       <button type="button" onclick="location.reload()" title="Reload the song lists from the server (after a download or rename)" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">🔄</span> Refresh</button>
@@ -242,7 +242,7 @@ if (!$KAR_LOCAL) {
         // The three party panels each get a card of their own. Their words live HERE and
         // nowhere else — the floating "?" beside each panel borrows this same text rather
         // than keeping a second copy that would quietly drift out of step with it.
-        $_karCards[] = ['upnext',    '6 · Up Next',   'The singing queue and scheduling fairness.'];
+        $_karCards[] = ['upnext',    '6 · Singing Queue', 'Who sings next, and scheduling fairness.'];
         $_karCards[] = ['downloads', '7 · YouTube Downloads', 'Searching YouTube and adding songs.'];
         $_karCards[] = ['guestqr',   '8 · Guest QR',  'Song requests from guests\' phones.'];
         // casAI only. It names the machines and the folders, so it is gated to the copy
@@ -335,7 +335,7 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Party controls</h3>
           <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Three controls at the top of the page. Each is detailed in its own card.</p>
           <ul style="margin:0;padding-left:20px">
-            <li><b>🎶 Up Next</b> — the singing queue. Click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on a song to add a singer; press <b>▶ Next singer</b> to start each performance. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
+            <li><b>🎶 Singing Queue</b> — who sings next. Click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on a song to add a singer; press <b>▶ Next singer</b> to start each performance. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
             <li><b>📱 Guest QR</b> — guests request songs from their own phones. <a href="#" onclick="karGuideOpen('guestqr');return false" style="color:#D2AD6C">Card 8</a>.</li>
             <li><b>▶ YouTube Downloads</b> — search YouTube and add songs to the library. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Card 7</a>.</li>
             <li>The purple strip below the buttons reports activity, such as a guest's song arriving.</li>
@@ -354,7 +354,7 @@ if (!$KAR_LOCAL) {
 
 
         <div class="kar-gs" id="kar-gs-upnext" style="display:none">
-          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Up Next — the singing queue</h3>
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Singing Queue</h3>
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — select the singer's name in the dropdown at the top of the page, then click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on the song. The entry is queued at the pitch shown on that row.</div>
         <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. The song at the top of the queue plays and the queue advances automatically.</div>
         <div><b style="color:#D2AD6C">Scheduling fairness</b> (the <span style="display:inline-block;width:11px;height:11px;border:2px solid #6ee7b7;border-radius:3px;vertical-align:-1px;margin:0 3px"></span> beside that button) — when enabled, every singer performs once before anyone performs twice, twice before anyone performs a third time, and so on. The order is managed automatically.</div>
@@ -375,7 +375,7 @@ if (!$KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-guestqr" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Guest QR — songs from guests’ phones</h3>
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#c084fc">What it is</b> — song requests from guests' own phones. A guest scans the code with the phone camera; no app is required.</div>
-        <div><b style="color:#c084fc">What a guest can do</b> — request a song from the library, or add a new one from YouTube. Requests are placed in the <b style="color:#D2AD6C">🎶 Up Next</b> queue.</div>
+        <div><b style="color:#c084fc">What a guest can do</b> — request a song from the library, or add a new one from YouTube. Requests are placed in the <b style="color:#D2AD6C">🎶 Singing Queue</b>.</div>
         <div><b style="color:#c084fc">What a guest cannot do</b> — play, stop, rename or delete anything.</div>
         <div><b style="color:#c084fc">🔄 New code</b> — invalidates every code previously displayed. Use it after a party.</div>
           </div>
@@ -566,7 +566,7 @@ if (!$KAR_LOCAL) {
     </div>
     <div id="kar-q-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-size:13.5px;font-weight:800;color:#D2AD6C">🎶 Up Next — the singing queue</span>
+        <span style="font-size:13.5px;font-weight:800;color:#D2AD6C">🎶 Singing Queue</span>
         <button type="button" id="kar-helpbtn-q" onclick="karHelpToggle('q')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">? How it works</button>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
       </div>
@@ -671,7 +671,7 @@ if (!$KAR_LOCAL) {
       </span>
       <span class="kar-sectgap"></span>
       <span class="kar-sect kar-sect-b">
-      <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the Up Next singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
+      <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
       <span style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Seq<br>Number</span>
@@ -942,7 +942,7 @@ if (!$KAR_LOCAL) {
           + '<span class="kar-sect kar-sect-b">'       // begin SING
           // Add and Play sit side by side in SING and are the two things you can DO with a song,
           // so they are built to the same shape — only the colour tells them apart.
-          + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the Up Next queue for ' + karEsc(karWho) + ', at the pitch shown" '
+          + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the singing queue for ' + karEsc(karWho) + ', at the pitch shown" '
           + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
           + 'background:rgba(96,165,250,.12);border:1px solid #334155;color:#93c5fd">＋ Add</button>'
           + (karShowQmidi
@@ -1196,7 +1196,7 @@ if (!$KAR_LOCAL) {
     // One delegated listener for Play and Reset — rows themselves carry no handlers (People-tab DOM lesson).
     document.getElementById('kar-list').addEventListener('click', function(ev){
       var src = KAR_DATA[karRenderedView] || [];
-      // ➕: add this song to the Up Next singing queue for the selected person.
+      // ➕: add this song to the singing queue for the selected person.
       var qb = ev.target.closest ? ev.target.closest('.kar-q-add') : null;
       if (qb) {
         var songQ = src[parseInt(qb.getAttribute('data-i'), 10)];
@@ -2013,7 +2013,7 @@ function karPickFolder(){
       }).catch(function(){ alert('Network error — the play was not sent.'); });
     }
     function karQClear(){
-      if (!confirm('Clear the whole Up Next queue?\n\nOnly the requests list empties — songs, pitches and Best lists are untouched.')) return;
+      if (!confirm('Clear the whole singing queue?\n\nOnly the requests list empties — songs, pitches and Best lists are untouched.')) return;
       var fd = new FormData(); fd.append('form_type', 'karaoke_q_clear');
       karQPost(fd).catch(function(){ alert('Network error.'); });
     }
