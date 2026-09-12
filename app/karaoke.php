@@ -64,9 +64,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form_type'] ?? '') === 'ka
 $KAR_MACS = [];
 if (!$KAR_LOCAL) {
     try {
-        if ($pdo) $KAR_MACS = $pdo->query("SELECT name FROM karaoke_macs ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
+        // The default Mac comes first (is_default), so a browser with no remembered choice —
+        // or a remembered name that no longer exists — lands on it, never on whichever name
+        // happens to sort first. the owner, 2026-09-12: a fresh tab on the laptop was defaulting
+        // to a mini that nothing answers to.
+        if ($pdo) $KAR_MACS = $pdo->query("SELECT name FROM karaoke_macs ORDER BY is_default DESC, name")->fetchAll(PDO::FETCH_COLUMN);
     } catch (Throwable $e) { $KAR_MACS = []; }
-    if (!$KAR_MACS) $KAR_MACS = ['MacBook Pro'];   // never render an empty picker
+    if (!$KAR_MACS) $KAR_MACS = ['Laptop'];   // never render an empty picker
 }
 ?><!doctype html>
 <html lang="en">
@@ -856,7 +860,10 @@ if (!$KAR_LOCAL) {
       try { saved = localStorage.getItem('kar_mac'); } catch(e){}
       // A remembered Mac that has since been removed from the list falls back to the
       // first one rather than sending music to a name nothing answers to.
-      if (saved) { for (var i=0;i<sel.options.length;i++) if (sel.options[i].value === saved) sel.value = saved; }
+      var found = false;
+      if (saved) { for (var i=0;i<sel.options.length;i++) if (sel.options[i].value === saved) { sel.value = saved; found = true; } }
+      // a stale remembered name (a Mac renamed or removed) must not keep resurfacing
+      if (saved && !found) { try { localStorage.removeItem('kar_mac'); } catch(e){} }
       karMacName = sel.value;
     })();
 
