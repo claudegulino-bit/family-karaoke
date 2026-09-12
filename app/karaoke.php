@@ -261,6 +261,7 @@ if (!$KAR_LOCAL) {
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">Playback</span>
           <span style="display:flex;align-items:center;gap:8px">
             <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:6px 16px;border-radius:8px">▶ Start</button>
+            <button type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics window, or bring it back in front" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:12px;font-weight:800;padding:6px 14px;border-radius:8px">🎬 Lyrics</button>
             <button type="button" onclick="karStop()" id="kar-stop-btn" title="Stop the music — the player goes silent within a few seconds" style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:6px 16px;border-radius:8px">⏹ Stop</button>
           </span>
         </span>
@@ -376,7 +377,7 @@ if (!$KAR_LOCAL) {
           <ul style="margin:0;padding-left:20px">
             <li>The <b>gold bar</b> at the top of the page controls the song currently playing.</li>
             <li><b>Key</b> and <b>Speed</b> take effect immediately, mid-song.</li>
-            <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> stops playback.</li>
+            <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> stops playback. <b>🎬 Lyrics</b> hides the lyrics window or brings it back; it otherwise stays in front of the browser while a song plays.</li>
             <li>Changes made in the gold bar apply to the current performance only. A song's saved key is the Pitch value on its row.</li>
           </ul>
         </div>
@@ -1111,6 +1112,17 @@ if (!$KAR_LOCAL) {
         document.getElementById('kar-tempo-val').textContent = '100%';
         karNowBar();
       }).catch(function(){ alert('Network error — the restart was not sent.'); });
+    }
+    // 🎬 Lyrics: one button hides the lyrics window or brings it back — the window is
+    // kept in front of the browser now, so this is the only way it leaves the screen.
+    function karLyricsToggle(btn){
+      btn.disabled = true;
+      var fd = new FormData(); fd.append('form_type', 'karaoke_lyrics'); fd.append('mac', karMac());
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        btn.disabled = false;
+        if (!d.ok) { alert('Could not reach the player — reload and try again.'); return; }
+        if (d.note) { btn.textContent = '🎬 ' + (d.note.indexOf('hidden') !== -1 ? 'Hidden' : 'Lyrics'); setTimeout(function(){ btn.textContent = '🎬 Lyrics'; }, 2500); }
+      }).catch(function(){ btn.disabled = false; alert('Network error — nothing changed.'); });
     }
     function karStop(){
       var btn = document.getElementById('kar-stop-btn');

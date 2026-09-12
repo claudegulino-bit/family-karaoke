@@ -57,6 +57,16 @@ try {
     case 'karaoke_stop':
         kj(['ok'=>true, 'note'=>kar_stop_all()]);
 
+    case 'karaoke_lyrics': {
+        // 🎬 Lyrics: hide the lyrics window or bring it back (toggle window-minimized).
+        if (!kar_mpv_alive()) kj(['ok'=>true, 'note'=>'the player is not running — press ▶ Play first']);
+        $r = (string)kar_mpv_send(['get_property', 'window-minimized']);
+        $mini = strpos($r, '"data":true') !== false;
+        kar_mpv_send(['set_property', 'window-minimized', !$mini]);
+        if ($mini) kar_mpv_send(['set_property', 'ontop', true]);
+        kj(['ok'=>true, 'note'=>'lyrics window ' . ($mini ? 'shown' : 'hidden')]);
+    }
+
     case 'karaoke_live_pitch': {
         $p = trim((string)($_POST['pitch'] ?? ''));
         if (!preg_match('/^[+-]?\d{1,2}$/', $p) || (int)$p < -12 || (int)$p > 12) kj(['ok'=>false,'error'=>'invalid pitch']);
