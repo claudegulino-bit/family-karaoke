@@ -220,6 +220,67 @@ if (!$KAR_LOCAL) {
       <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">📖</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Guide</span></button>
       <button type="button" onclick="location.reload()" title="Refresh — reload the song lists from the server" style="appearance:none;-webkit-appearance:none;font-family:inherit;margin-left:auto;background:#0ea5e9;border:1px solid #0ea5e9;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;padding:0"><span style="font-size:30px;line-height:1">🔄</span></button>
     </div>
+    <div id="kar-now-bar" style="position:sticky;top:8px;z-index:40;margin-top:10px;background:#28241a;border:1px solid rgba(210,173,108,.45);border-radius:10px;padding:9px 16px;box-shadow:0 4px 16px rgba(0,0,0,.45)">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <?php if (!$KAR_LOCAL): // one Mac in standalone — nothing to address, so no picker ?>
+        <span style="display:flex;align-items:center;gap:6px">
+          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Play on</span>
+          <select id="kar-mac" onchange="karMacChange(this)" title="Which Mac the music comes out of. Every button on this page — Play, Stop, pitch, tempo — goes to the Mac picked here." style="font-family:inherit;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:12px;font-weight:700;padding:4px 8px;border-radius:8px">
+            <?php foreach ($KAR_MACS as $_km): ?>
+            <option value="<?= h($_km) ?>"><?= h($_km) ?></option>
+            <?php endforeach; ?>
+            <option value="__addmac__">＋ Add a Mac…</option>
+            <option value="__removemac__">− Remove this Mac…</option>
+          </select>
+        </span>
+        <?php endif; ?>
+        <span style="color:#D2AD6C;font-weight:700;font-size:13px">♪ Now playing:</span>
+        <span id="kar-now-song" style="color:#e2e8f0;font-size:13px;font-weight:600"></span>
+        <span id="kar-now-player" style="color:#64748b;font-size:11.5px"></span>
+        <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Live pitch</span>
+          <button type="button" onclick="karLiveAdj(-1)" title="Lower the key by one semitone, while the song keeps playing" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
+          <span id="kar-live-val" style="color:#D2AD6C;font-size:15px;font-weight:800;width:32px;text-align:center">0</span>
+          <button type="button" onclick="karLiveAdj(1)" title="Raise the key by one semitone, while the song keeps playing" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
+          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-left:10px">Tempo</span>
+          <button type="button" onclick="karTempoAdj(-5)" title="Slow the song down 5% — the key stays true (casAI player only)" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
+          <span id="kar-tempo-val" style="color:#6ee7b7;font-size:14px;font-weight:800;width:44px;text-align:center">100%</span>
+          <button type="button" onclick="karTempoAdj(5)" title="Speed the song up 5% — the key stays true (casAI player only)" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
+          <span style="color:#64748b;font-size:11px">a few seconds to take effect · not saved</span>
+          <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the pitch you have it now" style="font-family:inherit;margin-left:10px;background:rgba(16,185,129,.12);border:1px solid #16a34a;color:#6ee7b7;cursor:pointer;font-size:12px;font-weight:700;padding:5px 14px;border-radius:8px">▶ Start</button>
+          <button type="button" onclick="karStop()" id="kar-stop-btn" title="Stop the music — silences the player within a few seconds" style="font-family:inherit;background:rgba(239,68,68,.12);border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:12px;font-weight:700;padding:5px 14px;border-radius:8px">⏹ Stop</button>
+        </span>
+      </div>
+    </div>
+    <div id="kar-count" style="margin-top:10px;color:#64748b;font-size:11.5px"></div>
+    <!-- Two group headings over the row: the left half is about setting a song up, the right half
+         about singing it. These are hand-aligned to the controls below, so the numbers must stay in
+         step with them. Measured from the container's own left edge: the list box adds 1px of border
+         and each row 6px of padding, so BOTH heading rows carry 7px of extra left padding (16+7=23)
+         to sit over the row. The SET UP label then spans its three controls — pitch 114 + star 48 +
+         delete 48 with 12px gaps = 234, inset 9px (the section band's 8px padding + 1px border) —
+         and the spacer runs to where the ＋ Add button starts. -->
+    <div style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px 0 23px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
+      <span style="flex:0 0 auto;width:234px;margin-left:9px;text-align:center;color:#94a3b8;border-bottom:1px solid #334155;padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
+      <span style="flex:0 0 auto;width:70px"></span>
+      <span style="flex:1;min-width:0;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Play and sing</span>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px 0 23px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
+      <span class="kar-sect kar-sect-a">
+      <span style="flex:0 0 auto;width:114px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number — it saves by itself (gold = your saved pitch). ⟲ drops it to 0 for one play only, for a guest singer, then your pitch comes back.">Pitch</span>
+      <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
+      <span style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
+      </span>
+      <span class="kar-sectgap"></span>
+      <span class="kar-sect kar-sect-b">
+      <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
+      <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
+      <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
+      <span style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Seq<br>Number</span>
+      <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
+      <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
+      </span>
+    </div>
     <div id="kar-guide-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:16px 22px;max-height:calc(100vh - 220px);overflow-y:auto">
       <div style="display:flex;align-items:center;gap:10px">
         <h2 style="margin:0;font-size:16px;font-weight:800;color:#f3f4f6">🎤 Cantoria Guide</h2>
@@ -621,67 +682,6 @@ if (!$KAR_LOCAL) {
         <button type="button" onclick="karDelHide()" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:6px 14px;border-radius:8px">Cancel</button>
         <button type="button" onclick="karDelDo()" id="kar-del-yes" style="font-family:inherit;background:#7f1d1d;border:1px solid #ef4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 14px;border-radius:8px">✕ Remove</button>
       </div>
-    </div>
-    <div id="kar-now-bar" style="position:sticky;top:8px;z-index:40;margin-top:10px;background:#28241a;border:1px solid rgba(210,173,108,.45);border-radius:10px;padding:9px 16px;box-shadow:0 4px 16px rgba(0,0,0,.45)">
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <?php if (!$KAR_LOCAL): // one Mac in standalone — nothing to address, so no picker ?>
-        <span style="display:flex;align-items:center;gap:6px">
-          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Play on</span>
-          <select id="kar-mac" onchange="karMacChange(this)" title="Which Mac the music comes out of. Every button on this page — Play, Stop, pitch, tempo — goes to the Mac picked here." style="font-family:inherit;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:12px;font-weight:700;padding:4px 8px;border-radius:8px">
-            <?php foreach ($KAR_MACS as $_km): ?>
-            <option value="<?= h($_km) ?>"><?= h($_km) ?></option>
-            <?php endforeach; ?>
-            <option value="__addmac__">＋ Add a Mac…</option>
-            <option value="__removemac__">− Remove this Mac…</option>
-          </select>
-        </span>
-        <?php endif; ?>
-        <span style="color:#D2AD6C;font-weight:700;font-size:13px">♪ Now playing:</span>
-        <span id="kar-now-song" style="color:#e2e8f0;font-size:13px;font-weight:600"></span>
-        <span id="kar-now-player" style="color:#64748b;font-size:11.5px"></span>
-        <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
-          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Live pitch</span>
-          <button type="button" onclick="karLiveAdj(-1)" title="Lower the key by one semitone, while the song keeps playing" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
-          <span id="kar-live-val" style="color:#D2AD6C;font-size:15px;font-weight:800;width:32px;text-align:center">0</span>
-          <button type="button" onclick="karLiveAdj(1)" title="Raise the key by one semitone, while the song keeps playing" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
-          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-left:10px">Tempo</span>
-          <button type="button" onclick="karTempoAdj(-5)" title="Slow the song down 5% — the key stays true (casAI player only)" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
-          <span id="kar-tempo-val" style="color:#6ee7b7;font-size:14px;font-weight:800;width:44px;text-align:center">100%</span>
-          <button type="button" onclick="karTempoAdj(5)" title="Speed the song up 5% — the key stays true (casAI player only)" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
-          <span style="color:#64748b;font-size:11px">a few seconds to take effect · not saved</span>
-          <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the pitch you have it now" style="font-family:inherit;margin-left:10px;background:rgba(16,185,129,.12);border:1px solid #16a34a;color:#6ee7b7;cursor:pointer;font-size:12px;font-weight:700;padding:5px 14px;border-radius:8px">▶ Start</button>
-          <button type="button" onclick="karStop()" id="kar-stop-btn" title="Stop the music — silences the player within a few seconds" style="font-family:inherit;background:rgba(239,68,68,.12);border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:12px;font-weight:700;padding:5px 14px;border-radius:8px">⏹ Stop</button>
-        </span>
-      </div>
-    </div>
-    <div id="kar-count" style="margin-top:10px;color:#64748b;font-size:11.5px"></div>
-    <!-- Two group headings over the row: the left half is about setting a song up, the right half
-         about singing it. These are hand-aligned to the controls below, so the numbers must stay in
-         step with them. Measured from the container's own left edge: the list box adds 1px of border
-         and each row 6px of padding, so BOTH heading rows carry 7px of extra left padding (16+7=23)
-         to sit over the row. The SET UP label then spans its three controls — pitch 114 + star 48 +
-         delete 48 with 12px gaps = 234, inset 9px (the section band's 8px padding + 1px border) —
-         and the spacer runs to where the ＋ Add button starts. -->
-    <div style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px 0 23px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
-      <span style="flex:0 0 auto;width:234px;margin-left:9px;text-align:center;color:#94a3b8;border-bottom:1px solid #334155;padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
-      <span style="flex:0 0 auto;width:70px"></span>
-      <span style="flex:1;min-width:0;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Play and sing</span>
-    </div>
-    <div style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px 0 23px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
-      <span class="kar-sect kar-sect-a">
-      <span style="flex:0 0 auto;width:114px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number — it saves by itself (gold = your saved pitch). ⟲ drops it to 0 for one play only, for a guest singer, then your pitch comes back.">Pitch</span>
-      <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
-      <span style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
-      </span>
-      <span class="kar-sectgap"></span>
-      <span class="kar-sect kar-sect-b">
-      <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
-      <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
-      <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
-      <span style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Seq<br>Number</span>
-      <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
-      <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
-      </span>
     </div>
     <div id="kar-list" style="margin-top:4px;background:#121620;border:1px solid #334155;border-radius:10px;padding:6px 16px;height:calc(100vh - 275px);min-height:300px;overflow-y:auto"></div>
     <p style="margin:10px 0 0;color:#64748b;font-size:11.5px">List updated <?= h($_kjGen ?: 'unknown') ?> from the Google Drive song folders on the Mac · how everything works is under <b style="color:#94a3b8">📖 Guide</b> at the top.</p>
