@@ -199,10 +199,10 @@ if (!$KAR_LOCAL) {
     <p style="color:#94a3b8;font-size:13px">The karaoke song list hasn't been published to the server yet — ask Claude to run <code>karaoke_sync.py</code> and it will appear here.</p>
     <?php else: ?>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8"><?= count($_kjDb) ?></span></button>
-      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🆕 New <span id="kar-new-count" style="font-weight:600;opacity:.8"><?= count($_kjNew) ?></span></button>
-      <button type="button" id="kar-best-chip" class="kar-chip" onclick="karSwitch('best',this)" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">⭐ Best of <span id="kar-best-name"><?= h($_kjWho !== '' ? $_kjWho : 'nobody yet') ?></span> <span id="kar-best-count" style="font-weight:600;opacity:.8"><?= $_kjWho !== '' ? count($_kjBestBy[$_kjWho]) : 0 ?></span></button>
-      <select id="kar-who" onchange="karWhoChange(this)" title="Whose Best list — pick a person, or add a new one" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 8px;border-radius:999px">
+      <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8"><?= count($_kjDb) ?></span></button>
+      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1e293b;border:1.5px solid #60A5FA;color:#bfdbfe;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🆕 New <span id="kar-new-count" style="font-weight:600;opacity:.8"><?= count($_kjNew) ?></span></button>
+      <button type="button" id="kar-best-chip" class="kar-chip" onclick="karSwitch('best',this)" style="font-family:inherit;background:#1e293b;border:1.5px solid #60A5FA;color:#bfdbfe;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">⭐ Best of <span id="kar-best-name"><?= h($_kjWho !== '' ? $_kjWho : 'nobody yet') ?></span> <span id="kar-best-count" style="font-weight:600;opacity:.8"><?= $_kjWho !== '' ? count($_kjBestBy[$_kjWho]) : 0 ?></span></button>
+      <select id="kar-who" onchange="karWhoChange(this)" title="Whose Best list — pick a person, or add a new one" style="font-family:inherit;background:#1e293b;border:1.5px solid #60A5FA;color:#bfdbfe;cursor:pointer;font-size:12px;font-weight:700;padding:6px 8px;border-radius:999px">
         <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
         <option value="<?= h($_kbp) ?>"><?= h($_kbp) ?></option>
         <?php endforeach; ?>
@@ -790,7 +790,7 @@ if (!$KAR_LOCAL) {
       karView = view;
       document.querySelectorAll('.kar-chip').forEach(function(b){
         b.classList.remove('kar-on');
-        b.style.background='#1e293b'; b.style.borderColor='#334155'; b.style.color='#94a3b8';
+        b.style.background='#1e293b'; b.style.borderColor='#60A5FA'; b.style.color='#bfdbfe';   // outlined at rest, so the field is defined even when not selected
       });
       btn.classList.add('kar-on');
       btn.style.background='#1d4ed8'; btn.style.borderColor='#2563eb'; btn.style.color='#fff';
