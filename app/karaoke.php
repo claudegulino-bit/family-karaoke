@@ -80,6 +80,9 @@ if (!$KAR_LOCAL) {
 <title>Cantoria</title>
 <link rel="icon" href="/favicon.ico">
 <style>
+  /* every button on the page presses in — no more "dead" solid blocks (2026-09-12) */
+  button:active:not(:disabled) { transform: scale(.94); filter: brightness(1.18); }
+  button:disabled { opacity: .55; cursor: wait; }
   * { box-sizing: border-box; }
   body { margin:0; background:#1A1F2C; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
   .kar-wrap { max-width:1660px; margin:0 auto; padding:18px 26px 26px; }
@@ -1063,7 +1066,7 @@ if (!$KAR_LOCAL) {
         if (!raw) return;
         var st = JSON.parse(raw);
         if (!st || !st.s || (Date.now() - (st.t || 0)) > 15 * 60 * 1000) { localStorage.removeItem('kar_now'); return; }
-        karNowPlaying = st.s;
+        karNowPlaying = st.s; karNowArmed = true;   // restored after a reload — the song is already known to the Mac
         karNowPlayingPlayer = st.p || 'qmidi';
         karLivePitch = typeof st.lp === 'number' ? st.lp : 0;
         karLiveTempo = typeof st.lt === 'number' ? st.lt : 100;
@@ -1131,7 +1134,6 @@ if (!$KAR_LOCAL) {
     }
     // ── ⏹ Stop = pause; progress line; drag-to-seek (2026-09-12) ──────────────────────
     function karPauseToggle(btn){
-      if (!karNowPlaying) return;
       btn.disabled = true;
       var fd = new FormData(); fd.append('form_type', 'karaoke_pause'); fd.append('mac', karMac());
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
@@ -1154,25 +1156,33 @@ if (!$KAR_LOCAL) {
       sl.addEventListener('input', function(){ if (karNowDur) document.getElementById('kar-time-pos').textContent = karFmt(sl.value / 1000 * karNowDur); });
       sl.addEventListener('change', function(){
         karSeekDrag = false;
-        if (!karNowDur) return;
+        if (!karNowDur) return;   // no length known yet — nothing to map the slider to
         var secs = Math.round(sl.value / 1000 * karNowDur);
         var fd = new FormData(); fd.append('form_type', 'karaoke_seek'); fd.append('mac', karMac()); fd.append('seconds', String(secs));
         fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){ if (!d.ok) alert('Could not move the song' + (d.error ? ': ' + d.error : '') + '.'); karNowPollSoon(); }).catch(function(){});
       });
     })();
-    var karNowDur = 0;
+    var karNowDur = 0, karNowSentAt = 0, karNowArmed = false;
+    // Called whenever a play is sent from this page: the Mac needs a few seconds to pick the
+    // request up and start the player, and until then its last report still says "nothing
+    // playing". Without this grace the bar cleared itself right after every Play and Stop
+    // had nothing to act on (the owner, 2026-09-12: "those buttons look dead").
+    function karNowStarted(){ karNowSentAt = Date.now(); karNowArmed = false; karNowGone = 0; }
     function karNowPoll(){
       if (!karNowPlaying) { document.getElementById('kar-prog').style.display = 'none'; return; }
       var fd = new FormData(); fd.append('form_type', 'karaoke_now_state'); fd.append('mac', karMac());
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) return;
         var st = d.state || {};
-        if (!st.playing) {
-          // three quiet reads in a row = the song ended or the window was closed
+        if (!st.playing || (st.file && karNowPlaying && st.file !== karNowPlaying)) {
+          // "nothing playing" only counts once the Mac has reported THIS song at least once,
+          // and never inside the first 15 s after a play was sent; then three quiet reads in a
+          // row = the song ended or the window was closed.
+          if (!karNowArmed || Date.now() - karNowSentAt < 15000) return;
           if (++karNowGone >= 3) { karNowPlaying = null; karNowSave(); karNowBar(); karPauseLabel(false); var l = document.getElementById('kar-list'); var t = l.scrollTop; karRender(); l.scrollTop = t; }
           return;
         }
-        karNowGone = 0;
+        karNowGone = 0; karNowArmed = true;
         karNowDur = st.dur || 0;
         var pr = document.getElementById('kar-prog'); pr.style.display = 'flex';
         document.getElementById('kar-time-dur').textContent = karFmt(karNowDur);
@@ -1445,7 +1455,7 @@ if (!$KAR_LOCAL) {
           // it stays lit until another song is played. Re-render rebuilds everything from
           // state, which also brings a guest-reset pitch box back to the saved pitch;
           // scroll position is preserved.
-          karNowPlaying = song;
+          karNowPlaying = song; karNowStarted();
           karNowPlayingPlayer = player;
           karLivePitch = pitch;
           karLiveTempo = 100;
@@ -2094,7 +2104,7 @@ function karPickFolder(){
       fd.append('player', player);
       karQPost(fd).then(function(d){
         if (!d.ok) { alert('Could not start the next singer' + (d.error ? ': ' + d.error : '') + '.'); return; }
-        karNowPlaying = pick.song;
+        karNowPlaying = pick.song; karNowStarted();
         karNowPlayingPlayer = player;
         karLivePitch = pick.pitch;
         karLiveTempo = 100;
