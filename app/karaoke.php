@@ -37,6 +37,21 @@ if ($KAR_LOCAL) {
         ]);
     } catch (Throwable $e) { $pdo = null; }
 }
+// The page answers ONE ajax call itself: the current 🆕 New list plus the catalog, so a
+// download that finishes while the page is open shows up without a reload. Same helper
+// the page uses at render time, for both editions — and it MUST sit here, before the
+// first byte of HTML, or the JSON arrives glued to the page head.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form_type'] ?? '') === 'karaoke_new_list') {
+    header('Content-Type: application/json');
+    if ($KAR_LOCAL) { $_cat = kar_songs(); }
+    else {
+        $_kq  = @json_decode((string)@file_get_contents('/var/www/getcasa.ai/karaoke_songs.json'), true);
+        $_cat = (is_array($_kq) && !empty($_kq['database']) && is_array($_kq['database'])) ? array_values($_kq['database']) : [];
+    }
+    [$_new, $_dup] = $pdo ? kar_new_downloads($pdo, $_cat) : [[], []];
+    echo json_encode(['ok' => true, 'new' => $_new, 'dup' => (object)$_dup, 'db' => $_cat], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 // ---- WHICH MAC? (2026-09-07) ---------------------------------------------
 // the owner has three: this laptop, the other Macs. They
 // share ONE Google Drive songs folder and ONE casAI server, so without a name they
@@ -157,6 +172,10 @@ if (!$KAR_LOCAL) {
       $_kj = is_file($_kjPath) ? json_decode((string)file_get_contents($_kjPath), true) : null;
       $_kjDb   = (is_array($_kj) && !empty($_kj['database']) && is_array($_kj['database'])) ? array_values($_kj['database']) : [];
       $_kjGen  = is_array($_kj) ? (string)($_kj['generated_at'] ?? '') : '';
+      // The MC block in the Setup section reads these unconditionally, but the Setup card
+      // only exists on the standalone edition — on casAI the section body is still emitted
+      // (hidden), so without defaults every casAI page load logged four PHP warnings.
+      $_mcAp = ''; $_mcVid = false; $_mcVoice = ''; $_mcOn = false;
   }
   // Per-person Best lists (2026-09-06, the owner's redesign): the Main Playlist view is gone
   // (it was a strict subset of the database — ▶ plays straight from the database file,
@@ -181,7 +200,7 @@ if (!$KAR_LOCAL) {
     <?php else: ?>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8"><?= count($_kjDb) ?></span></button>
-      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🆕 New <span style="font-weight:600;opacity:.8"><?= count($_kjNew) ?></span></button>
+      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🆕 New <span id="kar-new-count" style="font-weight:600;opacity:.8"><?= count($_kjNew) ?></span></button>
       <button type="button" id="kar-best-chip" class="kar-chip" onclick="karSwitch('best',this)" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">⭐ Best of <span id="kar-best-name"><?= h($_kjWho !== '' ? $_kjWho : 'nobody yet') ?></span> <span id="kar-best-count" style="font-weight:600;opacity:.8"><?= $_kjWho !== '' ? count($_kjBestBy[$_kjWho]) : 0 ?></span></button>
       <select id="kar-who" onchange="karWhoChange(this)" title="Whose Best list — pick a person, or add a new one" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 8px;border-radius:999px">
         <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
@@ -209,25 +228,29 @@ if (!$KAR_LOCAL) {
            gold for anything you can click or a heading, grey for everything you read.
            The dozen colours that were here before signalled nothing; they were decoration
            pretending to be structure. -->
-      <p style="margin:12px 0 0;color:#94a3b8;font-size:13px">Pick the part you want. Everything else stays out of the way.</p>
+      <p style="margin:12px 0 0;color:#94a3b8;font-size:13px">Select a topic.</p>
 
       <div id="kar-guide-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:8px;margin:12px 0 4px">
         <?php
         // One row per card: key, title, and the one line that says what it is for.
         $_karCards = [];
-        if ($KAR_LOCAL) $_karCards[] = ['setup', '1 · Setting up the Mac', 'Once only — the songs folder, the player, and putting it on another Mac.'];
-        else            $_karCards[] = ['setup', '1 · Setting up the Mac', 'Once only — naming the Mac, the songs folder, and the player.'];
-        $_karCards[] = ['sing',  '2 · Play a song',            'Find it, play it, and set the key.'];
-        $_karCards[] = ['while', '3 · While it is playing',    'The gold bar: key, speed, start and stop.'];
-        $_karCards[] = ['party', '4 · Party controls',         'The singing queue, guests\' phones, and new songs.'];
-        $_karCards[] = ['songs', '5 · Managing songs',         'Best lists, new arrivals, renaming and removing.'];
+        if ($KAR_LOCAL) $_karCards[] = ['setup', '1 · Setting up the Mac', 'Installation, the songs folder and the player.'];
+        else            $_karCards[] = ['setup', '1 · Setting up the Mac', 'Selecting a Mac, the songs folder and the player.'];
+        $_karCards[] = ['sing',  '2 · Play a song',            'Search, playback and key.'];
+        $_karCards[] = ['while', '3 · While it is playing',    'Live controls: key, speed, start and stop.'];
+        $_karCards[] = ['party', '4 · Party controls',         'The singing queue, guest requests and downloads.'];
+        $_karCards[] = ['songs', '5 · Managing songs',         'Best lists, new arrivals, renaming and removal.'];
         // The three party panels each get a card of their own. Their words live HERE and
         // nowhere else — the floating "?" beside each panel borrows this same text rather
         // than keeping a second copy that would quietly drift out of step with it.
-        $_karCards[] = ['upnext',    '6 · Up Next',   'The singing queue, and what scheduling fairness does.'];
-        $_karCards[] = ['downloads', '7 · Downloads', 'Bringing songs in from YouTube.'];
-        $_karCards[] = ['guestqr',   '8 · Guest QR',  'Guests asking for songs from their own phones.'];
-        if ($KAR_LOCAL) $_karCards[] = ['update','9 · Software updates',      'Installing the newest version. Your songs are never touched.'];
+        $_karCards[] = ['upnext',    '6 · Up Next',   'The singing queue and scheduling fairness.'];
+        $_karCards[] = ['downloads', '7 · Downloads', 'Adding songs from YouTube.'];
+        $_karCards[] = ['guestqr',   '8 · Guest QR',  'Song requests from guests\' phones.'];
+        // casAI only. It names the machines and the folders, so it is gated to the copy
+        // that never leaves the household — and every name in it is read at render time
+        // from the database, so no household name sits in this file either.
+        if (!$KAR_LOCAL) $_karCards[] = ['config','9 · Configuration and workflow', 'Machines, release process and shared data.'];
+        if ($KAR_LOCAL) $_karCards[] = ['update','9 · Software updates',      'Installing the latest version.'];
         foreach ($_karCards as [$_k, $_t, $_d]): ?>
         <button type="button" id="kar-gc-<?= $_k ?>" onclick="karGuideOpen('<?= $_k ?>')" style="font-family:inherit;text-align:left;background:#1a2130;border:1px solid #334155;border-radius:9px;padding:11px 13px;cursor:pointer">
           <span style="display:block;color:#D2AD6C;font-size:13.5px;font-weight:800"><?= h($_t) ?></span>
@@ -241,128 +264,267 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-setup" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Setting up the Mac</h3>
-          <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">A once-only job. If you are already singing, there is nothing to do here.</p>
+          <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">Required once per Mac.</p>
           <?php if ($KAR_LOCAL): ?>
-          <p style="margin:0 0 6px"><b>Putting Cantoria on another Mac.</b> Open <b>Terminal</b> on that Mac — hold ⌘, press Space, type <code>Terminal</code>, press Return — then paste this one line and press Return. It does everything: the player, Cantoria itself, the songs folder and the Desktop icon.</p>
+          <p style="margin:0 0 6px"><b>Installing on another Mac.</b> On that Mac, open <b>Terminal</b> (⌘ Space, type <code>Terminal</code>, Return), paste the following line and press Return. It installs the player, Cantoria, the songs folder and the Desktop icon.</p>
           <div style="margin:0 0 12px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
-          <p style="margin:0 0 12px;color:#94a3b8;font-size:12.5px">It asks for the Mac password once, if that Mac has never had Homebrew. <b>Nothing appears on screen as you type it</b> — no dots, no stars. That is normal.</p>
+          <p style="margin:0 0 12px;color:#94a3b8;font-size:12.5px">If Homebrew is not yet installed, the Mac password is requested once. <b>Password input is not echoed on screen.</b></p>
           <?php else: ?>
-          <p style="margin:0 0 6px"><b>Pick the Mac first.</b> The <b>Play on</b> box in the gold bar says which Mac this page is talking to — the music, and the buttons below, all go to that one.</p>
-          <p style="margin:0 0 12px"><b>Give the Mac its name.</b> If it is not in the <b>Play on</b> box, pick <b>＋ Add a Mac…</b> and type a name. Then on that Mac set <code>"mac_name"</code> in <code>~/casai/karaoke_config.json</code> to the same name, so two houses never start the same song at once.</p>
+          <p style="margin:0 0 6px"><b>Select the Mac.</b> The <b>Play on</b> selector in the gold bar determines which Mac receives playback and the setup actions below.</p>
+          <p style="margin:0 0 12px"><b>Name the Mac.</b> If it is not listed under <b>Play on</b>, choose <b>＋ Add a Mac…</b> and enter a name. On that Mac, set <code>"mac_name"</code> in <code>~/casai/karaoke_config.json</code> to the same value. The two must match exactly.</p>
           <?php endif; ?>
-          <p style="margin:0 0 4px"><b>Where the songs are.</b> One folder, holding the song files.</p>
+          <p style="margin:0 0 4px"><b>Songs folder.</b> A single folder containing the song files.</p>
           <button type="button" onclick="karPickFolder()" id="kar-pick-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">📁 Choose the karaoke songs folder…</button>
-          <span id="kar-pick-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Using now: <b id="kar-pick-cur" style="color:#cbd5e1"><?= h($_kj['songs_folder'] ?? 'not chosen yet') ?></b><br><span style="color:#94a3b8">The chooser opens on the Mac that plays the music — a web page is never allowed to see a real folder path.</span></span>
-          <p style="margin:0 0 4px"><b>What this Mac has for the announcements.</b></p>
+          <span id="kar-pick-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Current folder: <b id="kar-pick-cur" style="color:#cbd5e1"><?= h($_kj['songs_folder'] ?? 'not chosen yet') ?></b><br><span style="color:#94a3b8">The folder chooser opens on the Mac that plays the music; a web page cannot access local file paths.</span></span>
+          <?php if ($KAR_LOCAL): // reads this Mac's own config — meaningless on casAI, which is not a Mac ?>
+          <p style="margin:0 0 4px"><b>Announcement settings on this Mac.</b></p>
           <div style="margin:0 0 12px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-size:12.5px;line-height:1.7">
             <div>Announcements: <b style="color:<?= $_mcOn ? '#6ee7b7' : '#94a3b8' ?>"><?= $_mcOn ? 'on' : 'off' ?></b></div>
             <div>Voice: <b style="color:#cbd5e1"><?= h($_mcVoice) ?></b></div>
             <div>Applause:
               <?php if ($_mcVid): ?>
-                <b style="color:#6ee7b7">a crowd on screen</b> <span style="color:#64748b"><?= h(basename($_mcAp)) ?></span>
+                <b style="color:#6ee7b7">video</b> <span style="color:#64748b"><?= h(basename($_mcAp)) ?></span>
               <?php elseif ($_mcAp !== ''): ?>
-                <b style="color:#D2AD6C">sound only</b> <span style="color:#64748b"><?= h(basename($_mcAp)) ?></span>
+                <b style="color:#D2AD6C">audio only</b> <span style="color:#64748b"><?= h(basename($_mcAp)) ?></span>
               <?php else: ?>
-                <b style="color:#d98888">none found — the walk-up will be silent</b>
-                <div style="color:#94a3b8;margin-top:3px">Put <code>applause.mp4</code> (or <code>.wav</code>) either in <code>~/Karaoke/sounds/</code> or in <code>@ Cantoria/sounds/</code> beside your songs, and it is used straight away.</div>
+                <b style="color:#d98888">not found — the walk-up will be silent</b>
+                <div style="color:#94a3b8;margin-top:3px">Place <code>applause.mp4</code> (or <code>.wav</code>) in <code>~/Karaoke/sounds/</code> or in <code>@ Cantoria/sounds/</code> alongside the songs. It is used immediately.</div>
               <?php endif; ?>
             </div>
           </div>
+          <?php endif; ?>
           <?php if (kar_is_local()): ?>
-          <p style="margin:0 0 4px"><b>The words window.</b></p>
+          <p style="margin:0 0 4px"><b>Lyrics window.</b></p>
           <label style="display:flex;align-items:flex-start;gap:9px;margin:0 0 12px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;cursor:pointer;font-size:12.5px;line-height:1.6">
             <input type="checkbox" id="kar-ontop" onchange="karSetOnTop(this)" <?= !empty(kar_cfg()['words_on_top']) ? 'checked' : '' ?> style="margin-top:3px;width:16px;height:16px;accent-color:#D2AD6C;cursor:pointer">
-            <span><b style="color:#cbd5e1">Keep the words on top of everything.</b><br>
-            <span style="color:#94a3b8">Without this the words can open <i>behind</i> the browser and you have to go hunting for them — which is exactly what happens when you play a song directly instead of through the queue. With it on, they always sit in front. Turn it off if you want the words and the song list side by side.</span></span>
+            <span><b style="color:#cbd5e1">Keep the lyrics window in front.</b><br>
+            <span style="color:#94a3b8">When off, the lyrics window may open behind the browser, particularly when a song is played directly rather than from the queue. When on, it always stays in front. Turn it off to view the lyrics and the song list side by side.</span></span>
           </label>
           <?php endif; ?>
-          <p style="margin:0 0 4px"><b>The player.</b> Two free programs do the playing and the downloading. In Terminal:</p>
+          <p style="margin:0 0 4px"><b>The player.</b> Playback and downloads use free software installed with Homebrew. In Terminal:</p>
           <div style="margin:0 0 4px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#cbd5e1">brew install mpv yt-dlp ffmpeg</div>
-          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If it answers <i>command not found: brew</i>, paste this first, let it finish, then repeat the line above:</p>
+          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If the response is <i>command not found: brew</i>, run the following first, then repeat the command above:</p>
           <div style="margin:0 0 8px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</div>
-          <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Check it worked</button>
-          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Press this when Terminal has finished — it asks the Mac what is really installed, so you do not have to judge it from the scrollback.</span>
-          <p style="margin:0"><b>Keep the Mac on and awake</b> during a party. It does the playing, and it is what the guests' phones are talking to.</p>
+          <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Verify installation</button>
+          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Queries the Mac for the installed versions.</span>
+          <p style="margin:0"><b>Keep the Mac on and awake</b> during a party. It handles playback and receives guests' requests.</p>
         </div>
 
         <div class="kar-gs" id="kar-gs-sing" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Play a song</h3>
           <ul style="margin:0;padding-left:20px">
-            <li><b>Find it</b> — type anything in the search box: the artist, the title, or the name of whoever sings it.</li>
-            <li><b>The Seq Number column just counts the list</b> — the top song is always 1. So a singer can look at the screen and say <i>"play 129"</i>. Sort the list a different way, or open someone's Best list, and it counts again from 1.</li>
-            <li><b>Press ▶ Play</b> — it plays on the Mac. On that Mac's keyboard, <b>F</b> makes it full screen and <b>Q</b> closes it.</li>
-            <li><b>The Pitch number is your key</b> — press − or + to move it up or down. It stays that way for next time. (That is the one on the left, in Set up — not the Seq Number.)</li>
-            <li><b>Someone else wants to sing it?</b> Press <b>Reset</b>, then Play. It plays once in the original key and your own key comes straight back.</li>
+            <li><b>Search</b> — enter an artist, a title, or a singer's name.</li>
+            <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Best list renumbers it from 1.</li>
+            <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> toggles full screen and <b>Q</b> closes the player.</li>
+            <li><b>Pitch</b> — the key the song starts in. Use − and + to transpose by semitones. The value is saved.</li>
+            <li><b>Reset</b> — plays the song once in its original key, then restores the saved pitch. Use it when another singer performs the song.</li>
           </ul>
-          <p style="margin:10px 0 0;color:#94a3b8;font-size:12.5px"><label style="cursor:pointer"><input type="checkbox" id="kar-qmidi-cb" onchange="karQmidiToggle(this)" style="vertical-align:-1px;margin-right:6px">Show the old blue ▶ QMidi play button too — hidden, not deleted.</label></p>
+          <p style="margin:10px 0 0;color:#94a3b8;font-size:12.5px"><label style="cursor:pointer"><input type="checkbox" id="kar-qmidi-cb" onchange="karQmidiToggle(this)" style="vertical-align:-1px;margin-right:6px">Also show the ▶ QMidi play button.</label></p>
         </div>
 
         <div class="kar-gs" id="kar-gs-while" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">While it is playing</h3>
           <ul style="margin:0;padding-left:20px">
-            <li>The <b>gold bar</b> at the top of the page is always there — that is where you steer the song being sung.</li>
-            <li><b>Key</b> and <b>Speed</b> change it right now, in the middle of the song.</li>
-            <li><b>▶ Start</b> begins the song again from the top. <b>⏹ Stop</b> stops the music.</li>
-            <li>Anything changed up there is <b>just for tonight</b>. The key a song always starts at is the number on its own row.</li>
+            <li>The <b>gold bar</b> at the top of the page controls the song currently playing.</li>
+            <li><b>Key</b> and <b>Speed</b> take effect immediately, mid-song.</li>
+            <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> stops playback.</li>
+            <li>Changes made in the gold bar apply to the current performance only. A song's saved key is the Pitch value on its row.</li>
           </ul>
         </div>
 
         <div class="kar-gs" id="kar-gs-party" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Party controls</h3>
-          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Three buttons at the top do the work. Each has its own card below with the full detail.</p>
+          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Three controls at the top of the page. Each is detailed in its own card.</p>
           <ul style="margin:0;padding-left:20px">
-            <li><b>🎶 Up Next</b> — the singing queue. Click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on a song to add someone to it, then keep pressing <b>▶ Next singer</b> all night. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
-            <li><b>📱 Guest QR</b> — guests scan it with their phone and ask for songs themselves. <a href="#" onclick="karGuideOpen('guestqr');return false" style="color:#D2AD6C">Card 8</a>.</li>
-            <li><b>⬇ Downloads</b> — bring new songs in from YouTube. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Card 7</a>.</li>
-            <li>When something happens on its own — a guest's song arriving, for instance — the purple strip under the buttons tells you.</li>
+            <li><b>🎶 Up Next</b> — the singing queue. Click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on a song to add a singer; press <b>▶ Next singer</b> to start each performance. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
+            <li><b>📱 Guest QR</b> — guests request songs from their own phones. <a href="#" onclick="karGuideOpen('guestqr');return false" style="color:#D2AD6C">Card 8</a>.</li>
+            <li><b>⬇ Downloads</b> — add songs from YouTube. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Card 7</a>.</li>
+            <li>The purple strip below the buttons reports activity, such as a guest's song arriving.</li>
           </ul>
         </div>
 
         <div class="kar-gs" id="kar-gs-songs" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Managing songs</h3>
           <ul style="margin:0;padding-left:20px">
-            <li><b>⭐ is each person's own list</b> — pick their name in the dropdown at the top, then click the stars on their songs.</li>
-            <li><b>🆕 New</b> holds everything that arrived in the last month, so you never have to remember what came in last night. Its <b>Duplicate</b> column warns you when a song looks like one you already own.</li>
-            <li><b>✎ renames a song · ✕ removes it.</b> Removed songs go to a "Deleted" folder — nothing is ever destroyed.</li>
-            <li><b>These songs are yours, for singing at home.</b> If you ever run this somewhere commercial — a restaurant, a hall, a paid event — point it at a properly licensed song library instead. The songs folder is a setting, so that is a two-minute change (Card 1, step 2).</li>
+            <li><b>⭐ Best lists</b> — one per person. Select the name in the dropdown at the top, then mark songs with the star.</li>
+            <li><b>🆕 New</b> — every song added in the last 30 days. The <b>Duplicate</b> column flags songs that appear to match one already in the library.</li>
+            <li><b>✎</b> renames a song. <b>✕</b> removes it: the file is moved to a Deleted folder, not destroyed, and can be restored.</li>
+            <li><b>Licensing.</b> These songs are for private use at home. For commercial use — a restaurant, a hall, a ticketed event — point Cantoria at a licensed song library. The songs folder is a setting (Card 1).</li>
           </ul>
         </div>
 
 
         <div class="kar-gs" id="kar-gs-upnext" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Up Next — the singing queue</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — pick their name in the dropdown at the top of the page, then click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on the song they want. They join the queue at the pitch showing on that row.</div>
-        <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. It plays whoever is at the top of the queue and moves it on by itself, so that one button runs the whole night.</div>
-        <div><b style="color:#D2AD6C">Scheduling fairness</b> (the <span style="display:inline-block;width:11px;height:11px;border:2px solid #6ee7b7;border-radius:3px;vertical-align:-1px;margin:0 3px"></span> beside that button) — leave it ticked and everyone sings once before anyone sings twice, twice before anyone sings a third time, and so on. Nobody has to keep track of whose turn it is.</div>
-        <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, and the <span style="display:inline-block;border:1px solid #7f1d1d;color:#f87171;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">✕</span> beside a name takes <i>that one person</i> out. <b>Clear the queue</b>, over on the right, empties <i>the whole thing</i> — that one is for the end of the night.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — select the singer's name in the dropdown at the top of the page, then click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on the song. The entry is queued at the pitch shown on that row.</div>
+        <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. The song at the top of the queue plays and the queue advances automatically.</div>
+        <div><b style="color:#D2AD6C">Scheduling fairness</b> (the <span style="display:inline-block;width:11px;height:11px;border:2px solid #6ee7b7;border-radius:3px;vertical-align:-1px;margin:0 3px"></span> beside that button) — when enabled, every singer performs once before anyone performs twice, twice before anyone performs a third time, and so on. The order is managed automatically.</div>
+        <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, and the <span style="display:inline-block;border:1px solid #7f1d1d;color:#f87171;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">✕</span> beside a name removes that entry. <b>Clear the queue</b>, at the right, removes every entry — intended for the end of the night.</div>
           </div>
         </div>
 
         <div class="kar-gs" id="kar-gs-downloads" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Downloads — songs from YouTube</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#93c5fd">1 · Find the song</b> — type a singer or a song name in the <b>Search YouTube</b> box and press <b>Search</b>. The results show how long each one is and warn you if you may already own it. Press <b>+ Add</b> on the ones you want. Add as many as you like.</div>
-        <div><b style="color:#93c5fd">Or paste a link</b> — if you found the song on YouTube yourself, press <b>▶ YouTube</b> at the top, copy the link, paste it in the box below and press <b>+ Add to list</b>.</div>
-        <div><b style="color:#93c5fd">2 · Fetch them</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. They come down one at a time, a minute or two each. You can close this panel and carry on.</div>
-        <div><b style="color:#93c5fd">3 · Where they end up</b> — a song that arrives leaves this panel and lives under <b style="color:#c084fc">🆕 New</b> for a month. One that <b style="color:#f87171">didn't work</b> stays here with the reason, so it can't slip past you.</div>
-        <div><b style="color:#93c5fd">Guests can add songs too</b> — anything they send from their phone shows up here marked with their name, and downloads by itself.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#93c5fd">1 · Find the song</b> — enter an artist or title in <b>Search YouTube</b> and press <b>Search</b>. Results show the duration and flag possible duplicates. <b>▶ Watch</b> opens a result on YouTube, <b>📋 Copy link</b> copies its address, and <b>+ Add to list</b> places it in the download list at the top of the panel.</div>
+        <div><b style="color:#93c5fd">Or paste a link</b> — press <b>▶ YouTube</b> at the top of the page, copy the video's link, paste it into the box and press <b>+ Add to list</b>.</div>
+        <div><b style="color:#93c5fd">2 · Download</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. Songs download one at a time, typically a minute or two each. The panel can be closed meanwhile.</div>
+        <div><b style="color:#93c5fd">3 · Result</b> — a downloaded song leaves this panel and is listed under <b style="color:#c084fc">🆕 New</b> for 30 days. A <b style="color:#f87171">failed</b> download remains here with the reason.</div>
+        <div><b style="color:#93c5fd">Guest requests</b> — songs requested from guests' phones appear here under the guest's name and download automatically.</div>
           </div>
         </div>
 
         <div class="kar-gs" id="kar-gs-guestqr" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Guest QR — songs from guests’ phones</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#c084fc">What it is</b> — hold this screen up, or leave it open on the TV, and guests point their phone camera at the square. No app, no password, nothing to install.</div>
-        <div><b style="color:#c084fc">What they can do</b> — ask for a song already in your library, or bring a new one from YouTube. Either way they end up in the <b style="color:#D2AD6C">🎶 Up Next</b> queue, and this page tells you the moment it happens.</div>
-        <div><b style="color:#c084fc">What they cannot do</b> — they cannot play, stop, rename or delete anything. Requesting is all the code allows.</div>
-        <div><b style="color:#c084fc">The red button</b> — press <b style="color:#f87171">🔄 New code</b> after a party and every QR you have shown stops working, so last night's guests can't keep sending songs. You'll need to show the new square next time.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#c084fc">What it is</b> — song requests from guests' own phones. A guest scans the code with the phone camera; no app is required.</div>
+        <div><b style="color:#c084fc">What a guest can do</b> — request a song from the library, or add a new one from YouTube. Requests are placed in the <b style="color:#D2AD6C">🎶 Up Next</b> queue.</div>
+        <div><b style="color:#c084fc">What a guest cannot do</b> — play, stop, rename or delete anything.</div>
+        <div><b style="color:#c084fc">🔄 New code</b> — invalidates every code previously displayed. Use it after a party.</div>
           </div>
         </div>
+        <?php if (!$KAR_LOCAL): ?>
+        <div class="kar-gs" id="kar-gs-config" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Configuration and workflow</h3>
+          <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">Each box is a computer. Changes are made once, at the top, and released downward.</p>
+          <?php
+          // The machines live in the database (karaoke_settings.rollout_chain), NOT in this
+          // file. The card is shown on casAI only — but this file is published to a public
+          // repository, so no household or machine name may sit in the source. One row per
+          // box, rows separated by ";" and fields by "|":
+          //     tier|name|line|line|>legend       (any number of caption lines)
+          //     tier 1 = the master · 2 = where it is tried · 3 = the houses
+          //     a line starting with ">" is NOT drawn in the box — it is that machine's
+          //     one-line explanation in the "Who does what" list under the chart.
+          $_rcRaw = '';
+          if ($pdo) { try { $_rcRaw = (string)$pdo->query("SELECT v FROM karaoke_settings WHERE k='rollout_chain'")->fetchColumn(); } catch (Throwable $e) {} }
+          $_rc = [];
+          foreach (array_filter(explode(';', $_rcRaw)) as $_row) {
+              $_f = array_map('trim', explode('|', $_row));
+              if (count($_f) >= 2 && $_f[1] !== '') {
+                  $_cap = []; $_leg = '';
+                  foreach (array_slice($_f, 2) as $_x) {
+                      if ($_x === '') continue;
+                      if ($_x[0] === '>') { if ($_leg === '') $_leg = trim(substr($_x, 1)); } else { $_cap[] = $_x; }
+                  }
+                  $_rc[] = ['t' => (int)$_f[0], 'n' => $_f[1], 'c' => $_cap, 'l' => $_leg,
+                            'p' => (stripos(implode(' ', $_cap), 'planned') !== false)];
+              }
+          }
+          $_spine = array_values(array_filter($_rc, function ($r) { return $r['t'] < 3; }));
+          $_house = array_values(array_filter($_rc, function ($r) { return $r['t'] >= 3; }));
+          // One colour per tier, used identically in the chart and the list beneath it, so
+          // the eye can go from a box to its explanation without reading.
+          $_tc = [1 => ['st' => '#D2AD6C', 'fi' => '#2b2417', 'nm' => '#f3d9a4', 'cp' => '#cbd5e1', 'lb' => '1 · Build'],
+                  2 => ['st' => '#60A5FA', 'fi' => '#16233a', 'nm' => '#bfdbfe', 'cp' => '#a5b4c8', 'lb' => '2 · Test'],
+                  3 => ['st' => '#6ee7b7', 'fi' => '#15302a', 'nm' => '#d1fae5', 'cp' => '#a5b4c8', 'lb' => '3 · Sing']];
+          $_sc = ['st' => '#c084fc', 'fi' => '#2a1f3d', 'nm' => '#e9d5ff', 'cp' => '#c4b5fd'];
+          if ($_spine && $_house):
+              $_W = 760; $_x0 = 100; $_cw = $_W - $_x0 - 8; $_mid = (int)($_x0 + $_cw / 2);
+              // The master is deliberately the biggest box on the chart.
+              $_dim = function ($t) { return $t === 1 ? [360, 96] : ($t === 2 ? [300, 82] : [208, 84]); };
+              $_hn  = count($_house);
+              [$_hw0, $_hh] = $_dim(3);
+              $_hw  = (int)min($_hw0, ($_cw - ($_hn - 1) * 18) / $_hn);
+              $_hsp = $_hw + 18;
+              $_hx0 = (int)($_x0 + ($_cw - ($_hn * $_hw + ($_hn - 1) * 18)) / 2);
+              $_cx  = function ($i) use ($_hx0, $_hsp, $_hw) { return (int)($_hx0 + $i * $_hsp + $_hw / 2); };
+              // Walk the spine downward, remembering where each box sits. The gap between
+              // boxes holds the arrow AND its label, so it is wider than before.
+              $_y = []; $_cursor = 8;
+              foreach ($_spine as $_i => $_s) { [$_w, $_hgt] = $_dim($_s['t']); $_y[$_i] = $_cursor; $_cursor += $_hgt + 56; }
+              $_botY  = $_cursor - 56;
+              $_railY = $_botY + 30;
+              $_hy    = $_railY + 22;
+              $_sy    = $_hy + $_hh + 34;      // the shared songs folder, a band under the houses
+              $_sh    = 50;
+              $_H     = $_sy + $_sh + 8;
+              $_rows = function ($n) { return $n >= 2 ? [0.34, 0.61, 0.83] : ($n === 1 ? [0.42, 0.73] : [0.62]); };
+              // A small tier badge in the left margin, level with its row.
+              $_badge = function ($y, $c, $txt) {
+                  return '<rect x="8" y="' . (int)($y - 12) . '" width="82" height="24" rx="12" fill="' . $c . '" fill-opacity="0.16" stroke="' . $c . '" stroke-width="1"/>'
+                       . '<text x="49" y="' . (int)($y + 4) . '" text-anchor="middle" fill="' . $c . '" font-family="inherit" font-size="11" font-weight="800">' . h($txt) . '</text>';
+              };
+          ?>
+          <svg viewBox="0 0 <?= $_W ?> <?= $_H ?>" style="width:100%;max-width:<?= $_W ?>px;height:auto;display:block;margin:2px auto 10px" role="img" aria-label="Which computer is which, the order a change reaches them, and the one songs folder they all share">
+            <defs>
+              <marker id="karArrB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#60A5FA"/></marker>
+              <marker id="karArrG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6ee7b7"/></marker>
+            </defs>
+            <?php foreach ($_spine as $_i => $_s):
+                  [$_w, $_hgt] = $_dim($_s['t']);
+                  $_c  = $_tc[$_s['t']] ?? $_tc[2];
+                  $_x  = (int)($_mid - $_w / 2);
+                  $_ms = ($_s['t'] === 1);
+                  $_r  = $_rows(count($_s['c'])); ?>
+            <?= $_badge($_y[$_i] + $_hgt / 2, $_c['st'], $_c['lb']) ?>
+            <rect x="<?= $_x ?>" y="<?= $_y[$_i] ?>" width="<?= $_w ?>" height="<?= $_hgt ?>" rx="12" fill="<?= $_c['fi'] ?>" stroke="<?= $_c['st'] ?>" stroke-width="<?= $_ms ? 2.2 : 1.6 ?>"/>
+            <text x="<?= $_mid ?>" y="<?= (int)($_y[$_i] + $_hgt * $_r[0]) ?>" text-anchor="middle" fill="<?= $_c['nm'] ?>" font-family="inherit" font-size="<?= $_ms ? 19 : 16 ?>" font-weight="800"><?= h($_s['n']) ?></text>
+            <?php foreach ($_s['c'] as $_li => $_ln): ?><text x="<?= $_mid ?>" y="<?= (int)($_y[$_i] + $_hgt * $_r[$_li + 1]) ?>" text-anchor="middle" fill="<?= $_c['cp'] ?>" font-family="inherit" font-size="13"><?= h($_ln) ?></text><?php endforeach; ?>
+            <?php if ($_i < count($_spine) - 1): $_ny = $_y[$_i + 1]; ?>
+            <line x1="<?= $_mid ?>" y1="<?= $_y[$_i] + $_hgt ?>" x2="<?= $_mid ?>" y2="<?= $_ny - 6 ?>" stroke="#60A5FA" stroke-width="2" marker-end="url(#karArrB)"/>
+            <text x="<?= $_mid + 12 ?>" y="<?= (int)(($_y[$_i] + $_hgt + $_ny) / 2 + 4) ?>" fill="#93c5fd" font-family="inherit" font-size="11.5" font-weight="600">new version released</text>
+            <?php endif; ?>
+            <?php endforeach; ?>
+
+            <line x1="<?= $_mid ?>" y1="<?= $_botY ?>" x2="<?= $_mid ?>" y2="<?= $_railY ?>" stroke="#6ee7b7" stroke-width="2"/>
+            <text x="<?= $_mid + 12 ?>" y="<?= $_botY + 11 ?>" fill="#6ee7b7" font-family="inherit" font-size="11.5" font-weight="600">retrieved by each user</text>
+            <text x="<?= $_mid + 12 ?>" y="<?= $_botY + 25 ?>" fill="#6ee7b7" font-family="inherit" font-size="11.5" font-weight="600">from the 📖 Guide button on their Mac</text>
+            <?php if ($_hn > 1): ?><line x1="<?= $_cx(0) ?>" y1="<?= $_railY ?>" x2="<?= $_cx($_hn - 1) ?>" y2="<?= $_railY ?>" stroke="#6ee7b7" stroke-width="2"/><?php endif; ?>
+            <?= $_badge($_hy + $_hh / 2, $_tc[3]['st'], $_tc[3]['lb']) ?>
+            <?php foreach ($_house as $_i => $_hb):
+                  $_pl = $_hb['p']; $_c = $_tc[3];
+                  $_r  = $_rows(count($_hb['c'])); ?>
+            <line x1="<?= $_cx($_i) ?>" y1="<?= $_railY ?>" x2="<?= $_cx($_i) ?>" y2="<?= $_hy - 6 ?>" stroke="#6ee7b7" stroke-width="2" marker-end="url(#karArrG)"<?= $_pl ? ' stroke-dasharray="5 4"' : '' ?>/>
+            <rect x="<?= (int)($_hx0 + $_i * $_hsp) ?>" y="<?= $_hy ?>" width="<?= $_hw ?>" height="<?= $_hh ?>" rx="12" fill="<?= $_pl ? 'none' : $_c['fi'] ?>" stroke="<?= $_c['st'] ?>" stroke-width="1.6"<?= $_pl ? ' stroke-dasharray="5 4" stroke-opacity="0.7"' : '' ?>/>
+            <text x="<?= $_cx($_i) ?>" y="<?= (int)($_hy + $_hh * $_r[0]) ?>" text-anchor="middle" fill="<?= $_pl ? '#94a3b8' : $_c['nm'] ?>" font-family="inherit" font-size="16" font-weight="800"><?= h($_hb['n']) ?></text>
+            <?php foreach ($_hb['c'] as $_li => $_ln): ?><text x="<?= $_cx($_i) ?>" y="<?= (int)($_hy + $_hh * $_r[$_li + 1]) ?>" text-anchor="middle" fill="<?= $_c['cp'] ?>" font-family="inherit" font-size="12.5"><?= h($_ln) ?></text><?php endforeach; ?>
+            <line x1="<?= $_cx($_i) ?>" y1="<?= $_hy + $_hh ?>" x2="<?= $_cx($_i) ?>" y2="<?= $_sy ?>" stroke="#c084fc" stroke-width="1.6" stroke-dasharray="3 4"/>
+            <?php endforeach; ?>
+
+            <?= $_badge($_sy + $_sh / 2, $_sc['st'], 'Songs') ?>
+            <rect x="<?= $_x0 ?>" y="<?= $_sy ?>" width="<?= $_cw ?>" height="<?= $_sh ?>" rx="12" fill="<?= $_sc['fi'] ?>" stroke="<?= $_sc['st'] ?>" stroke-width="1.6"/>
+            <text x="<?= $_mid ?>" y="<?= $_sy + 21 ?>" text-anchor="middle" fill="<?= $_sc['nm'] ?>" font-family="inherit" font-size="14" font-weight="800">🎵 One songs folder in Google Drive, shared by every Mac</text>
+            <text x="<?= $_mid ?>" y="<?= $_sy + 39 ?>" text-anchor="middle" fill="<?= $_sc['cp'] ?>" font-family="inherit" font-size="12">a song added on any Mac is available on all of them · dotted lines indicate the shared folder, not a connection</text>
+          </svg>
+          <p style="margin:-2px 0 14px;color:#94a3b8;font-size:12px;text-align:center">Arrows show the order in which a release reaches each computer, not a network connection. Each Mac installs its own update; nothing is pushed from here.</p>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 14px">
+            <div style="background:#0d1117;border:1px solid #334155;border-radius:10px;padding:11px 14px">
+              <div style="font-size:12px;font-weight:800;color:#f3f4f6;margin-bottom:8px;letter-spacing:.02em">ROLES</div>
+              <div style="display:grid;gap:7px;font-size:12.5px;line-height:1.5">
+              <?php foreach ($_rc as $_m): $_c = $_tc[$_m['t']] ?? $_tc[3]; ?>
+                <div style="display:flex;gap:9px;align-items:flex-start"><span style="flex:0 0 11px;width:11px;height:11px;margin-top:4px;border-radius:50%;background:<?= $_m['p'] ? 'none' : $_c['st'] ?>;border:2px <?= $_m['p'] ? 'dashed' : 'solid' ?> <?= $_c['st'] ?>"></span><span><b style="color:<?= $_c['nm'] ?>"><?= h($_m['n']) ?></b> — <?= h($_m['l'] !== '' ? $_m['l'] : implode(', ', $_m['c'])) ?></span></div>
+              <?php endforeach; ?>
+              </div>
+            </div>
+            <div style="background:#0d1117;border:1px solid #334155;border-radius:10px;padding:11px 14px">
+              <div style="font-size:12px;font-weight:800;color:#f3f4f6;margin-bottom:8px;letter-spacing:.02em">RELEASE PROCESS</div>
+              <div style="display:grid;gap:7px;font-size:12.5px;line-height:1.5">
+                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#D2AD6C">1</b><span><b style="color:#f3d9a4">Development</b> — all changes are made on the master.</span></div>
+                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#60A5FA">2</b><span><b style="color:#bfdbfe">Testing</b> — each release is used on the testing Mac before distribution.</span></div>
+                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#6ee7b7">3</b><span><b style="color:#d1fae5">Installation</b> — each user retrieves the release on their own Mac, from the 📖 Guide button. Songs, lists and saved keys are unaffected.</span></div>
+                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#c084fc">♪</b><span><b style="color:#e9d5ff">Songs</b> — not part of any release; they reside in a shared Google Drive folder.</span></div>
+              </div>
+            </div>
+          </div>
+          <?php else: ?>
+          <p style="margin:0 0 12px;color:#94a3b8;font-size:12.5px">The chart cannot be drawn — the machine list has not been set.</p>
+          <?php endif; ?>
+
+          <div style="display:grid;gap:9px">
+            <div><b style="color:#D2AD6C">This page contains no audio</b> — it lists the contents of the shared folder and sends playback requests to a Mac.</div>
+            <div><b style="color:#D2AD6C">⭐ Best lists</b> — the Macs synchronize their lists with each other. This page maintains its own, so a person's list here may differ from the list on the Macs.</div>
+            <div><b style="color:#D2AD6C">If a song does not play</b> — the Mac is asleep, the wrong Mac is selected under <b>Play on</b>, or that Mac points to a different songs folder.</div>
+          </div>
+        </div>
+        <?php endif; ?>
+
         <?php if ($KAR_LOCAL): ?>
         <div class="kar-gs" id="kar-gs-update" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Software updates</h3>
-          <p style="margin:0 0 8px">When a new version is released, this installs it. <b>Your songs, your settings, everyone's lists and every saved key are left exactly as they are</b> — only the program itself is replaced.</p>
+          <p style="margin:0 0 8px">Installs the latest version. <b>Songs, settings, Best lists and saved keys are preserved</b>; only the program is replaced.</p>
           <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Cantoria Software Update</button>
           <div id="kar-upd-state" style="display:none;margin-top:8px;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;line-height:1.6"></div>
-          <span id="kar-upd-msg" style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">This version: <b id="kar-upd-ver" style="color:#cbd5e1"><?= h(kar_installed_version()) ?></b></span>
+          <span id="kar-upd-msg" style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">Installed version: <b id="kar-upd-ver" style="color:#cbd5e1"><?= h(kar_installed_version()) ?></b></span>
         </div>
         <?php endif; ?>
 
@@ -383,6 +545,16 @@ if (!$KAR_LOCAL) {
       <div id="kar-help-dl" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('dl')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
 
       </div>
+      <div style="font-size:11.5px;font-weight:800;color:#93c5fd;letter-spacing:.04em;margin:0 0 6px">DOWNLOAD LIST</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+        <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
+        <button type="button" onclick="karDlStart()" id="kar-dl-start" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">⬇ Download the list</button>
+        <button type="button" onclick="karDlClear()" title="Empties the whole list at once — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">Clear the list</button>
+      </div>
+      <div id="kar-dl-list" style="margin-top:8px"></div>
+      <div style="border-top:1px solid #1e293b;margin:12px 0 10px"></div>
+      <div style="font-size:11.5px;font-weight:800;color:#f87171;letter-spacing:.04em;margin:0 0 6px">SEARCH YOUTUBE</div>
       <!-- Search YouTube from here. The page cannot run yt-dlp, so the Mac answers it —
            the same machinery the guest page has had since 2026-09-08. This is what
            retires the ▶ YouTube round trip as the only way to find a song. -->
@@ -390,15 +562,7 @@ if (!$KAR_LOCAL) {
         <input id="kar-yt-q" type="text" placeholder="Search YouTube — type a singer or a song…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
         <button type="button" onclick="karYtSearch()" id="kar-yt-btn" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 16px;border-radius:8px">Search</button>
       </div>
-      <div id="kar-yt-res" style="margin-bottom:10px"></div>
-      <div style="border-top:1px solid #1e293b;margin-bottom:10px"></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
-        <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
-        <button type="button" onclick="karDlStart()" id="kar-dl-start" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">⬇ Download the list</button>
-        <button type="button" onclick="karDlClear()" title="Empties the whole list at once — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">Clear the list</button>
-      </div>
-      <div id="kar-dl-list" style="margin-top:10px"></div>
+      <div id="kar-yt-res"></div>
     </div>
     <div id="kar-q-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
@@ -1414,7 +1578,7 @@ if (!$KAR_LOCAL) {
       btn.textContent = '📁 Choose the karaoke songs folder…';
       var msg = document.getElementById('kar-pick-msg');
       msg.innerHTML = ok
-        ? '<b style="color:#6ee7b7">✅ Saved.</b> Using now: <b id="kar-pick-cur" style="color:#6ee7b7">' + karEsc(path) + '</b>'
+        ? '<b style="color:#6ee7b7">✅ Saved.</b> Current folder: <b id="kar-pick-cur" style="color:#6ee7b7">' + karEsc(path) + '</b>'
           + (text ? '<br><span style="color:#64748b">' + karEsc(text) + '</span>' : '')
         : '<span style="color:#f87171">' + karEsc(text) + '</span>';
     }
@@ -1520,7 +1684,7 @@ function karPickFolder(){
         // "Already up to date" is a real answer, not a non-event — it is the one people
         // will see most often, so it gets said as plainly as the others.
         if (note.indexOf('Already up to date') === 0) {
-          karUpdState('same', '✔︎ <b>Nothing to update.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">This Mac already has the newest karaoke. ' + karEsc(note.replace(/^Already up to date \(/, '').replace(/\)\.?\s*$/, '')) + '</div>');
+          karUpdState('same', '✔︎ <b>Nothing to update.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">This Mac is already on the latest version. ' + karEsc(note.replace(/^Already up to date \(/, '').replace(/\)\.?\s*$/, '')) + '</div>');
           return;
         }
         var m = note.match(/karaoke (\S+?)\s*\(was (\S+?)\)/);
@@ -1529,21 +1693,21 @@ function karPickFolder(){
         if (vEl && ver) vEl.textContent = ver;
         karUpdState('done', '✅ <b>Updated.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">'
           + (ver ? 'Now on <b>' + karEsc(ver) + '</b>' + (was ? ' — was ' + karEsc(was) : '') + '. ' : karEsc(note) + ' ')
-          + '<a href="#" onclick="location.reload();return false;" style="color:#93c5fd">Reload the page to start using it →</a></div>');
+          + '<a href="#" onclick="location.reload();return false;" style="color:#93c5fd">Reload the page to use it →</a></div>');
       });
     }
     function karCheckTools(){
       var btn = document.getElementById('kar-tools-btn');
       var msg = document.getElementById('kar-tools-msg');
       btn.disabled = true;
-      btn.textContent = '⏳ Asking the Mac…';
-      msg.innerHTML = '<span style="color:#D2AD6C">Checking what is installed on the Mac…</span>';
+      btn.textContent = '⏳ Querying the Mac…';
+      msg.innerHTML = '<span style="color:#D2AD6C">Checking installed versions…</span>';
       karMacAsk('tools', null, function(ok, note){
         btn.disabled = false;
-        btn.textContent = '✅ Check it worked';
+        btn.textContent = '✅ Verify installation';
         msg.innerHTML = ok
-          ? '<span style="color:#6ee7b7"><b>✅ All set.</b> ' + karEsc(note) + '</span>'
-          : '<span style="color:#f87171"><b>Not ready yet.</b> ' + karEsc(note) + '</span>';
+          ? '<span style="color:#6ee7b7"><b>✅ Installed.</b> ' + karEsc(note) + '</span>'
+          : '<span style="color:#f87171"><b>Not installed.</b> ' + karEsc(note) + '</span>';
       });
     }
     function karPanelClose(){
@@ -1579,6 +1743,7 @@ function karPickFolder(){
       if (st === 'Pending') return 'color:#60A5FA';
       return 'color:#94a3b8'; // Queued
     }
+    var karDlSeen = {}, karDlHasSeen = false;   // ids already drawn — anything newer gets a brief highlight
     function karDlRender(rows){
       var el = document.getElementById('kar-dl-list');
       if (!rows.length) {
@@ -1586,7 +1751,8 @@ function karPickFolder(){
         // 10 minutes, and the old wording ("Nothing in the list yet") read as a failure
         // (the owner, 2026-09-07: "he didn't download it... the link disappeared" — it had in
         // fact downloaded fine 20 seconds after he pasted it).
-        el.innerHTML = '<p style="color:#64748b;font-size:12.5px;margin:4px 0 0">Nothing being fetched right now.</p>';
+        el.innerHTML = '<p style="color:#64748b;font-size:12.5px;margin:4px 0 0">The list is empty. Add songs from the search below, or paste a link.</p>';
+        karDlHasSeen = true;
         return;
       }
       var h = rows.map(function(r){
@@ -1597,7 +1763,8 @@ function karPickFolder(){
           : ((r.note.indexOf('already') !== -1 || r.note.indexOf('own') !== -1) ? '#D2AD6C' : '#64748b');
         var note = r.note ? '<div style="font-size:11px;color:' + noteCol + ';margin-top:1px">' + karEsc(r.note) + '</div>' : '';
         var canRemove = (r.status === 'Queued' || r.status === 'Error');
-        return '<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #1e293b">'
+        var fresh = !karDlSeen[r.id] && karDlHasSeen; karDlSeen[r.id] = 1;
+        return '<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 6px;border-bottom:1px solid #1e293b;border-radius:6px;transition:background 1.8s' + (fresh ? ';background:rgba(96,165,250,.22)' : '') + '" ' + (fresh ? 'data-fresh="1"' : '') + '>'
           + '<span style="flex:0 0 106px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;' + karDlStatusStyle(r.status) + '">'
           + (r.status === 'Downloading' ? '⬇ Downloading' : r.status === 'Done' ? '✓ Done' : r.status === 'Error' ? '✕ Didn\'t work' : r.status) + '</span>'
           + '<div style="flex:1;min-width:0"><div style="font-size:13px;color:#e2e8f0;word-break:break-word">' + name + '</div>' + note + '</div>'
@@ -1605,12 +1772,15 @@ function karPickFolder(){
           + '</div>';
       }).join('');
       el.innerHTML = h;
+      karDlHasSeen = true;
+      setTimeout(function(){ el.querySelectorAll('[data-fresh]').forEach(function(d){ d.style.background = 'transparent'; }); }, 900);
     }
     function karDlRefresh(){
       if (karDlTimer) { clearTimeout(karDlTimer); karDlTimer = null; }
       var fd = new FormData(); fd.append('form_type', 'karaoke_dl_state');
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) return;
+        karNewNotice(d.rows);
         karDlRender(d.rows);
         var qn = d.rows.filter(function(r){ return r.status === 'Queued'; }).length;
         var sb = document.getElementById('kar-dl-start');
@@ -1677,7 +1847,7 @@ function karPickFolder(){
     function karYtRender(){
       var res = document.getElementById('kar-yt-res');
       if (!KAR_YT_HITS.length) { res.innerHTML = '<div style="color:#94a3b8;font-size:12.5px;padding:6px 2px">Nothing found — try the singer\'s name, or fewer words.</div>'; return; }
-      var out = [];
+      var out = ['<div style="color:#94a3b8;font-size:12px;padding:2px 2px 6px"><b style="color:#e2e8f0">▶ Watch</b> opens the video on YouTube · <b style="color:#f3d9a4">📋 Copy link</b> copies its address · <b style="color:#93c5fd">+ Add to list</b> places it in the download list above.</div>'];
       for (var i = 0; i < KAR_YT_HITS.length; i++) {
         var h = KAR_YT_HITS[i];
         // A duplicate is a WARNING, never a refusal — he keeps several versions of a song
@@ -1691,10 +1861,34 @@ function karPickFolder(){
           + '<div style="color:#e2e8f0;font-size:12.5px;font-weight:600;line-height:1.35">' + karEsc(h.title) + '</div>'
           + '<div style="color:#64748b;font-size:11px">' + karEsc(h.chan) + (h.len ? ' · ' + karEsc(h.len) : '') + '</div>'
           + dup + '</div>'
-          + '<button type="button" onclick="karYtAdd(' + i + ',this)" style="flex:0 0 auto;font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12px;font-weight:700;padding:7px 13px;border-radius:8px">+ Add</button>'
+          + '<a href="' + karEscA(h.url) + '" target="_blank" rel="noopener" title="Open this video on YouTube" style="flex:0 0 auto;font-family:inherit;background:none;border:1px solid #334155;color:#e2e8f0;text-decoration:none;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">▶ Watch</a>'
+          + '<button type="button" onclick="karYtCopy(' + i + ',this)" title="Copy this video\'s link" style="flex:0 0 auto;font-family:inherit;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#f3d9a4;cursor:pointer;font-size:12px;font-weight:700;padding:7px 11px;border-radius:8px">📋 Copy link</button>'
+          + '<button type="button" onclick="karYtAdd(' + i + ',this)" style="flex:0 0 auto;font-family:inherit;background:rgba(96,165,250,.16);border:1px solid #60A5FA;color:#bfdbfe;cursor:pointer;font-size:12.5px;font-weight:800;padding:7px 14px;border-radius:8px">+ Add to list</button>'
           + '</div>');
       }
       res.innerHTML = out.join('');
+    }
+
+    // Copy a result's link. navigator.clipboard needs a secure context, and the standalone
+    // edition runs on plain http on the house network — so fall back to the old
+    // select-and-execCommand route, which works on either.
+    function karYtCopy(i, btn){
+      var h = KAR_YT_HITS[i]; if (!h) return;
+      var done = function(ok){
+        btn.textContent = ok ? '✓ Copied' : '📋 Copy link';
+        if (!ok) { alert('Could not copy — the link is: ' + h.url); return; }
+        setTimeout(function(){ btn.textContent = '📋 Copy link'; }, 2500);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(h.url).then(function(){ done(true); }, function(){ done(karYtCopyLegacy(h.url)); });
+      } else { done(karYtCopyLegacy(h.url)); }
+    }
+    function karYtCopyLegacy(text){
+      var ta = document.createElement('textarea'); ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta);
+      ta.focus(); ta.select(); var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); return ok;
     }
 
     // Adding goes through the SAME list as a pasted link, so ⬇ Download the list still
@@ -1705,11 +1899,11 @@ function karPickFolder(){
       var fd = new FormData(); fd.append('form_type','karaoke_dl_add'); fd.append('url', h.url);
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         btn.disabled = false;
-        btn.textContent = d.ok ? '✓ Added' : '+ Add';
+        btn.textContent = d.ok ? '✓ Added to list' : '+ Add to list';
         if (!d.ok) { alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
         btn.style.color = '#6ee7b7'; btn.style.borderColor = '#16a34a';
         karDlRefresh();
-      }).catch(function(){ btn.disabled = false; btn.textContent = '+ Add'; alert('Network error — the song was not added.'); });
+      }).catch(function(){ btn.disabled = false; btn.textContent = '+ Add to list'; alert('Network error — the song was not added.'); });
     }
     document.getElementById('kar-yt-q').addEventListener('keydown', function(ev){
       if (ev.key === 'Enter') { ev.preventDefault(); karYtSearch(); }
@@ -1718,7 +1912,12 @@ function karPickFolder(){
       var fd = new FormData(); fd.append('form_type', 'karaoke_dl_start');
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) { alert('Could not start' + (d.error ? ': ' + d.error : '') + '.'); return; }
-        if (!d.started) { alert('Nothing to download — add a YouTube link first. (Songs that already arrived are under 🆕 New.)'); return; }
+        if (!d.started) {
+          var el = document.getElementById('kar-dl-list');
+          el.innerHTML = '<p style="color:#D2AD6C;font-size:12.5px;margin:4px 0 0">Nothing is waiting to download. Songs added earlier have already been downloaded — they are in the Song Database and under 🆕 New.</p>';
+          karNewRefresh();
+          return;
+        }
         karDlRefresh();
       }).catch(function(){ alert('Network error — the download was not started.'); });
     }
@@ -1878,10 +2077,33 @@ function karPickFolder(){
     // they download, and completions stay on screen a couple of minutes.
     var karActPrev = null;   // id -> status from the previous poll (null = first poll, no announcements)
     var karActDone = {};     // id -> {msg, until} — finished lines kept visible ~2 min
+    // A finished download appears under 🆕 New and in the Song Database WITHOUT a reload.
+    // Three real downloads on 2026-09-12 were reported as "did not download": the Done row
+    // had retired from the panel and the page still showed the list it was born with, so
+    // the songs existed everywhere except on screen.
+    var karNewDoneSeen = null;
+    function karNewNotice(rows){
+      var first = (karNewDoneSeen === null); if (first) karNewDoneSeen = {};
+      var fresh = false;
+      rows.forEach(function(r){ if (r.status === 'Done' && !karNewDoneSeen[r.id]) { karNewDoneSeen[r.id] = 1; if (!first) fresh = true; } });
+      if (fresh) karNewRefresh();
+    }
+    function karNewRefresh(){
+      var fd = new FormData(); fd.append('form_type', 'karaoke_new_list');
+      fetch(location.pathname, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) return;
+        KAR_DATA.new = d.new || [];
+        if (d.db && d.db.length) KAR_DATA.db = d.db;
+        Object.keys(d.dup || {}).forEach(function(k){ KAR_DUP[k] = d.dup[k]; });
+        var c = document.getElementById('kar-new-count'); if (c) c.textContent = KAR_DATA.new.length;
+        if (karView === 'new' || karView === 'db') karRender();
+      }).catch(function(){});
+    }
     function karActivityPoll(){
       var fd = new FormData(); fd.append('form_type', 'karaoke_dl_state');
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) return;
+        karNewNotice(d.rows);
         var lines = [], now = Date.now(), queueChanged = false;
         d.rows.forEach(function(r){
           var name = r.title || 'a song';
@@ -1893,8 +2115,8 @@ function karPickFolder(){
           if (karActPrev && karActPrev[r.id] && karActPrev[r.id] !== r.status) {
             if (r.status === 'Done') {
               karActDone[r.id] = { until: now + 120000, msg: r.requested_by
-                ? '✅ <b>' + karEsc(name) + '</b> is ready — <b>' + karEsc(r.requested_by) + '</b> is in line to sing it. Press ⟳ — you\'ll find it under 🆕 New.'
-                : '✅ <b>' + karEsc(name) + '</b> is in the Song Database. Press ⟳ — you\'ll find it under 🆕 New.' };
+                ? '✅ <b>' + karEsc(name) + '</b> is ready — <b>' + karEsc(r.requested_by) + '</b> is in line to sing it. It is under 🆕 New.'
+                : '✅ <b>' + karEsc(name) + '</b> is in the Song Database and under 🆕 New.' };
               if (r.requested_by) queueChanged = true;
             } else if (r.status === 'Error' && r.requested_by) {
               karActDone[r.id] = { until: now + 120000,

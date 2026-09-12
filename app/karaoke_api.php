@@ -322,7 +322,7 @@ try {
 
     case 'karaoke_dl_start': {
         // A failed row is retried by the same button — otherwise the only way back after a
-        // failure was to paste the link again, which is what the NJ mini showed on
+        // failure was to paste the link again, which is what the Kitchen Mac showed on
         // 2026-09-11 ("Nothing to download" with two failed songs sitting right there).
         $n = $db->exec("UPDATE karaoke_downloads SET status='Pending', note=NULL, done_at=NULL WHERE status IN ('Queued','Error')");
         kar_worker_spawn();
@@ -380,7 +380,7 @@ try {
                OR (status='Error' AND COALESCE(done_at, requested_at) > datetime('now','localtime','-7 days')
                    -- a failure that a LATER attempt at the same song got right is not a
                    -- failure any more — leaving it in red beside a green success was read as
-                   -- still broken (NJ mini, 2026-09-11)
+                   -- still broken (Kitchen Mac, 2026-09-11)
                    AND NOT EXISTS (SELECT 1 FROM karaoke_downloads d2 WHERE d2.status='Done'
                                    AND d2.id > karaoke_downloads.id
                                    AND (d2.url = karaoke_downloads.url OR d2.title = karaoke_downloads.title)))
