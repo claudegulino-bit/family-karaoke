@@ -241,24 +241,24 @@ if (!$KAR_LOCAL) {
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">♪ Now playing</span>
           <span style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span id="kar-now-song" style="color:#f3f4f6;font-size:13.5px;font-weight:700"></span><span id="kar-now-player" style="color:#8a8070;font-size:11px"></span></span>
         </span>
-        <span style="display:flex;flex-direction:column;gap:6px;margin-left:10px;padding:5px 10px 7px;border-radius:9px;background:rgba(255,255,255,.045)">
-          <span style="display:block;text-align:center;color:#f3d9a4;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;padding:4px 0;border-radius:6px;background:rgba(210,173,108,.22)">Key</span>
+        <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Key</span>
           <span style="display:flex;align-items:center;gap:6px">
             <button type="button" onclick="karLiveAdj(-1)" title="Lower the key one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
             <span id="kar-live-val" style="color:#D2AD6C;font-size:16px;font-weight:800;width:32px;text-align:center">0</span>
             <button type="button" onclick="karLiveAdj(1)" title="Raise the key one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
           </span>
         </span>
-        <span style="display:flex;flex-direction:column;gap:6px;margin-left:10px;padding:5px 10px 7px;border-radius:9px;background:rgba(255,255,255,.045)">
-          <span style="display:block;text-align:center;color:#f3d9a4;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;padding:4px 0;border-radius:6px;background:rgba(210,173,108,.22)">Tempo</span>
+        <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Tempo</span>
           <span style="display:flex;align-items:center;gap:6px">
             <button type="button" onclick="karTempoAdj(-5)" title="Slow the song 5%; the key stays true. Takes a few seconds; not saved. casAI player only." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
             <span id="kar-tempo-val" style="color:#6ee7b7;font-size:15px;font-weight:800;width:44px;text-align:center">100%</span>
             <button type="button" onclick="karTempoAdj(5)" title="Speed the song up 5%; the key stays true. Takes a few seconds; not saved. casAI player only." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
           </span>
         </span>
-        <span style="display:flex;flex-direction:column;gap:6px;margin-left:10px;padding:5px 10px 7px;border-radius:9px;background:rgba(255,255,255,.045)">
-          <span style="display:block;text-align:center;color:#f3d9a4;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;padding:4px 0;border-radius:6px;background:rgba(210,173,108,.22)">Playback</span>
+        <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Playback</span>
           <span style="display:flex;align-items:center;gap:8px">
             <button type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics screen, or bring it back in front of everything" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:11px;font-weight:800;line-height:1.1;padding:0 10px;height:36px;border-radius:8px;white-space:nowrap">🎬 Lyrics<br>Screen</button>
             <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">▶ Start</button>
