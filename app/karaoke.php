@@ -423,7 +423,7 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-downloads" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">YouTube Downloads</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#93c5fd">1 · Find the song</b> — enter an artist or title in <b>Search YouTube</b> and press <b>Search</b>. Results show the duration and flag possible duplicates. <b>▶ Watch</b> opens a result on YouTube, <b>📋 Copy link</b> copies its address, and <b>+ Add to list</b> places it in the download list at the top of the panel.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#93c5fd">1 · Find the song</b> — enter an artist or title in <b>Search YouTube</b> and press <b>Search</b>. Results show the duration and flag possible duplicates. <b>▶ Watch</b> opens a result on YouTube, <b>📋 Copy link</b> copies its address, and <b>+ Add to list</b> places it in the download list below the results.</div>
         <div><b style="color:#93c5fd">Or paste a link</b> — for a video found on YouTube itself (<b>open YouTube ↗</b> beside the box), copy its link, paste it into the box and press <b>+ Add to list</b>.</div>
         <div><b style="color:#93c5fd">2 · Download</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. Songs download one at a time, typically a minute or two each. The panel can be closed meanwhile.</div>
         <div><b style="color:#93c5fd">3 · Result</b> — a downloaded song leaves this panel and is listed under <b style="color:#c084fc">🆕 New</b> for 30 days. A <b style="color:#f87171">failed</b> download remains here with the reason.</div>
@@ -603,16 +603,6 @@ if (!$KAR_LOCAL) {
       <div id="kar-help-dl" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('dl')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
 
       </div>
-      <div style="font-size:11.5px;font-weight:800;color:#93c5fd;letter-spacing:.04em;margin:0 0 6px">DOWNLOAD LIST</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
-        <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
-        <a href="https://www.youtube.com" target="_blank" rel="noopener" onclick="karYtHint()" title="Browse YouTube itself in a new tab; copy a link and paste it here" style="font-family:inherit;color:#94a3b8;font-size:12px;text-decoration:none;border:1px solid #334155;padding:7px 11px;border-radius:8px">open YouTube ↗</a>
-        <button type="button" onclick="karDlStart()" id="kar-dl-start" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">⬇ Download the list</button>
-        <button type="button" onclick="karDlClear()" title="Empties the whole list at once — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">Clear the list</button>
-      </div>
-      <div id="kar-dl-list" style="margin-top:8px"></div>
-      <div style="border-top:1px solid #1e293b;margin:12px 0 10px"></div>
       <div style="font-size:11.5px;font-weight:800;color:#f87171;letter-spacing:.04em;margin:0 0 6px">SEARCH YOUTUBE</div>
       <!-- Search YouTube from here. The page cannot run yt-dlp, so the Mac answers it —
            the same machinery the guest page has had since 2026-09-08. This is what
@@ -622,6 +612,16 @@ if (!$KAR_LOCAL) {
         <button type="button" onclick="karYtSearch()" id="kar-yt-btn" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 16px;border-radius:8px">Search</button>
       </div>
       <div id="kar-yt-res"></div>
+      <div style="border-top:1px solid #1e293b;margin:12px 0 10px"></div>
+      <div style="font-size:11.5px;font-weight:800;color:#93c5fd;letter-spacing:.04em;margin:0 0 6px">DOWNLOAD LIST</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+        <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
+        <a href="https://www.youtube.com" target="_blank" rel="noopener" onclick="karYtHint()" title="Browse YouTube itself in a new tab; copy a link and paste it here" style="font-family:inherit;color:#94a3b8;font-size:12px;text-decoration:none;border:1px solid #334155;padding:7px 11px;border-radius:8px">open YouTube ↗</a>
+        <button type="button" onclick="karDlStart()" id="kar-dl-start" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">⬇ Download the list</button>
+        <button type="button" onclick="karDlClear()" title="Empties the whole list at once — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">Clear the list</button>
+      </div>
+      <div id="kar-dl-list" style="margin-top:8px"></div>
     </div>
     <div id="kar-q-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
@@ -1846,7 +1846,7 @@ function karPickFolder(){
         // 10 minutes, and the old wording ("Nothing in the list yet") read as a failure
         // (the owner, 2026-09-07: "he didn't download it... the link disappeared" — it had in
         // fact downloaded fine 20 seconds after he pasted it).
-        el.innerHTML = '<p style="color:#64748b;font-size:12.5px;margin:4px 0 0">The list is empty. Add songs from the search below, or paste a link.</p>';
+        el.innerHTML = '<p style="color:#64748b;font-size:12.5px;margin:4px 0 0">The list is empty. Add songs from the search above, or paste a link.</p>';
         karDlHasSeen = true;
         return;
       }
@@ -1868,6 +1868,10 @@ function karPickFolder(){
       }).join('');
       el.innerHTML = h;
       karDlHasSeen = true;
+      // The list sits below the search results now (the owner, 2026-09-12: the search box goes
+      // first) — so a row just added from a result is scrolled into view rather than left off-screen.
+      var freshRow = el.querySelector('[data-fresh]');
+      if (freshRow && freshRow.scrollIntoView) freshRow.scrollIntoView({block:'nearest', behavior:'smooth'});
       setTimeout(function(){ el.querySelectorAll('[data-fresh]').forEach(function(d){ d.style.background = 'transparent'; }); }, 900);
     }
     function karDlRefresh(){
@@ -1942,7 +1946,7 @@ function karPickFolder(){
     function karYtRender(){
       var res = document.getElementById('kar-yt-res');
       if (!KAR_YT_HITS.length) { res.innerHTML = '<div style="color:#94a3b8;font-size:12.5px;padding:6px 2px">Nothing found — try the singer\'s name, or fewer words.</div>'; return; }
-      var out = ['<div style="color:#94a3b8;font-size:12px;padding:2px 2px 6px"><b style="color:#e2e8f0">▶ Watch</b> opens the video on YouTube · <b style="color:#f3d9a4">📋 Copy link</b> copies its address · <b style="color:#93c5fd">+ Add to list</b> places it in the download list above.</div>'];
+      var out = ['<div style="color:#94a3b8;font-size:12px;padding:2px 2px 6px"><b style="color:#e2e8f0">▶ Watch</b> opens the video on YouTube · <b style="color:#f3d9a4">📋 Copy link</b> copies its address · <b style="color:#93c5fd">+ Add to list</b> places it in the download list below.</div>'];
       for (var i = 0; i < KAR_YT_HITS.length; i++) {
         var h = KAR_YT_HITS[i];
         // A duplicate is a WARNING, never a refusal — he keeps several versions of a song
