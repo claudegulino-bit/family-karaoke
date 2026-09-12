@@ -210,9 +210,8 @@ if (!$KAR_LOCAL) {
         <option value="__remove__">− Remove a person…</option>
       </select>
       <input id="kar-search" type="text" placeholder="Search songs, pitch, CSG, names…" oninput="karRender()" onkeydown="if(event.key==='Escape'){karClearSearch(true);}" title="Type to filter. Esc clears it — and switching views clears it too." style="font-family:inherit;flex:1;min-width:150px;background:#121620;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
-      <a href="https://www.youtube.com" target="_blank" rel="noopener" onclick="karYtGo()" title="Opens YouTube in the next tab — browse, copy a song's link, then click back to this tab and paste it" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;border-radius:999px;display:inline-block;text-decoration:none;line-height:1.25">▶ YouTube</a>
       <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The Up Next queue — who sings next, in order" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(210,173,108,.45);color:#D2AD6C;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">🎶 Up Next <span id="kar-q-count" style="font-weight:600;opacity:.8">0</span></button>
-      <button type="button" onclick="karDlToggle()" id="kar-dl-btn" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">⬇ Downloads</button>
+      <button type="button" onclick="karDlToggle()" id="kar-dl-btn" title="Search YouTube from here and download songs into the library" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 13px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px">▶ YouTube Downloads</button>
       <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid rgba(192,132,252,.45);color:#c084fc;transition:background .12s,border-color .12s,box-shadow .12s;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">📱</span> Guest QR</button>
       <button type="button" onclick="location.reload()" title="Reload the song lists from the server (after a download or rename)" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px"><span style="font-size:15px">🔄</span> Refresh</button>
       <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" style="appearance:none;-webkit-appearance:none;font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;transition:background .12s,border-color .12s,box-shadow .12s;border-radius:999px"><span style="font-size:15px">📖</span> Guide</button>
@@ -244,7 +243,7 @@ if (!$KAR_LOCAL) {
         // nowhere else — the floating "?" beside each panel borrows this same text rather
         // than keeping a second copy that would quietly drift out of step with it.
         $_karCards[] = ['upnext',    '6 · Up Next',   'The singing queue and scheduling fairness.'];
-        $_karCards[] = ['downloads', '7 · Downloads', 'Adding songs from YouTube.'];
+        $_karCards[] = ['downloads', '7 · YouTube Downloads', 'Searching YouTube and adding songs.'];
         $_karCards[] = ['guestqr',   '8 · Guest QR',  'Song requests from guests\' phones.'];
         // casAI only. It names the machines and the folders, so it is gated to the copy
         // that never leaves the household — and every name in it is read at render time
@@ -338,7 +337,7 @@ if (!$KAR_LOCAL) {
           <ul style="margin:0;padding-left:20px">
             <li><b>🎶 Up Next</b> — the singing queue. Click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on a song to add a singer; press <b>▶ Next singer</b> to start each performance. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Card 6</a>.</li>
             <li><b>📱 Guest QR</b> — guests request songs from their own phones. <a href="#" onclick="karGuideOpen('guestqr');return false" style="color:#D2AD6C">Card 8</a>.</li>
-            <li><b>⬇ Downloads</b> — add songs from YouTube. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Card 7</a>.</li>
+            <li><b>▶ YouTube Downloads</b> — search YouTube and add songs to the library. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Card 7</a>.</li>
             <li>The purple strip below the buttons reports activity, such as a guest's song arriving.</li>
           </ul>
         </div>
@@ -364,9 +363,9 @@ if (!$KAR_LOCAL) {
         </div>
 
         <div class="kar-gs" id="kar-gs-downloads" style="display:none">
-          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Downloads — songs from YouTube</h3>
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">YouTube Downloads</h3>
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#93c5fd">1 · Find the song</b> — enter an artist or title in <b>Search YouTube</b> and press <b>Search</b>. Results show the duration and flag possible duplicates. <b>▶ Watch</b> opens a result on YouTube, <b>📋 Copy link</b> copies its address, and <b>+ Add to list</b> places it in the download list at the top of the panel.</div>
-        <div><b style="color:#93c5fd">Or paste a link</b> — press <b>▶ YouTube</b> at the top of the page, copy the video's link, paste it into the box and press <b>+ Add to list</b>.</div>
+        <div><b style="color:#93c5fd">Or paste a link</b> — for a video found on YouTube itself (<b>open YouTube ↗</b> beside the box), copy its link, paste it into the box and press <b>+ Add to list</b>.</div>
         <div><b style="color:#93c5fd">2 · Download</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. Songs download one at a time, typically a minute or two each. The panel can be closed meanwhile.</div>
         <div><b style="color:#93c5fd">3 · Result</b> — a downloaded song leaves this panel and is listed under <b style="color:#c084fc">🆕 New</b> for 30 days. A <b style="color:#f87171">failed</b> download remains here with the reason.</div>
         <div><b style="color:#93c5fd">Guest requests</b> — songs requested from guests' phones appear here under the guest's name and download automatically.</div>
@@ -534,7 +533,7 @@ if (!$KAR_LOCAL) {
     <div id="kar-activity" style="display:none;margin-top:8px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.35);border-radius:8px;padding:8px 14px;font-size:12.5px;color:#e2e8f0;line-height:1.6"></div>
     <div id="kar-dl-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-size:13.5px;font-weight:800;color:#f3f4f6">⬇ Downloads</span>
+        <span style="font-size:13.5px;font-weight:800;color:#f3f4f6">▶ YouTube Downloads</span>
         <button type="button" id="kar-helpbtn-dl" onclick="karHelpToggle('dl')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">? How it works</button>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
       </div>
@@ -549,6 +548,7 @@ if (!$KAR_LOCAL) {
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
         <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
+        <a href="https://www.youtube.com" target="_blank" rel="noopener" onclick="karYtHint()" title="Browse YouTube itself in a new tab; copy a link and paste it here" style="font-family:inherit;color:#94a3b8;font-size:12px;text-decoration:none;border:1px solid #334155;padding:7px 11px;border-radius:8px">open YouTube ↗</a>
         <button type="button" onclick="karDlStart()" id="kar-dl-start" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">⬇ Download the list</button>
         <button type="button" onclick="karDlClear()" title="Empties the whole list at once — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">Clear the list</button>
       </div>
@@ -1440,16 +1440,6 @@ if (!$KAR_LOCAL) {
     // YouTube tab every later click insisted it was already open — and a page cannot
     // detect that closure. So every click opens YouTube now. A spare tab is a much
     // smaller cost than a dead button that tells him something untrue.
-    function karYtGo(){
-      // The YouTube control is a real link (anchor, target=_blank) — the browser opens it.
-      // window.open() used to do it here, and a popup blocker could silently swallow it
-      // (2026-09-11: that is exactly what was happening on the Mac mini). A link a person
-      // clicks is a navigation, not a popup, so it cannot be blocked. All this does now is
-      // open the paste box ready for the link he comes back with.
-      var p = document.getElementById('kar-dl-panel');
-      if (p.style.display === 'none') karDlToggle();
-      karYtHint();
-    }
     function karYtHint(){
       var el = document.getElementById('kar-yt-hint');
       if (!el) return;
@@ -1491,14 +1481,14 @@ if (!$KAR_LOCAL) {
     // used for the lit fill, border and halo · lit = the bright text colour when open.
     var KAR_PANELS = {
       'kar-guide-panel': { btn:'kar-guide-btn', col:'#94a3b8', bd:'#334155',               rgb:'110,231,183', bg:'#1f3d35', lit:'#a7f3d0' },
-      'kar-dl-panel':    { btn:'kar-dl-btn',    col:'#94a3b8', bd:'#334155',               rgb:'96,165,250',  bg:'#22344f', lit:'#bfdbfe' },
+      'kar-dl-panel':    { btn:'kar-dl-btn',    col:'#fff',    bd:'#EF4444', rest:'#EF4444', rgb:'239,68,68',   bg:'#7f1d1d', lit:'#fecaca' },
       'kar-q-panel':     { btn:'kar-q-btn',     col:'#D2AD6C', bd:'rgba(210,173,108,.45)', rgb:'210,173,108', bg:'#3b3324', lit:'#f3d9a4' },
       'kar-qr-panel':    { btn:'kar-qr-btn',    col:'#c084fc', bd:'rgba(192,132,252,.45)', rgb:'192,132,252', bg:'#362a4d', lit:'#e9d5ff' }
     };
     function karBtnLight(pid, on){
       var p = KAR_PANELS[pid], b = p && document.getElementById(p.btn);
       if (!b) return;
-      b.style.background  = on ? p.bg : '#1e293b';
+      b.style.background  = on ? p.bg : (p.rest || '#1e293b');
       b.style.borderColor = on ? 'rgb(' + p.rgb + ')'      : p.bd;
       b.style.color       = on ? p.lit                     : p.col;
       b.style.boxShadow   = on ? '0 0 0 3px rgba(' + p.rgb + ',.20)' : 'none';
