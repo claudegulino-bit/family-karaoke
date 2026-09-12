@@ -220,12 +220,15 @@ if (!$KAR_LOCAL) {
       <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">📖</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Guide</span></button>
       <button type="button" onclick="location.reload()" title="Refresh — reload the song lists from the server" style="appearance:none;-webkit-appearance:none;font-family:inherit;margin-left:auto;background:#0ea5e9;border:1px solid #0ea5e9;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;padding:0"><span style="font-size:30px;line-height:1">🔄</span></button>
     </div>
-    <div id="kar-now-bar" style="position:sticky;top:8px;z-index:40;margin-top:10px;background:#28241a;border:1px solid rgba(210,173,108,.45);border-radius:10px;padding:9px 16px;box-shadow:0 4px 16px rgba(0,0,0,.45)">
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <?php if (!$KAR_LOCAL): // one Mac in standalone — nothing to address, so no picker ?>
-        <span style="display:flex;align-items:center;gap:6px">
-          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Play on</span>
-          <select id="kar-mac" onchange="karMacChange(this)" title="Which Mac the music comes out of. Every button on this page — Play, Stop, pitch, tempo — goes to the Mac picked here." style="font-family:inherit;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:12px;font-weight:700;padding:4px 8px;border-radius:8px">
+    <div id="kar-now-bar" style="position:sticky;top:8px;z-index:40;margin-top:10px;background:#28241a;border:1px solid rgba(210,173,108,.45);border-radius:10px;padding:9px 6px 9px 16px;box-shadow:0 4px 16px rgba(0,0,0,.45)">
+      <!-- Four labelled sections, divided by a rule, so the eye can find "the key" or "the
+           tempo" without reading the whole bar (the owner, 2026-09-12: "no sections... you
+           have to figure out whatever the thing is"). -->
+      <div style="display:flex;align-items:stretch;flex-wrap:wrap;row-gap:8px">
+        <?php if (!$KAR_LOCAL): // casAI only — and shown only when there is more than one Mac to choose from ?>
+        <span style="display:<?= count($KAR_MACS) > 1 ? 'flex' : 'none' ?>;flex-direction:column;gap:5px;padding:0 16px 0 0">
+          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">Play on</span>
+          <select id="kar-mac" onchange="karMacChange(this)" title="Which Mac the music comes out of. Every button on this page — Play, Stop, key, tempo — goes to the Mac picked here." style="font-family:inherit;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:12px;font-weight:700;padding:4px 8px;border-radius:8px">
             <?php foreach ($KAR_MACS as $_km): ?>
             <option value="<?= h($_km) ?>"><?= h($_km) ?></option>
             <?php endforeach; ?>
@@ -234,21 +237,32 @@ if (!$KAR_LOCAL) {
           </select>
         </span>
         <?php endif; ?>
-        <span style="color:#D2AD6C;font-weight:700;font-size:13px">♪ Now playing:</span>
-        <span id="kar-now-song" style="color:#e2e8f0;font-size:13px;font-weight:600"></span>
-        <span id="kar-now-player" style="color:#64748b;font-size:11.5px"></span>
-        <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
-          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Live pitch</span>
-          <button type="button" onclick="karLiveAdj(-1)" title="Lower the key by one semitone, while the song keeps playing" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
-          <span id="kar-live-val" style="color:#D2AD6C;font-size:15px;font-weight:800;width:32px;text-align:center">0</span>
-          <button type="button" onclick="karLiveAdj(1)" title="Raise the key by one semitone, while the song keeps playing" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
-          <span style="color:#94a3b8;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-left:10px">Tempo</span>
-          <button type="button" onclick="karTempoAdj(-5)" title="Slow the song down 5% — the key stays true (casAI player only)" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
-          <span id="kar-tempo-val" style="color:#6ee7b7;font-size:14px;font-weight:800;width:44px;text-align:center">100%</span>
-          <button type="button" onclick="karTempoAdj(5)" title="Speed the song up 5% — the key stays true (casAI player only)" style="font-family:inherit;width:34px;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
-          <span style="color:#64748b;font-size:11px">a few seconds to take effect · not saved</span>
-          <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the pitch you have it now" style="font-family:inherit;margin-left:10px;background:rgba(16,185,129,.12);border:1px solid #16a34a;color:#6ee7b7;cursor:pointer;font-size:12px;font-weight:700;padding:5px 14px;border-radius:8px">▶ Start</button>
-          <button type="button" onclick="karStop()" id="kar-stop-btn" title="Stop the music — silences the player within a few seconds" style="font-family:inherit;background:rgba(239,68,68,.12);border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:12px;font-weight:700;padding:5px 14px;border-radius:8px">⏹ Stop</button>
+        <span style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:220px;padding-right:16px;justify-content:center">
+          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">♪ Now playing</span>
+          <span style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span id="kar-now-song" style="color:#f3f4f6;font-size:13.5px;font-weight:700"></span><span id="kar-now-player" style="color:#8a8070;font-size:11px"></span></span>
+        </span>
+        <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">Key</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <button type="button" onclick="karLiveAdj(-1)" title="Lower the key one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
+            <span id="kar-live-val" style="color:#D2AD6C;font-size:16px;font-weight:800;width:32px;text-align:center">0</span>
+            <button type="button" onclick="karLiveAdj(1)" title="Raise the key one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
+          </span>
+        </span>
+        <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">Tempo</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <button type="button" onclick="karTempoAdj(-5)" title="Slow the song 5%; the key stays true. Takes a few seconds; not saved. casAI player only." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
+            <span id="kar-tempo-val" style="color:#6ee7b7;font-size:15px;font-weight:800;width:44px;text-align:center">100%</span>
+            <button type="button" onclick="karTempoAdj(5)" title="Speed the song up 5%; the key stays true. Takes a few seconds; not saved. casAI player only." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
+          </span>
+        </span>
+        <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28);padding-right:10px">
+          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">Playback</span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:6px 16px;border-radius:8px">▶ Start</button>
+            <button type="button" onclick="karStop()" id="kar-stop-btn" title="Stop the music — the player goes silent within a few seconds" style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:6px 16px;border-radius:8px">⏹ Stop</button>
+          </span>
         </span>
       </div>
     </div>
