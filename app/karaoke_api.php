@@ -448,22 +448,20 @@ try {
             $id = (int)$db->lastInsertId();
             if ($task === 'tools') {
                 // Fast enough to answer inline — no chooser, nothing to wait for.
-                $parts = [];
-                // ffmpeg is on this list because the download needs it to join the picture to
-                // the sound — and it was the one tool nothing ever checked.
-                foreach (['mpv', 'yt-dlp', 'ffmpeg'] as $t) {
+                // A GREEN/RED LIST, one line per app (the owner, 2026-09-13). The page splits on "|".
+                $labels = ['mpv' => 'App 1 — the player', 'yt-dlp' => 'App 2 — the downloader',
+                           'ffmpeg' => 'App 3 — the media toolkit'];
+                $lines = []; $allOk = true;
+                foreach ($labels as $t => $label) {
                     $bin = kar_tool($t);
-                    $v = is_file($bin) ? trim((string)@shell_exec(escapeshellarg($bin) . ' --version 2>/dev/null | head -1')) : '';
-                    // "mpv 0.41.0 Copyright ..." and a bare "2026.08.19" both have to come out
-                    // as just the version — so take the first number-looking word, whatever else
-                    // the program decides to print around it.
-                    $ver = preg_match('/\d[\d.]*/', $v, $m) ? $m[0] : '';
-                    $parts[] = $v !== ''
-                        ? "$t is installed (v$ver)"
-                        : "$t is not installed yet";
+                    $has = is_file($bin) && trim((string)@shell_exec(escapeshellarg($bin) . ' --version 2>/dev/null | head -1')) !== '';
+                    if (!$has) $allOk = false;
+                    $lines[] = ($has ? "\u{2705} " : "\u{274c} ") . $label;
                 }
-                $note = implode(' · ', $parts);
-                if (strpos($note, 'not installed') !== false) $note .= ' — run the Terminal command above, then check again';
+                // App 4 is Cantoria itself: this page answered, so it is here.
+                $lines[] = "\u{2705} App 4 — Cantoria on this Mac";
+                if (!$allOk) $lines[] = 'Run the Terminal command in step 2 again, then press this button once more.';
+                $note = implode('|', $lines);
                 $db->prepare("UPDATE karaoke_play_queue SET status='Played', note=? WHERE id=?")->execute([$note, $id]);
             } else {
                 // 'folder' waits for a person at the Mac; 'update' talks to the internet.

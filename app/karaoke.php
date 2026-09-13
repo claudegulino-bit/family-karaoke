@@ -408,14 +408,14 @@ if (!$KAR_LOCAL) {
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#e2e8f0;background:#0d1118;border:1px solid #334155;border-radius:8px;padding:9px 12px;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
         <div><b style="color:#D2AD6C">3 · What the installer does</b> — it puts four things on your Mac:</div>
         <ul style="margin:-3px 0 0;padding-left:20px;line-height:1.75">
-          <li><b>A player.</b> Plays the song, puts the words on the screen, and changes the key and the speed while it is playing.</li>
-          <li><b>A downloader.</b> Fetches a song from YouTube when you or a guest ask for one.</li>
-          <li><b>A media toolkit.</b> Checks each downloaded file is in a format the player can show — some YouTube files arrive with sound but no picture, and this is what catches them.</li>
-          <li><b>Cantoria itself.</b> The page you are reading, an icon on the Desktop to open it, and a background service so your Mac is ready to play whenever it is switched on.</li>
+          <li><b>App 1 — the player.</b> Plays the song, puts the words on the screen, and changes the key and the speed while it is playing.</li>
+          <li><b>App 2 — the downloader.</b> Fetches a song from YouTube when you or a guest ask for one.</li>
+          <li><b>App 3 — the media toolkit.</b> Checks each downloaded file is in a format the player can show — some YouTube files arrive with sound but no picture, and this is what catches them.</li>
+          <li><b>App 4 — Cantoria itself.</b> The page you are reading, an icon on the Desktop to open it, and a background service so your Mac is ready to play whenever it is switched on.</li>
         </ul>
         <div><b style="color:#D2AD6C">4 · What it will ask you</b> — where your songs are kept, and at some point it may ask for your Mac password: the same one you use to log in. Type it and press Return. <b>Nothing appears on screen as you type it</b> — no characters, not even dots. That is normal.</div>
         <div><b style="color:#D2AD6C">5 · What you will see</b> — several minutes of text scrolling past. None of it needs reading. It has finished when the prompt comes back and you can type again.</div>
-        <div><b style="color:#D2AD6C">6 · Check it worked</b> — click the button later in this card called <b>✅ Verify installation</b>. After a few seconds it tells you what is installed.</div>
+        <div><b style="color:#D2AD6C">6 · Check it worked</b> — click the button later in this card called <b>✅ Verify installation</b>. All four apps should come back green. If one is red it did not install: run the command in step 2 again and press the button once more.</div>
         <div><b style="color:#D2AD6C">7 · Future software updates</b> — never go through Terminal. When there is a new release, you retrieve it from the master computer from inside Cantoria: open <b>📖 Guide</b>, choose <a href="#" onclick="karGuideOpen('update');return false" style="color:#D2AD6C"><b>Software updates</b></a>, and press <b>⬆︎ Cantoria Software Update</b>. It downloads and installs itself.</div>
           </div>
 <?php if (!$KAR_LOCAL): ?>
@@ -454,7 +454,7 @@ if (!$KAR_LOCAL) {
           <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If the response is <i>command not found: brew</i>, Homebrew itself is missing — run the following first, then repeat the command above:</p>
           <div style="margin:0 0 8px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</div>
           <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Verify installation</button>
-          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Asks your Mac for the version of each of the three components from step 3, and reports what it finds. Use it after the installer to confirm they are there.</span>
+          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Checks the four apps from step 3 on your Mac. Green means installed; red means it is not there.</span>
           <p style="margin:0"><b>Leave your Mac on and awake</b> during a party. It plays the music and receives your guests' requests.</p>
         </div>
 
@@ -1946,9 +1946,16 @@ function karPickFolder(){
       karMacAsk('tools', null, function(ok, note){
         btn.disabled = false;
         btn.textContent = '✅ Verify installation';
-        msg.innerHTML = ok
-          ? '<span style="color:#6ee7b7"><b>✅ Installed.</b> ' + karEsc(note) + '</span>'
-          : '<span style="color:#f87171"><b>Not installed.</b> ' + karEsc(note) + '</span>';
+        // One line per app, each coloured by its own mark - a green/red checklist rather
+        // than a sentence (the owner, 2026-09-13). The Mac sends the lines joined by "|".
+        var rows = String(note || '').split('|').map(function (ln) {
+          ln = ln.trim();
+          var col = ln.indexOf('\u2705') === 0 ? '#6ee7b7' : (ln.indexOf('\u274c') === 0 ? '#f87171' : '#D2AD6C');
+          return '<div style="color:' + col + ';font-weight:' + (col === '#D2AD6C' ? '600' : '700') + '">' + karEsc(ln) + '</div>';
+        }).join('');
+        msg.innerHTML = '<div style="margin-top:4px;line-height:1.85">'
+          + '<div style="color:' + (ok ? '#6ee7b7' : '#f87171') + ';font-weight:800;margin-bottom:2px">'
+          + (ok ? 'All four apps are installed.' : 'Not finished — see below.') + '</div>' + rows + '</div>';
       });
     }
     function karPanelClose(){
