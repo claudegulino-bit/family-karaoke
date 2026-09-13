@@ -404,7 +404,7 @@ if (!$KAR_LOCAL) {
           </div>
         </div>
         <div style="color:#94a3b8;font-size:12.5px;margin-top:-3px">That is all there is at first: a prompt, waiting. Nothing is typed yet.</div>
-        <div><b style="color:#D2AD6C">2 · Paste in the command</b> — select the line below and copy it (<b>⌘C</b>). Click once inside the Terminal window, paste (<b>⌘V</b>) — the command appears after the prompt — and press <b>Return</b>. Copy it; do not retype it.</div>
+        <div><b style="color:#D2AD6C">2 · Paste in the command</b> — select the line below and copy it (<b>⌘C</b>). Click once inside the Terminal window, paste (<b>⌘V</b>) — the command appears after the prompt — and press <b>Return</b>. Copy and paste it — do not try to type it manually.</div>
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#e2e8f0;background:#0d1118;border:1px solid #334155;border-radius:8px;padding:9px 12px;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
         <div><b style="color:#D2AD6C">3 · What it puts on your Mac</b> — four things:</div>
         <ul style="margin:-3px 0 0;padding-left:20px;line-height:1.75">
