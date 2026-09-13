@@ -350,25 +350,32 @@ if (!$KAR_LOCAL) {
         // cards, and hand-typed numbers went wrong the moment one was inserted or moved.
         $_n = 0;
         $_num = function ($t) use (&$_n) { return (++$_n) . ' · ' . $t; };
-        if ($KAR_LOCAL) $_karCards[] = ['setup', $_num('Setting up the Mac'), 'Installation, the songs folder and the player.'];
-        else            $_karCards[] = ['setup', $_num('Setting up the Mac'), 'Selecting a Mac, the songs folder and the player.'];
+        if ($KAR_LOCAL) $_karCards[] = ['setup', $_num('Setting up the Mac'), 'Installation, the songs folder and the player.', 'Setting up'];
+        else            $_karCards[] = ['setup', $_num('Setting up the Mac'), 'Selecting a Mac, the songs folder and the player.', 'Setting up'];
         // How it is put together comes before how it is used — this is the card someone
         // reads to understand the machines before touching anything (the owner, 2026-09-12).
         // casAI only: it names the machines, so it is gated to the copy that never leaves
         // the household, and every name in it is read at render time from the database.
-        if (!$KAR_LOCAL) $_karCards[] = ['config', $_num('Configuration and workflow'), 'Machines, release process and shared data.'];
-        $_karCards[] = ['update', $_num('Software updates'), $KAR_LOCAL ? 'Installing the latest version.' : 'How the other Macs receive a release.'];
-        $_karCards[] = ['sing',  $_num('Play a song'),          'Search, playback and key.'];
-        $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: key, speed, start and stop.'];
-        $_karCards[] = ['party', $_num('Party controls'),       'The singing queue, guest requests and downloads.'];
-        $_karCards[] = ['songs', $_num('Managing songs'),       'Best lists, new arrivals, renaming and removal.'];
+        if (!$KAR_LOCAL) $_karCards[] = ['config', $_num('Configuration and workflow'), 'Machines, release process and shared data.', 'Setting up'];
+        $_karCards[] = ['update', $_num('Software updates'), $KAR_LOCAL ? 'Installing the latest version.' : 'How the other Macs receive a release.', 'Setting up'];
+        $_karCards[] = ['sing',  $_num('Play a song'),          'Search, playback and key.', 'Using it'];
+        $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: key, speed, start and stop.', 'Using it'];
+        $_karCards[] = ['songs', $_num('Managing songs'),       'Best lists, new arrivals, renaming and removal.', 'Using it'];
+        $_karCards[] = ['party', $_num('Party controls'),       'The singing queue, guest requests and downloads.', 'At a party'];
         // The three party panels each get a card of their own. Their words live HERE and
         // nowhere else — the floating "?" beside each panel borrows this same text rather
         // than keeping a second copy that would quietly drift out of step with it.
-        $_karCards[] = ['upnext',    $_num('Singing Queue'), 'Who sings next, and scheduling fairness.'];
-        $_karCards[] = ['downloads', $_num('YouTube Downloads'), 'Searching YouTube and adding songs.'];
-        $_karCards[] = ['guestqr',   $_num('Guest QR'),  'Song requests from guests\' phones.'];
-        foreach ($_karCards as [$_k, $_t, $_d]): ?>
+        $_karCards[] = ['upnext',    $_num('Singing Queue'), 'Who sings next, and scheduling fairness.', 'At a party'];
+        $_karCards[] = ['downloads', $_num('YouTube Downloads'), 'Searching YouTube and adding songs.', 'At a party'];
+        $_karCards[] = ['guestqr',   $_num('Guest QR'),  'Song requests from guests\' phones.', 'At a party'];
+        // Grouped, because ten cards in one flat grid is a wall (the owner, 2026-09-13). The
+        // heading spans the whole grid row; the numbers still run 1..N in reading order,
+        // because he refers to cards by number out loud.
+        $_grp = '';
+        foreach ($_karCards as [$_k, $_t, $_d, $_g]):
+          if ($_g !== $_grp): $_grp = $_g; ?>
+        <div style="grid-column:1/-1;color:#D2AD6C;font-size:10.5px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;border-bottom:1px solid rgba(210,173,108,.30);padding-bottom:4px;margin:<?= $_grp === 'Setting up' ? '2px' : '10px' ?> 0 2px"><?= h($_grp) ?></div>
+        <?php endif; ?>
         <button type="button" id="kar-gc-<?= $_k ?>" onclick="karGuideOpen('<?= $_k ?>')" style="font-family:inherit;text-align:left;background:#1a2130;border:1px solid #334155;border-radius:9px;padding:11px 13px;cursor:pointer">
           <span style="display:block;color:#D2AD6C;font-size:13.5px;font-weight:800"><?= h($_t) ?></span>
           <span style="display:block;color:#94a3b8;font-size:12px;line-height:1.5;margin-top:3px"><?= h($_d) ?></span>
