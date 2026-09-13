@@ -219,7 +219,24 @@ try {
             }
             return $m;
         };
+        // WHEN THE SONG ENDS, THE SINGER IS DONE (the owner, 2026-09-13: "the song was finished,
+        // sang already... I don't understand why that needs to stay there"). An entry used to
+        // sit at "Singing" until the NEXT singer was started, so after the last song of the
+        // night the panel kept naming someone who had already finished. Here the player is on
+        // this same Mac, so the question is simply whether it is still running - with 25
+        // seconds of grace for it to open and the announcement to run. It never starts the
+        // next singer; someone still has to walk to the microphone.
+        $qAutoFinish = function () use ($db) {
+            try {
+                if (!(int)$db->query("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Singing'")->fetchColumn()) return;
+                $since = (int)$db->query("SELECT v FROM karaoke_settings WHERE k='singing_since'")->fetchColumn();
+                if (!$since || time() < $since + 25) return;
+                if (function_exists('kar_mpv_alive') && kar_mpv_alive()) return;   // still playing
+                $db->exec("UPDATE karaoke_sing_queue SET status='Done' WHERE status='Singing'");
+            } catch (Throwable $e) { /* never break the panel over this */ }
+        };
         try {
+            $qAutoFinish();
             if ($ft === 'karaoke_q_state') { try { kar_sync($db); } catch (Throwable $e) { } }
             if ($ft === 'karaoke_q_add') {
                 $singer = trim((string)($_POST['singer'] ?? ''));
@@ -256,6 +273,10 @@ try {
                 if (!($row = $cur->fetch())) throw new Exception('entry not found (already played?)');
                 $db->exec("UPDATE karaoke_sing_queue SET status='Done' WHERE status='Singing'");
                 $db->prepare("UPDATE karaoke_sing_queue SET status='Singing' WHERE id = ?")->execute([$id]);
+                // When this singer started - the auto-finish below judges "the song ended"
+                // against it, so it can never be ended by something that happened before.
+                $db->prepare("INSERT INTO karaoke_settings (k,v) VALUES ('singing_since',?)
+                              ON CONFLICT(k) DO UPDATE SET v=excluded.v")->execute([(string)time()]);
                 if ((string)($_POST['player'] ?? 'mpv') === 'qmidi') kar_play_qmidi($row['filename'], (int)$row['pitch']);
                 // The singer's name goes with the play, and that is what turns it into an
                 // introduction. A plain ▶ Play from the song list passes no name and is unchanged.
