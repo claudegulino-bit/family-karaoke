@@ -133,6 +133,20 @@ if (!$KAR_LOCAL) {
   .kar-pstep:hover, .kar-preset:hover { background: rgba(96,165,250,.18); color: #e2e8f0; }
   .kar-pstep:active, .kar-preset:active { background: rgba(96,165,250,.30); }
   .kar-pgrp .kar-pitch { background: transparent; border: 0; border-radius: 0; }
+  /* WHICH PANEL IS OPEN, readable at a glance (the owner, 2026-09-13: "sometimes you forget
+     where you are… a button needs to be lit up telling me that that is what's active").
+     The tiles are solid brand colours at rest, so a merely lighter fill was too weak a
+     signal. Three things move together instead: the open tile gets a RING (a dark gap then
+     a bright ring in its own colour, which reads as selected on any background), lifts 2px,
+     and grows a caret pointing down at the space it opened; every other tile dims. Exactly
+     one tile is ever bright, so the answer is available without reading anything. */
+  .kar-tile { transition: background .12s, border-color .12s, box-shadow .12s, transform .12s, opacity .12s; }
+  .kar-tile-on { transform: translateY(-2px); }
+  .kar-tile-on::after { content: ''; position: absolute; left: 50%; bottom: -20px; width: 0; height: 0;
+    transform: translateX(-50%); border: 7px solid transparent; border-top-color: var(--kt, #fff);
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+  .kar-tile-off { opacity: .5; }
+  .kar-tile-off:hover { opacity: .8; }
   /* The "? How it works" cards FLOAT — they used to sit inside their panel and make it
      twice as tall, which is what made the panels feel heavy. Now they stand beside the
      work instead of on top of it, and stay put until closed.
@@ -1633,7 +1647,26 @@ if (!$KAR_LOCAL) {
       b.style.background  = on ? p.bg : (p.rest || '#1e293b');
       b.style.borderColor = on ? 'rgb(' + p.rgb + ')'      : p.bd;
       b.style.color       = on ? p.lit                     : p.col;
-      b.style.boxShadow   = on ? '0 0 0 3px rgba(' + p.rgb + ',.20)' : 'none';
+      // A dark gap then a solid ring in the tile's own colour: strong enough to read against
+      // a tile that is already a solid colour at rest. The plain lighter fill was not.
+      b.style.boxShadow   = on ? '0 0 0 3px #1A1F2C, 0 0 0 6px rgb(' + p.rgb + '), 0 6px 14px rgba(0,0,0,.45)' : 'none';
+      b.style.setProperty('--kt', p.bg);
+      b.classList.toggle('kar-tile-on', !!on);
+      karTilesDim();
+    }
+    // Exactly one tile bright: whichever panel is open stays at full strength and the rest
+    // step back. With nothing open, all four return to normal — no tile is "the odd one out"
+    // just because the page has just loaded.
+    function karTilesDim(){
+      var anyOn = false, k;
+      for (k in KAR_PANELS) {
+        var el = document.getElementById(KAR_PANELS[k].btn);
+        if (el && el.classList.contains('kar-tile-on')) { anyOn = true; break; }
+      }
+      for (k in KAR_PANELS) {
+        var t = document.getElementById(KAR_PANELS[k].btn);
+        if (t) t.classList.toggle('kar-tile-off', anyOn && !t.classList.contains('kar-tile-on'));
+      }
     }
     // ── Per-panel "? How it works" blocks ───────────────────────────────────────────────
     // One shared mechanism so every panel behaves the same way (the owner wants this on the
