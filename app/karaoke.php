@@ -338,15 +338,16 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-setup" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Setting up the Mac</h3>
-          <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">Required once per Mac.</p>
-          <?php if ($KAR_LOCAL): ?>
-          <p style="margin:0 0 6px"><b>Installing on another Mac.</b> On that Mac, open <b>Terminal</b> (⌘ Space, type <code>Terminal</code>, Return), paste the following line and press Return. It installs the player, Cantoria, the songs folder and the Desktop icon.</p>
-          <div style="margin:0 0 12px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
-          <p style="margin:0 0 12px;color:#94a3b8;font-size:12.5px">If Homebrew is not yet installed, the Mac password is requested once. <b>Password input is not echoed on screen.</b></p>
-          <?php else: ?>
-          <p style="margin:0 0 6px"><b>Select the Mac.</b> The <b>Play on</b> selector in the gold bar determines which Mac receives playback and the setup actions below.</p>
-          <p style="margin:0 0 12px"><b>Name the Mac.</b> If it is not listed under <b>Play on</b>, choose <b>＋ Add a Mac…</b> and enter a name. On that Mac, set <code>"mac_name"</code> in <code>~/casai/karaoke_config.json</code> to the same value. The two must match exactly.</p>
-          <?php endif; ?>
+          <p style="margin:0 0 10px">Required once per Mac. One command does the whole installation.</p>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">1 · Run one command</b> — on that Mac open <b>Terminal</b> (⌘ Space, type <code>Terminal</code>, Return), paste the line below and press Return.</div>
+        <div style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#e2e8f0;background:#0d1118;border:1px solid #334155;border-radius:8px;padding:9px 12px;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
+        <div><b style="color:#D2AD6C">2 · What it installs</b> — the player (<code>mpv</code>, <code>yt-dlp</code> and <code>ffmpeg</code>, preceded by Homebrew if the Mac does not already have it), Cantoria itself, a Desktop icon, and a background service so it is running whenever the Mac is.</div>
+        <div><b style="color:#D2AD6C">3 · What it asks you</b> — where the songs are kept. It also requests the Mac password once, but only if Homebrew has to be installed. <b>Password input is not shown on screen; this is normal.</b></div>
+        <div><b style="color:#D2AD6C">4 · Later versions</b> — are not installed this way. Each Mac collects them itself from <b>📖 Guide → Software updates → ⬆︎ Cantoria Software Update</b>. The command above is run once and never again.</div>
+          </div>
+<?php if (!$KAR_LOCAL): ?>
+          <p style="margin:12px 0 0"><b>Select the Mac.</b> The <b>Play on</b> selector in the gold bar determines which Mac receives playback and the setup actions below. If the Mac is not listed there, choose <b>＋ Add a Mac…</b>, enter a name, and set <code>"mac_name"</code> to the same value in <code>~/casai/karaoke_config.json</code> on that Mac. The two must match exactly.</p>
+<?php endif; ?>
           <p style="margin:0 0 4px"><b>Songs folder.</b> A single folder containing the song files.</p>
           <button type="button" onclick="karPickFolder()" id="kar-pick-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">📁 Choose the karaoke songs folder…</button>
           <span id="kar-pick-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Current folder: <b id="kar-pick-cur" style="color:#cbd5e1"><?= h($_kj['songs_folder'] ?? 'not chosen yet') ?></b><br><span style="color:#94a3b8">The folder chooser opens on the Mac that plays the music; a web page cannot access local file paths.</span></span>
@@ -375,12 +376,12 @@ if (!$KAR_LOCAL) {
             <span style="color:#94a3b8">When off, the lyrics window may open behind the browser, particularly when a song is played directly rather than from the queue. When on, it always stays in front. Turn it off to view the lyrics and the song list side by side.</span></span>
           </label>
           <?php endif; ?>
-          <p style="margin:0 0 4px"><b>The player.</b> Playback and downloads use free software installed with Homebrew. In Terminal:</p>
+          <p style="margin:0 0 4px"><b>If the player is missing.</b> The installer puts <code>mpv</code>, <code>yt-dlp</code> and <code>ffmpeg</code> on the Mac already; this is only needed if the check below reports one of them absent. In Terminal:</p>
           <div style="margin:0 0 4px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#cbd5e1">brew install mpv yt-dlp ffmpeg</div>
-          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If the response is <i>command not found: brew</i>, run the following first, then repeat the command above:</p>
+          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If the response is <i>command not found: brew</i>, Homebrew itself is missing — run the following first, then repeat the command above:</p>
           <div style="margin:0 0 8px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</div>
           <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Verify installation</button>
-          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Queries the Mac for the installed versions.</span>
+          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Queries the Mac for the installed versions. Run this after the installer to confirm the player is present.</span>
           <p style="margin:0"><b>Keep the Mac on and awake</b> during a party. It handles playback and receives guests' requests.</p>
         </div>
 
