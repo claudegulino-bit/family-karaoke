@@ -148,10 +148,17 @@ if (!$KAR_LOCAL) {
      The row is bottom-aligned (align-items:flex-end) so the chips sit level with the search
      box and the tiles, and the label lives in the space above them — his own suggestion, and
      it is what makes the group look like a single object instead of four loose buttons. */
-  .kar-grp { display: inline-flex; flex-direction: column; gap: 5px; flex: 0 0 auto; }
+  /* ALL FOUR THE SAME BLUE (the owner, 2026-09-13: "the song database is a different colour
+     and the other ones are not - can we make them all the same"). The solid fill used to BE
+     the active signal, so making them uniform would have removed the only sign of which list
+     is on screen. The ring takes that job instead - the same language as the header tiles, so
+     "active" looks the same everywhere on this page. */
+  .kar-chip.kar-on { box-shadow: 0 0 0 3px #1A1F2C, 0 0 0 5px #93c5fd; }
+  .kar-grp { display: inline-flex; flex-direction: column; gap: 10px; flex: 0 0 auto; }
   .kar-grplbl { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
     color: #bfdbfe; background: rgba(96,165,250,.13); border: 1px solid rgba(96,165,250,.30);
-    border-radius: 7px; padding: 3px 9px; text-align: center; line-height: 1.3; }
+    border-radius: 7px; padding: 3px 9px; text-align: center; line-height: 1.3;
+    align-self: center; width: calc(100% - 36px); }
   .kar-tile { transition: background .12s, border-color .12s, box-shadow .12s, transform .12s, opacity .12s; }
   .kar-tile-on { transform: translateY(-2px); }
   .kar-tile-on::after { content: ''; position: absolute; left: 50%; bottom: -20px; width: 0; height: 0;
@@ -183,7 +190,7 @@ if (!$KAR_LOCAL) {
 </head>
 <body>
 <div class="kar-wrap">
-  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px;flex-wrap:wrap">
     <div style="margin:0">
       <h1 style="margin:0;font-size:22px;font-weight:800;color:#f3f4f6;letter-spacing:.01em">🎤 Cantoria</h1>
     </div>
@@ -246,9 +253,9 @@ if (!$KAR_LOCAL) {
         <div class="kar-grplbl">Songs and singers</div>
         <div style="display:flex;gap:8px;align-items:center">
       <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8"><?= count($_kjDb) ?></span></button>
-      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1e293b;border:1.5px solid #60A5FA;color:#bfdbfe;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🆕 New <span id="kar-new-count" style="font-weight:600;opacity:.8"><?= count($_kjNew) ?></span></button>
-      <button type="button" id="kar-best-chip" class="kar-chip" onclick="karSwitch('best',this)" style="font-family:inherit;background:#1e293b;border:1.5px solid #60A5FA;color:#bfdbfe;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">⭐ Best of <span id="kar-best-name"><?= h($_kjWho !== '' ? $_kjWho : 'nobody yet') ?></span> <span id="kar-best-count" style="font-weight:600;opacity:.8"><?= $_kjWho !== '' ? count($_kjBestBy[$_kjWho]) : 0 ?></span></button>
-      <select id="kar-who" onchange="karWhoChange(this)" title="Whose Best list — pick a person, or add a new one" style="font-family:inherit;background:#1e293b;border:1.5px solid #60A5FA;color:#bfdbfe;cursor:pointer;font-size:12px;font-weight:700;padding:6px 8px;border-radius:999px">
+      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🆕 New <span id="kar-new-count" style="font-weight:600;opacity:.8"><?= count($_kjNew) ?></span></button>
+      <button type="button" id="kar-best-chip" class="kar-chip" onclick="karSwitch('best',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">⭐ Best of <span id="kar-best-name"><?= h($_kjWho !== '' ? $_kjWho : 'nobody yet') ?></span> <span id="kar-best-count" style="font-weight:600;opacity:.8"><?= $_kjWho !== '' ? count($_kjBestBy[$_kjWho]) : 0 ?></span></button>
+      <select id="kar-who" onchange="karWhoChange(this)" title="Whose Best list — pick a person, or add a new one" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 8px;border-radius:999px">
         <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
         <option value="<?= h($_kbp) ?>"><?= h($_kbp) ?></option>
         <?php endforeach; ?>
@@ -884,7 +891,7 @@ if (!$KAR_LOCAL) {
       karView = view;
       document.querySelectorAll('.kar-chip').forEach(function(b){
         b.classList.remove('kar-on');
-        b.style.background='#1e293b'; b.style.borderColor='#60A5FA'; b.style.color='#bfdbfe';   // outlined at rest, so the field is defined even when not selected
+        b.style.background='#1d4ed8'; b.style.borderColor='#2563eb'; b.style.color='#fff';   // every chip the same blue; the ring on .kar-on says which is active
       });
       btn.classList.add('kar-on');
       btn.style.background='#1d4ed8'; btn.style.borderColor='#2563eb'; btn.style.color='#fff';
