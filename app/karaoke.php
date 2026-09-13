@@ -153,7 +153,7 @@ if (!$KAR_LOCAL) {
      the active signal, so making them uniform would have removed the only sign of which list
      is on screen. The ring takes that job instead - the same language as the header tiles, so
      "active" looks the same everywhere on this page. */
-  .kar-chip.kar-on { box-shadow: 0 0 0 3px #1A1F2C, 0 0 0 5px #93c5fd; }
+  .kar-chip.kar-on { box-shadow: 0 0 0 2px #1A1F2C, 0 0 0 4px #93c5fd; }
   .kar-grp { display: inline-flex; flex-direction: column; gap: 10px; flex: 0 0 auto; }
   .kar-grplbl { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
     color: #bfdbfe; background: rgba(96,165,250,.13); border: 1px solid rgba(96,165,250,.30);
@@ -190,14 +190,14 @@ if (!$KAR_LOCAL) {
 </head>
 <body>
 <div class="kar-wrap">
-  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap">
     <div style="margin:0">
       <h1 style="margin:0;font-size:22px;font-weight:800;color:#f3f4f6;letter-spacing:.01em">🎤 Cantoria</h1>
     </div>
     <?php if ($KAR_LOCAL): ?>
     <span style="color:#64748b;font-size:12.5px">everything runs on this Mac — nothing to sign in to</span>
     <?php else: ?>
-    <span style="color:#64748b;font-size:12.5px">songs play on the Mac · <a href="/app.php?view=people" style="color:#60A5FA;text-decoration:none">back to casAI</a></span>
+    <span style="color:#64748b;font-size:12.5px"><a href="/app.php?view=people" style="color:#60A5FA;text-decoration:none">← back to casAI</a></span>
     <?php endif; ?>
   </div>
   <?php
@@ -252,9 +252,9 @@ if (!$KAR_LOCAL) {
       <div class="kar-grp">
         <div class="kar-grplbl">Songs and singers</div>
         <div style="display:flex;gap:8px;align-items:center">
-      <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8"><?= count($_kjDb) ?></span></button>
-      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🆕 New <span id="kar-new-count" style="font-weight:600;opacity:.8"><?= count($_kjNew) ?></span></button>
-      <button type="button" id="kar-best-chip" class="kar-chip" onclick="karSwitch('best',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">⭐ Best of <span id="kar-best-name"><?= h($_kjWho !== '' ? $_kjWho : 'nobody yet') ?></span> <span id="kar-best-count" style="font-weight:600;opacity:.8"><?= $_kjWho !== '' ? count($_kjBestBy[$_kjWho]) : 0 ?></span></button>
+      <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 8px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8"><?= count($_kjDb) ?></span></button>
+      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 8px;border-radius:999px">🆕 New <span id="kar-new-count" style="font-weight:600;opacity:.8"><?= count($_kjNew) ?></span></button>
+      <button type="button" id="kar-best-chip" class="kar-chip" onclick="karSwitch('best',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 8px;border-radius:999px">⭐ Best of <span id="kar-best-name"><?= h($_kjWho !== '' ? $_kjWho : 'nobody yet') ?></span> <span id="kar-best-count" style="font-weight:600;opacity:.8"><?= $_kjWho !== '' ? count($_kjBestBy[$_kjWho]) : 0 ?></span></button>
       <select id="kar-who" onchange="karWhoChange(this)" title="Whose Best list — pick a person, or add a new one" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 8px;border-radius:999px">
         <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
         <option value="<?= h($_kbp) ?>"><?= h($_kbp) ?></option>
