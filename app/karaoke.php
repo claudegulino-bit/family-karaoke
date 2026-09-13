@@ -161,8 +161,7 @@ if (!$KAR_LOCAL) {
      box and the Now Playing bar). !important beats the inline colour karSwitch writes. */
   .kar-chip.kar-on { border-color: #fbbf24 !important;
     box-shadow: inset 0 0 0 1.5px #fbbf24, 0 0 13px rgba(251,191,36,.50); }
-  .kar-grp { display: inline-flex; flex-direction: column; gap: 10px; flex: 0 0 auto;
-    align-self: stretch; justify-content: space-between; }
+  .kar-grp { display: inline-flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
   .kar-grplbl { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
     color: #bfdbfe; background: rgba(96,165,250,.13); border: 1px solid rgba(96,165,250,.30);
     border-radius: 7px; padding: 3px 9px; text-align: center; line-height: 1.3;
