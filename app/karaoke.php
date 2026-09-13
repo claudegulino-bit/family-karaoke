@@ -350,8 +350,8 @@ if (!$KAR_LOCAL) {
         // cards, and hand-typed numbers went wrong the moment one was inserted or moved.
         $_n = 0;
         $_num = function ($t) use (&$_n) { return (++$_n) . ' · ' . $t; };
-        if ($KAR_LOCAL) $_karCards[] = ['setup', $_num('Setting up the Mac'), 'Installation, the songs folder and the player.', 'Setting up'];
-        else            $_karCards[] = ['setup', $_num('Setting up the Mac'), 'Selecting a Mac, the songs folder and the player.', 'Setting up'];
+        if ($KAR_LOCAL) $_karCards[] = ['setup', $_num('Installing Cantoria'), 'One-time installation, the songs folder and the player.', 'Setting up'];
+        else            $_karCards[] = ['setup', $_num('Installing Cantoria'), 'One-time installation, choosing the Mac and the songs folder.', 'Setting up'];
         // How it is put together comes before how it is used — this is the card someone
         // reads to understand the machines before touching anything (the owner, 2026-09-12).
         // casAI only: it names the machines, so it is gated to the copy that never leaves
@@ -387,10 +387,10 @@ if (!$KAR_LOCAL) {
       <div id="kar-guide-body" style="display:none;margin-top:14px;border-top:1px solid #334155;padding-top:14px;color:#cbd5e1;font-size:13.5px;line-height:1.8">
 
         <div class="kar-gs" id="kar-gs-setup" style="display:none">
-          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Setting up the Mac</h3>
-          <p style="margin:0 0 10px">One-time installation, performed once on each Mac that will play music. A single command installs everything; no other configuration is required at the command line.</p>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Prerequisites</b> — macOS, an administrator account on that Mac, and an internet connection.</div>
-        <div><b style="color:#D2AD6C">1 · Open Terminal</b> — Terminal is the command-line application built into macOS. Press <b>⌘ Space</b>, type <code>Terminal</code>, press <b>Return</b>. A window like the one below opens. This is the only unfamiliar step; everything after it is copy and paste.</div>
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Installing Cantoria on your Mac</h3>
+          <p style="margin:0 0 10px">This installs Cantoria on your Mac. You do it once. It is one command, which you copy and paste rather than type, and you will not have to use the command line again.</p>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Before you start</b> — you need to be signed in to your Mac on an administrator account, and be connected to the internet. Nothing else.</div>
+        <div><b style="color:#D2AD6C">1 · Open Terminal</b> — Terminal comes with every Mac; you may simply never have opened it. Press <b>⌘ Space</b>, type <code>Terminal</code>, press <b>Return</b>. A window like the one below opens. This is the only unfamiliar part; everything after it is copy and paste.</div>
         <div style="margin:1px 0 2px;border-radius:10px;overflow:hidden;border:1px solid #3a4354;box-shadow:0 6px 18px rgba(0,0,0,.45)">
           <div style="display:flex;align-items:center;gap:7px;background:linear-gradient(#3b414d,#2b303a);padding:7px 11px">
             <span style="width:11px;height:11px;border-radius:50%;background:#ff5f57"></span>
@@ -405,17 +405,17 @@ if (!$KAR_LOCAL) {
         </div>
         <div><b style="color:#D2AD6C">2 · Run the installer</b> — select the command below, copy it (<b>⌘C</b>), click once inside the Terminal window, paste (<b>⌘V</b>) and press <b>Return</b>. Copy it; do not retype it.</div>
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#e2e8f0;background:#0d1118;border:1px solid #334155;border-radius:8px;padding:9px 12px;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
-        <div><b style="color:#D2AD6C">3 · What the installer puts on the Mac</b> — four things:</div>
+        <div><b style="color:#D2AD6C">3 · What it puts on your Mac</b> — four things:</div>
         <ul style="margin:-3px 0 0;padding-left:20px;line-height:1.75">
           <li><b>A player.</b> Plays the song, puts the words on the screen, and changes the key and the speed while it is playing.</li>
           <li><b>A downloader.</b> Fetches a song from YouTube when you or a guest ask for one.</li>
           <li><b>A media toolkit.</b> Checks each downloaded file is in a format the player can show — some YouTube files arrive with sound but no picture, and this is what catches them.</li>
-          <li><b>Cantoria itself.</b> The page you are reading, an icon on the Desktop to open it, and a background service so the Mac is ready to play whenever it is switched on.</li>
+          <li><b>Cantoria itself.</b> The page you are reading, an icon on the Desktop to open it, and a background service so your Mac is ready to play whenever it is switched on.</li>
         </ul>
-        <div><b style="color:#D2AD6C">4 · Prompts to expect</b> — it asks where the song library is kept. On a Mac that has never had developer software on it, the installer first has to add the standard macOS tool that fetches the three components above; that is the only step that asks for the administrator password. <b>Terminal does not echo password input</b> — no characters, no dots appear as you type. That is standard behaviour, not a fault.</div>
-        <div><b style="color:#D2AD6C">5 · Expected output</b> — several minutes of scrolling progress, none of which needs to be read. Installation is complete when the shell prompt returns and accepts input again.</div>
-        <div><b style="color:#D2AD6C">6 · Verify</b> — use <b>✅ Verify installation</b> further down this card. It queries that Mac and reports the installed versions.</div>
-        <div><b style="color:#D2AD6C">7 · Subsequent releases</b> — are not installed from Terminal. Each Mac retrieves its own from <b>📖 Guide → Software updates → ⬆︎ Cantoria Software Update</b>. The command above is run once per machine and never again.</div>
+        <div><b style="color:#D2AD6C">4 · What it will ask you</b> — where your songs are kept. If your Mac has never had developer software on it, the installer first has to add the standard macOS tool that fetches the three components above, and that is the one point where it asks for your Mac password. <b>Terminal does not echo password input</b> — no characters, no dots appear as you type. That is standard behaviour, not a fault.</div>
+        <div><b style="color:#D2AD6C">5 · What you will see</b> — several minutes of text scrolling past. None of it needs reading. It has finished when the prompt comes back and you can type again.</div>
+        <div><b style="color:#D2AD6C">6 · Check it worked</b> — press <b>✅ Verify installation</b> further down this card. It asks your Mac what is installed and reports back.</div>
+        <div><b style="color:#D2AD6C">7 · Later versions</b> — never go through Terminal. When there is a new release you install it from <b>📖 Guide → Software updates → ⬆︎ Cantoria Software Update</b>, inside Cantoria itself. You will not need the command above again.</div>
           </div>
 <?php if (!$KAR_LOCAL): ?>
           <p style="margin:12px 0 0"><b>Select the Mac.</b> The <b>Play on</b> selector in the gold bar determines which Mac receives playback and the setup actions below. It is shown only when more than one Mac is registered; with a single Mac there is nothing to choose and everything goes to it. If the Mac is not listed there, choose <b>＋ Add a Mac…</b>, enter a name, and set <code>"mac_name"</code> to the same value in <code>~/casai/karaoke_config.json</code> on that Mac. The two must match exactly.</p>
@@ -448,13 +448,13 @@ if (!$KAR_LOCAL) {
             <span style="color:#94a3b8">When off, the lyrics window may open behind the browser, particularly when a song is played directly rather than from the queue. When on, it always stays in front. Turn it off to view the lyrics and the song list side by side.</span></span>
           </label>
           <?php endif; ?>
-          <p style="margin:0 0 4px"><b>If the player is missing.</b> The installer puts <code>mpv</code>, <code>yt-dlp</code> and <code>ffmpeg</code> on the Mac already; this is only needed if the check below reports one of them absent. In Terminal:</p>
+          <p style="margin:0 0 4px"><b>If something is missing.</b> The installer puts all three components on your Mac already, so you should not need this — only if the check below reports one of them absent. In Terminal:</p>
           <div style="margin:0 0 4px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#cbd5e1">brew install mpv yt-dlp ffmpeg</div>
           <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If the response is <i>command not found: brew</i>, Homebrew itself is missing — run the following first, then repeat the command above:</p>
           <div style="margin:0 0 8px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</div>
           <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Verify installation</button>
-          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Queries the Mac and reports the version of each of the three components installed in step 3. Run it after the installer to confirm they are present.</span>
-          <p style="margin:0"><b>Keep the Mac on and awake</b> during a party. It handles playback and receives guests' requests.</p>
+          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Asks your Mac for the version of each of the three components from step 3, and reports what it finds. Use it after the installer to confirm they are there.</span>
+          <p style="margin:0"><b>Leave your Mac on and awake</b> during a party. It plays the music and receives your guests' requests.</p>
         </div>
 
         <div class="kar-gs" id="kar-gs-sing" style="display:none">
@@ -503,7 +503,7 @@ if (!$KAR_LOCAL) {
             <li><b>Adding to a list</b> — with the person selected, click <b>⭐</b> on a song's row to add it, and again to remove it. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
             <li><b>🆕 New Songs</b> — every song added in the last 30 days. The <b>Duplicate</b> column flags songs that appear to match one already in the library.</li>
             <li><b>✎</b> renames a song. <b>✕</b> removes it: the file is moved to a Deleted folder, not destroyed, and can be restored.</li>
-            <li><b>Licensing.</b> These songs are for private use at home. For commercial use — a restaurant, a hall, a ticketed event — point Cantoria at a licensed song library. The songs folder is a setting — see <a href="#" onclick="karGuideOpen('setup');return false" style="color:#D2AD6C">Setting up the Mac</a>.</li>
+            <li><b>Licensing.</b> These songs are for private use at home. For commercial use — a restaurant, a hall, a ticketed event — point Cantoria at a licensed song library. The songs folder is a setting — see <a href="#" onclick="karGuideOpen('setup');return false" style="color:#D2AD6C">Installing Cantoria</a>.</li>
           </ul>
         </div>
 
