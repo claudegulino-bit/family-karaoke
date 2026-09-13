@@ -260,7 +260,7 @@ if (!$KAR_LOCAL) {
         <div class="kar-grplbl">Songs and singers</div>
         <div style="display:flex;gap:8px;align-items:center">
       <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjDb) ?></span></button>
-      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🆕 New <span id="kar-new-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjNew) ?></span></button>
+      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🆕 New Songs <span id="kar-new-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjNew) ?></span></button>
       <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Whose Best list this is. Pick a name to see their songs, or add a new person." style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">
         <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
         <option value="<?= h($_kbp) ?>">⭐ Best of <?= h($_kbp) ?> <?= count($_kjBestBy[$_kbp]) ?></option>
@@ -465,7 +465,7 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Managing songs</h3>
           <ul style="margin:0;padding-left:20px">
             <li><b>⭐ Best lists</b> — one per person. Select the name in the dropdown at the top, then mark songs with the star.</li>
-            <li><b>🆕 New</b> — every song added in the last 30 days. The <b>Duplicate</b> column flags songs that appear to match one already in the library.</li>
+            <li><b>🆕 New Songs</b> — every song added in the last 30 days. The <b>Duplicate</b> column flags songs that appear to match one already in the library.</li>
             <li><b>✎</b> renames a song. <b>✕</b> removes it: the file is moved to a Deleted folder, not destroyed, and can be restored.</li>
             <li><b>Licensing.</b> These songs are for private use at home. For commercial use — a restaurant, a hall, a ticketed event — point Cantoria at a licensed song library. The songs folder is a setting (Card 1).</li>
           </ul>
@@ -487,7 +487,7 @@ if (!$KAR_LOCAL) {
         <div><b style="color:#fca5a5">2 · Choose</b> — <b>▶ Watch</b> opens the video on YouTube in a new tab. <b style="color:#f3d9a4">📋 Copy link</b> copies its address. <b style="color:#fca5a5">+ Add to list</b> queues it for download. The row you open or copy stays marked, so it remains identifiable when you return from YouTube; a row already queued is marked in green.</div>
         <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b style="color:#fca5a5">+ Add to list</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
         <div><b style="color:#fca5a5">3 · Download</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. Songs are fetched one at a time, typically a minute or two each; the panel may be closed while this runs. <b>Clear the list</b> discards anything still queued.</div>
-        <div><b style="color:#fca5a5">4 · Result</b> — a completed song leaves this panel and is listed under <b style="color:#c084fc">🆕 New</b> for 30 days. A <b style="color:#f87171">failed</b> download remains here, in red, with the reason.</div>
+        <div><b style="color:#fca5a5">4 · Result</b> — a completed song leaves this panel and is listed under <b style="color:#c084fc">🆕 New Songs</b> for 30 days. A <b style="color:#f87171">failed</b> download remains here, in red, with the reason.</div>
         <div><b style="color:#fca5a5">Closing the panel</b> — the <b>YouTube Downloads</b> button closes it and keeps the search results. <b style="color:#fca5a5">✕ Clear</b> discards the search results and closes.</div>
         <div><b style="color:#fca5a5">Guest requests</b> — songs requested from guests’ phones appear here under the guest’s name and download automatically.</div>
           </div>
@@ -2184,7 +2184,7 @@ function karPickFolder(){
         if (!d.ok) { alert('Could not start' + (d.error ? ': ' + d.error : '') + '.'); return; }
         if (!d.started) {
           var el = document.getElementById('kar-dl-list');
-          el.innerHTML = '<p style="color:#D2AD6C;font-size:12.5px;margin:4px 0 0">Nothing is waiting to download. Songs added earlier have already been downloaded — they are in the Song Database and under 🆕 New.</p>';
+          el.innerHTML = '<p style="color:#D2AD6C;font-size:12.5px;margin:4px 0 0">Nothing is waiting to download. Songs added earlier have already been downloaded — they are in the Song Database and under 🆕 New Songs.</p>';
           karNewRefresh();
           return;
         }
@@ -2192,7 +2192,7 @@ function karPickFolder(){
       }).catch(function(){ alert('Network error — the download was not started.'); });
     }
     function karDlClear(){
-      if (!confirm('Empty the download list?\n\nClears the links still waiting and any that failed. Songs that already arrived are untouched — they stay in your library and under 🆕 New. A download in progress keeps going.')) return;
+      if (!confirm('Empty the download list?\n\nClears the links still waiting and any that failed. Songs that already arrived are untouched — they stay in your library and under 🆕 New Songs. A download in progress keeps going.')) return;
       var fd = new FormData(); fd.append('form_type', 'karaoke_dl_clear');
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) { alert('Could not clear the list.'); return; }
@@ -2385,8 +2385,8 @@ function karPickFolder(){
           if (karActPrev && karActPrev[r.id] && karActPrev[r.id] !== r.status) {
             if (r.status === 'Done') {
               karActDone[r.id] = { until: now + 120000, msg: r.requested_by
-                ? '✅ <b>' + karEsc(name) + '</b> is ready — <b>' + karEsc(r.requested_by) + '</b> is in line to sing it. It is under 🆕 New.'
-                : '✅ <b>' + karEsc(name) + '</b> is in the Song Database and under 🆕 New.' };
+                ? '✅ <b>' + karEsc(name) + '</b> is ready — <b>' + karEsc(r.requested_by) + '</b> is in line to sing it. It is under 🆕 New Songs.'
+                : '✅ <b>' + karEsc(name) + '</b> is in the Song Database and under 🆕 New Songs.' };
               if (r.requested_by) queueChanged = true;
             } else if (r.status === 'Error' && r.requested_by) {
               karActDone[r.id] = { until: now + 120000,
