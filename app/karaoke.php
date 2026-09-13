@@ -526,9 +526,9 @@ if (!$KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-downloads" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">YouTube Downloads</h3>
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#fca5a5">1 · Search</b> — enter an artist or a title and press <b style="color:#fca5a5">▶ Search YouTube</b>. Twelve results are returned, each with its duration, its channel, and a warning where the song already exists in your library.</div>
-        <div><b style="color:#fca5a5">2 · Choose</b> — <b>▶ Watch</b> opens the video on YouTube in a new tab. <b style="color:#f3d9a4">📋 Copy link</b> copies its address. <b style="color:#fca5a5">+ Add to list</b> queues it for download. The row you open or copy stays marked, so it remains identifiable when you return from YouTube; a row already queued is marked in green.</div>
-        <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b>Add a song by link</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
-        <div><b style="color:#fca5a5">3 · Download</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. Songs are fetched one at a time, typically a minute or two each; the panel may be closed while this runs. <b>Clear the list</b> discards anything still queued.</div>
+        <div><b style="color:#fca5a5">2 · Download it</b> — <b style="color:#fca5a5">⬇ Download</b> starts it immediately. <b>▶ Watch</b> opens the video on YouTube in a new tab first, and <b style="color:#f3d9a4">📋 Copy link</b> copies its address. The row you open or copy stays marked, so it remains identifiable when you return from YouTube; a row already queued is marked in green.</div>
+        <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b>⬇ Download this link</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
+        <div><b style="color:#fca5a5">3 · It downloads straight away</b> — no second button. Songs are fetched one at a time, typically a minute or two each, and the panel may be closed while this runs. Tap several and they queue up behind one another. <b>Clear the list</b> tidies away anything finished or failed.</div>
         <div><b style="color:#fca5a5">4 · Result</b> — a completed song leaves this panel and is listed under <b style="color:#c084fc">🆕 New Songs</b> for 30 days. A <b style="color:#f87171">failed</b> download remains here, in red, with the reason.</div>
         <div><b style="color:#fca5a5">Closing the panel</b> — the <b>YouTube Downloads</b> button closes it and keeps the search results. <b style="color:#fca5a5">✕ Clear</b> discards the search results and closes.</div>
         <div><b style="color:#fca5a5">Guest requests</b> — songs requested from guests’ phones appear here under the guest’s name and download automatically.</div>
@@ -709,7 +709,7 @@ if (!$KAR_LOCAL) {
     <div id="kar-activity" style="display:none;margin-top:8px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.35);border-radius:8px;padding:8px 14px;font-size:12.5px;color:#e2e8f0;line-height:1.6"></div>
     <div id="kar-dl-panel" style="display:none;margin-top:10px;background:#20171d;border:1px solid rgba(239,68,68,.5);border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.55)">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-        <button type="button" onclick="karDlAdd()" id="kar-dl-add" title="Add the pasted YouTube link to the download list" style="font-family:inherit;background:#3f4757;border:1px solid #566072;color:#e2e8f0;cursor:pointer;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap;width:186px">Add a song by link</button>
+        <button type="button" onclick="karDlAdd()" id="kar-dl-add" title="Download the pasted YouTube link now" style="font-family:inherit;background:#3f4757;border:1px solid #566072;color:#e2e8f0;cursor:pointer;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap;width:186px">⬇ Download this link</button>
         <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
         <div class="kar-dlrt"></div>
       </div>
@@ -2083,13 +2083,32 @@ function karPickFolder(){
         karDlRender(d.rows);
         var qn = d.rows.filter(function(r){ return r.status === 'Queued'; }).length;
         var sb = document.getElementById('kar-dl-start');
-        sb.textContent = qn ? ('⬇ Download ' + qn + (qn === 1 ? ' song' : ' songs')) : '⬇ Download the list';
+        // Nothing normally waits any more, so the button spends its life as the section
+        // title; it only becomes an action if an auto-start did not get through.
+        sb.textContent = qn ? ('⬇ Download ' + qn + (qn === 1 ? ' song' : ' songs')) : 'DOWNLOAD LIST';
+        sb.disabled = !qn;
+        sb.style.background  = qn ? '#16a34a' : 'transparent';
+        sb.style.borderColor = qn ? '#16a34a' : 'transparent';
+        sb.style.color       = qn ? '#fff' : '#94a3b8';
+        sb.style.cursor      = qn ? 'pointer' : 'default';
+        sb.style.letterSpacing = qn ? '0' : '.10em';
         // Keep polling while anything is still moving (title lookups, pending/active downloads).
         var busy = d.rows.some(function(r){ return r.status === 'Pending' || r.status === 'Downloading' || (r.status === 'Queued' && !r.title); });
         if (busy && document.getElementById('kar-dl-panel').style.display !== 'none') {
           karDlTimer = setTimeout(karDlRefresh, 4000);
         }
       }).catch(function(){});
+    }
+    // ONE STEP, NOT TWO (the owner, 2026-09-13: "why wait? why can we not download it as we
+    // say download it"). Adding a song now starts it. The two-step flow existed so the
+    // duplicate warning could be read BEFORE spending a download - but a duplicate here is
+    // a warning and never a refusal, so the pause guarded against nothing, and it cost him
+    // an evening believing a song had downloaded when it was only listed. Batching is
+    // unaffected: the Mac still fetches one at a time, so tapping five still queues five.
+    function karDlGo(){
+      var fd = new FormData(); fd.append('form_type', 'karaoke_dl_start');
+      return fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); })
+        .catch(function(){ return {ok:false}; });
     }
     function karDlAdd(){
       var inp = document.getElementById('kar-dl-url');
@@ -2101,7 +2120,8 @@ function karPickFolder(){
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) { alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
         inp.value = '';
-        karDlRefresh();
+        karDlGo().then(karDlRefresh);
+
       }).catch(function(){ alert('Network error — the link was not added.'); });
     }
     document.getElementById('kar-dl-url').addEventListener('keydown', function(ev){
@@ -2189,7 +2209,7 @@ function karPickFolder(){
       KAR_YT_OPENED = -1;
       if (!KAR_YT_HITS.length) { res.innerHTML = '<div style="color:#94a3b8;font-size:12.5px;padding:6px 2px">Nothing found — try the singer\'s name, or fewer words.</div>'; return; }
       var out = ['<div style="display:flex;align-items:center;gap:8px;padding:4px 2px 2px"><span style="color:#fca5a5;font-size:12px;font-weight:800">' + KAR_YT_HITS.length + ' results for \u201c' + karEsc(KAR_YT_Q) + '\u201d</span></div>',
-        '<div style="color:#94a3b8;font-size:12px;padding:2px 2px 6px"><b style="color:#e2e8f0">▶ Watch</b> opens the video on YouTube · <b style="color:#f3d9a4">📋 Copy link</b> copies its address · <b style="color:#fca5a5">+ Add to list</b> queues it for download.</div>'];
+        '<div style="color:#94a3b8;font-size:12px;padding:2px 2px 6px"><b style="color:#e2e8f0">▶ Watch</b> opens the video on YouTube · <b style="color:#f3d9a4">📋 Copy link</b> copies its address · <b style="color:#fca5a5">⬇ Download</b> queues it for download.</div>'];
       for (var i = 0; i < KAR_YT_HITS.length; i++) {
         var h = KAR_YT_HITS[i];
         // A duplicate is a WARNING, never a refusal — he keeps several versions of a song
@@ -2206,7 +2226,7 @@ function karPickFolder(){
           + '<div class="kar-dlrt">'
           + '<a href="' + karEscA(h.url) + '" target="_blank" rel="noopener" onclick="karYtTouch(' + i + ')" title="Open this video on YouTube — the row stays marked so you can find it when you come back" style="flex:0 0 auto;font-family:inherit;background:none;border:1px solid #334155;color:#e2e8f0;text-decoration:none;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">▶ Watch</a>'
           + '<button type="button" onclick="karYtCopy(' + i + ',this)" title="Copy this video\'s link" style="flex:0 0 auto;font-family:inherit;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#f3d9a4;cursor:pointer;font-size:12px;font-weight:700;padding:7px 11px;border-radius:8px">📋 Copy link</button>'
-          + '<button type="button" onclick="karYtAdd(' + i + ',this)" style="flex:0 0 auto;font-family:inherit;background:rgba(239,68,68,.16);border:1px solid #EF4444;color:#fecaca;cursor:pointer;font-size:12.5px;font-weight:800;padding:7px 14px;border-radius:8px">+ Add to list</button>'
+          + '<button type="button" onclick="karYtAdd(' + i + ',this)" style="flex:0 0 auto;font-family:inherit;background:rgba(239,68,68,.16);border:1px solid #EF4444;color:#fecaca;cursor:pointer;font-size:12.5px;font-weight:800;padding:7px 14px;border-radius:8px">⬇ Download</button>'
           + '</div>'
           + '</div>');
       }
@@ -2244,13 +2264,13 @@ function karPickFolder(){
       var fd = new FormData(); fd.append('form_type','karaoke_dl_add'); fd.append('url', h.url);
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         btn.disabled = false;
-        btn.textContent = d.ok ? '✓ Added to list' : '+ Add to list';
+        btn.textContent = d.ok ? '✓ Downloading…' : '⬇ Download';
         if (!d.ok) { alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
         btn.style.color = '#6ee7b7'; btn.style.borderColor = '#16a34a';
         var row = document.getElementById('kar-ytrow-' + i);
         if (row){ row.dataset.added = '1'; karYtRowMark(row, 'added'); }
-        karDlRefresh();
-      }).catch(function(){ btn.disabled = false; btn.textContent = '+ Add to list'; alert('Network error — the song was not added.'); });
+        karDlGo().then(karDlRefresh);
+      }).catch(function(){ btn.disabled = false; btn.textContent = '⬇ Download'; alert('Network error — the song was not added.'); });
     }
     document.getElementById('kar-yt-q').addEventListener('keydown', function(ev){
       if (ev.key === 'Enter') { ev.preventDefault(); karYtSearch(); }
