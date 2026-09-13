@@ -400,10 +400,11 @@ if (!$KAR_LOCAL) {
           </div>
           <div style="background:#0b0e14;padding:11px 13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.7;color:#d7dce5">
             <div style="color:#78818f">Last login: Sat Sep 13 09:14:22 on ttys000</div>
-            <div style="word-break:break-all"><span style="color:#6ee7b7">you@Mac</span> <span style="color:#8ea2bd">~</span> % <span style="color:#f3d9a4">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</span><span style="display:inline-block;width:7px;height:14px;background:#d7dce5;vertical-align:-3px;margin-left:2px"></span></div>
+            <div><span style="color:#6ee7b7">you@Mac</span> <span style="color:#8ea2bd">~</span> % <span style="display:inline-block;width:7px;height:14px;background:#d7dce5;vertical-align:-3px;margin-left:2px"></span></div>
           </div>
         </div>
-        <div><b style="color:#D2AD6C">2 · Run the installer</b> — select the command below, copy it (<b>⌘C</b>), click once inside the Terminal window, paste (<b>⌘V</b>) and press <b>Return</b>. Copy it; do not retype it.</div>
+        <div style="color:#94a3b8;font-size:12.5px;margin-top:-3px">That is all there is at first: a prompt, waiting. Nothing is typed yet.</div>
+        <div><b style="color:#D2AD6C">2 · Paste in the command</b> — select the line below and copy it (<b>⌘C</b>). Click once inside the Terminal window, paste (<b>⌘V</b>) — the command appears after the prompt — and press <b>Return</b>. Copy it; do not retype it.</div>
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#e2e8f0;background:#0d1118;border:1px solid #334155;border-radius:8px;padding:9px 12px;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
         <div><b style="color:#D2AD6C">3 · What it puts on your Mac</b> — four things:</div>
         <ul style="margin:-3px 0 0;padding-left:20px;line-height:1.75">
