@@ -303,23 +303,28 @@ if (!$KAR_LOCAL) {
         <?php
         // One row per card: key, title, and the one line that says what it is for.
         $_karCards = [];
-        if ($KAR_LOCAL) $_karCards[] = ['setup', '1 · Setting up the Mac', 'Installation, the songs folder and the player.'];
-        else            $_karCards[] = ['setup', '1 · Setting up the Mac', 'Selecting a Mac, the songs folder and the player.'];
-        $_karCards[] = ['sing',  '2 · Play a song',            'Search, playback and key.'];
-        $_karCards[] = ['while', '3 · While it is playing',    'Live controls: key, speed, start and stop.'];
-        $_karCards[] = ['party', '4 · Party controls',         'The singing queue, guest requests and downloads.'];
-        $_karCards[] = ['songs', '5 · Managing songs',         'Best lists, new arrivals, renaming and removal.'];
+        // Numbered by a counter, not by hand: the two editions do not carry the same set of
+        // cards, and hand-typed numbers went wrong the moment one was inserted or moved.
+        $_n = 0;
+        $_num = function ($t) use (&$_n) { return (++$_n) . ' · ' . $t; };
+        if ($KAR_LOCAL) $_karCards[] = ['setup', $_num('Setting up the Mac'), 'Installation, the songs folder and the player.'];
+        else            $_karCards[] = ['setup', $_num('Setting up the Mac'), 'Selecting a Mac, the songs folder and the player.'];
+        // How it is put together comes before how it is used — this is the card someone
+        // reads to understand the machines before touching anything (the owner, 2026-09-12).
+        // casAI only: it names the machines, so it is gated to the copy that never leaves
+        // the household, and every name in it is read at render time from the database.
+        if (!$KAR_LOCAL) $_karCards[] = ['config', $_num('Configuration and workflow'), 'Machines, release process and shared data.'];
+        $_karCards[] = ['update', $_num('Software updates'), $KAR_LOCAL ? 'Installing the latest version.' : 'How the other Macs receive a release.'];
+        $_karCards[] = ['sing',  $_num('Play a song'),          'Search, playback and key.'];
+        $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: key, speed, start and stop.'];
+        $_karCards[] = ['party', $_num('Party controls'),       'The singing queue, guest requests and downloads.'];
+        $_karCards[] = ['songs', $_num('Managing songs'),       'Best lists, new arrivals, renaming and removal.'];
         // The three party panels each get a card of their own. Their words live HERE and
         // nowhere else — the floating "?" beside each panel borrows this same text rather
         // than keeping a second copy that would quietly drift out of step with it.
-        $_karCards[] = ['upnext',    '6 · Singing Queue', 'Who sings next, and scheduling fairness.'];
-        $_karCards[] = ['downloads', '7 · YouTube Downloads', 'Searching YouTube and adding songs.'];
-        $_karCards[] = ['guestqr',   '8 · Guest QR',  'Song requests from guests\' phones.'];
-        // casAI only. It names the machines and the folders, so it is gated to the copy
-        // that never leaves the household — and every name in it is read at render time
-        // from the database, so no household name sits in this file either.
-        if (!$KAR_LOCAL) $_karCards[] = ['config','9 · Configuration and workflow', 'Machines, release process and shared data.'];
-        if ($KAR_LOCAL) $_karCards[] = ['update','9 · Software updates',      'Installing the latest version.'];
+        $_karCards[] = ['upnext',    $_num('Singing Queue'), 'Who sings next, and scheduling fairness.'];
+        $_karCards[] = ['downloads', $_num('YouTube Downloads'), 'Searching YouTube and adding songs.'];
+        $_karCards[] = ['guestqr',   $_num('Guest QR'),  'Song requests from guests\' phones.'];
         foreach ($_karCards as [$_k, $_t, $_d]): ?>
         <button type="button" id="kar-gc-<?= $_k ?>" onclick="karGuideOpen('<?= $_k ?>')" style="font-family:inherit;text-align:left;background:#1a2130;border:1px solid #334155;border-radius:9px;padding:11px 13px;cursor:pointer">
           <span style="display:block;color:#D2AD6C;font-size:13.5px;font-weight:800"><?= h($_t) ?></span>
@@ -596,6 +601,19 @@ if (!$KAR_LOCAL) {
           <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Cantoria Software Update</button>
           <div id="kar-upd-state" style="display:none;margin-top:8px;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;line-height:1.6"></div>
           <span id="kar-upd-msg" style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">Installed version: <b id="kar-upd-ver" style="color:#cbd5e1"><?= h(kar_installed_version()) ?></b></span>
+        </div>
+        <?php else: ?>
+        <?php /* On the master there is no update to retrieve — this is where releases are made.
+                The card exists so the release path is written down in the same place the other
+                Macs read it: "in this computer we make the changes directly... but number three
+                needs to stay here to explain that other computers will have the button they
+                click to get the update" (2026-09-12). */ ?>
+        <div class="kar-gs" id="kar-gs-update" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Software updates</h3>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">This Mac</b> — the development machine. Changes are made here directly and released from here, so there is nothing to retrieve and no update button on this copy.</div>
+        <div><b style="color:#D2AD6C">Every other Mac</b> — opens its own <b>📖 Guide → Software updates</b> and presses <b style="color:#6ee7b7">⬆︎ Cantoria Software Update</b>. Each machine installs the release itself; nothing is sent to it from here.</div>
+        <div><b style="color:#D2AD6C">What is preserved</b> — on those machines the songs, settings, Best lists and saved keys are kept. Only the program is replaced.</div>
+          </div>
         </div>
         <?php endif; ?>
 
