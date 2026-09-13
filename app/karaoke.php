@@ -939,6 +939,10 @@ if (!$KAR_LOCAL) {
     }
 
     function karSwitch(view, btn){
+      // Choosing a list means "show me songs now" - so close whatever panel is open, or the
+      // list you just asked for renders underneath it and the click looks like it did nothing
+      // (the owner, 2026-09-13). The panel is one click away again whenever you want it.
+      karPanelClose();
       karView = view;
       document.querySelectorAll('.kar-chip').forEach(function(b){
         b.classList.remove('kar-on');
