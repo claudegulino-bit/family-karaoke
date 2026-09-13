@@ -438,11 +438,13 @@ if (!$KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-sing" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Play a song</h3>
           <ul style="margin:0;padding-left:20px">
-            <li><b>Search</b> — enter an artist, a title, or a singer's name.</li>
+            <li><b>Choose a list.</b> The three boxes under <b>Songs and singers</b> select what the page shows: <b>🗂 Song Database</b> (everything), <b>🆕 New Songs</b> (added in the last 30 days) and <b>⭐ Best of</b> (one person's list — the dropdown chooses the person). The box outlined in gold is the list currently on screen.</li>
+            <li><b>Search</b> — filters the list on screen by title, artist or singer's name. Esc clears it.</li>
             <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Best list renumbers it from 1.</li>
             <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> toggles full screen and <b>Q</b> closes the player.</li>
             <li><b>Pitch</b> — the key the song starts in. Use − and + to transpose by semitones. The value is saved.</li>
             <li><b>Reset</b> — plays the song once in its original key, then restores the saved pitch. Use it when another singer performs the song.</li>
+            <li><b>⭐</b> adds the song to the Best list of the person named in the dropdown; clicking it again removes it.</li>
           </ul>
           <p style="margin:10px 0 0;color:#94a3b8;font-size:12.5px"><label style="cursor:pointer"><input type="checkbox" id="kar-qmidi-cb" onchange="karQmidiToggle(this)" style="vertical-align:-1px;margin-right:6px">Also show the ▶ QMidi play button.</label></p>
         </div>
@@ -450,20 +452,24 @@ if (!$KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-while" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">While it is playing</h3>
           <ul style="margin:0;padding-left:20px">
-            <li>The <b>gold bar</b> at the top of the page controls the song currently playing.</li>
+            <li>The <b>gold bar</b> controls the song currently playing. It stays at the top of the page as the list scrolls.</li>
             <li><b>Key</b> and <b>Speed</b> take effect immediately, mid-song.</li>
-            <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> pauses the song where it is; press it again (it reads <b>▶ Resume</b>) to continue. To end a song, close the lyrics screen. The line under the song name shows its progress — drag it to move within the song. <b>🎬 Lyrics Screen</b> hides the lyrics screen or brings it back; it otherwise stays in front of the browser while a song plays.</li>
-            <li>Changes made in the gold bar apply to the current performance only. A song's saved key is the Pitch value on its row.</li>
+            <li><b>The progress line</b> under the song name shows how far through it is — drag it to move within the song.</li>
+            <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> pauses it where it is and becomes <b>▶ Resume</b>.</li>
+            <li><b>🎬 Lyrics Screen</b> hides the lyrics window or brings it back. It otherwise stays in front of the browser while a song plays. To end a song, close that window (<b>Q</b> on the Mac).</li>
+            <li>Changes made in the gold bar apply to the current performance only. A song's saved key is the <b>Pitch</b> value on its row.</li>
           </ul>
         </div>
 
         <div class="kar-gs" id="kar-gs-party" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Party controls</h3>
-          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Three controls at the top of the page. Each is detailed in its own card.</p>
+          <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">Four buttons at the top right open a panel. The one that is open is ringed and raised, with a marker pointing at its panel; the others dim, so which panel is open is visible at a glance. The first three each have a card of their own.</p>
           <ul style="margin:0;padding-left:20px">
             <li><b>🎶 Singing Queue</b> — who sings next. Click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on a song to add a singer; press <b>▶ Next singer</b> to start each performance. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Open the Singing Queue card</a>.</li>
             <li><b>📱 Guest QR</b> — guests request songs from their own phones. <a href="#" onclick="karGuideOpen('guestqr');return false" style="color:#D2AD6C">Open the Guest QR card</a>.</li>
             <li><b>▶ YouTube Downloads</b> — search YouTube and add songs to the library. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Open the YouTube Downloads card</a>.</li>
+            <li><b>📖 Guide</b> — this page.</li>
+            <li><b>Closing a panel</b> — press its button again, press <b>✕ Close</b> inside it, or press Esc.</li>
             <li>The purple strip below the buttons reports activity, such as a guest's song arriving.</li>
           </ul>
         </div>
@@ -471,7 +477,8 @@ if (!$KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-songs" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Managing songs</h3>
           <ul style="margin:0;padding-left:20px">
-            <li><b>⭐ Best lists</b> — one per person. Select the name in the dropdown at the top, then mark songs with the star.</li>
+            <li><b>⭐ Best lists</b> — one per person. The dropdown at the top is that list: its menu names every person with the number of songs they have, and selecting a name opens their list. <b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu.</li>
+            <li><b>Adding to a list</b> — with the person selected, click <b>⭐</b> on a song's row to add it, and again to remove it. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
             <li><b>🆕 New Songs</b> — every song added in the last 30 days. The <b>Duplicate</b> column flags songs that appear to match one already in the library.</li>
             <li><b>✎</b> renames a song. <b>✕</b> removes it: the file is moved to a Deleted folder, not destroyed, and can be restored.</li>
             <li><b>Licensing.</b> These songs are for private use at home. For commercial use — a restaurant, a hall, a ticketed event — point Cantoria at a licensed song library. The songs folder is a setting — see <a href="#" onclick="karGuideOpen('setup');return false" style="color:#D2AD6C">Setting up the Mac</a>.</li>
@@ -481,7 +488,7 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-upnext" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Singing Queue</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — select the singer's name in the dropdown at the top of the page, then click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on the song. The entry is queued at the pitch shown on that row.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — select the singer's name in the <b>⭐ Best of</b> dropdown at the top of the page, then click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on the song. The entry is queued at the pitch shown on that row.</div>
         <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. The song at the top of the queue plays and the queue advances automatically.</div>
         <div><b style="color:#D2AD6C">Scheduling fairness</b> (the <span style="display:inline-block;width:11px;height:11px;border:2px solid #6ee7b7;border-radius:3px;vertical-align:-1px;margin:0 3px"></span> beside that button) — when enabled, every singer performs once before anyone performs twice, twice before anyone performs a third time, and so on. The order is managed automatically.</div>
         <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, and the <span style="display:inline-block;border:1px solid #7f1d1d;color:#f87171;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">✕</span> beside a name removes that entry. <b>Clear the queue</b>, at the right, removes every entry — intended for the end of the night.</div>
@@ -492,7 +499,7 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">YouTube Downloads</h3>
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#fca5a5">1 · Search</b> — enter an artist or a title and press <b style="color:#fca5a5">▶ Search YouTube</b>. Twelve results are returned, each with its duration, its channel, and a warning where the song already exists in your library.</div>
         <div><b style="color:#fca5a5">2 · Choose</b> — <b>▶ Watch</b> opens the video on YouTube in a new tab. <b style="color:#f3d9a4">📋 Copy link</b> copies its address. <b style="color:#fca5a5">+ Add to list</b> queues it for download. The row you open or copy stays marked, so it remains identifiable when you return from YouTube; a row already queued is marked in green.</div>
-        <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b style="color:#fca5a5">+ Add to list</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
+        <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b>Add a song by link</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
         <div><b style="color:#fca5a5">3 · Download</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. Songs are fetched one at a time, typically a minute or two each; the panel may be closed while this runs. <b>Clear the list</b> discards anything still queued.</div>
         <div><b style="color:#fca5a5">4 · Result</b> — a completed song leaves this panel and is listed under <b style="color:#c084fc">🆕 New Songs</b> for 30 days. A <b style="color:#f87171">failed</b> download remains here, in red, with the reason.</div>
         <div><b style="color:#fca5a5">Closing the panel</b> — the <b>YouTube Downloads</b> button closes it and keeps the search results. <b style="color:#fca5a5">✕ Clear</b> discards the search results and closes.</div>
