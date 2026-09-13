@@ -203,6 +203,34 @@ $_db = $tokenOk ? kar_catalog() : [];
   var G_ME = '';
   try { var m0 = localStorage.getItem('kguest_granted'); if (m0) { G_ME = m0; gShowMe(); } } catch(e){}
   function gWho(){ return G_ME || nameEl.value.trim(); }
+  // NO NAME YET. An alert is the wrong tool here: on a phone it is a grey box you dismiss
+  // without reading, and the tap looks like it did nothing (the owner, 2026-09-13: "I click
+  // on one song and nothing happens"). Point at the field instead - scroll to it, ring it
+  // in red, focus it, and leave a line on screen that stays until the name is typed.
+  function gNeedName(){
+    var msg = document.getElementById('g-need-name');
+    if (!msg) {
+      msg = document.createElement('p');
+      msg.id = 'g-need-name';
+      msg.style.cssText = 'margin:10px 0 0;padding:9px 12px;border-radius:8px;background:rgba(239,68,68,.14);'
+        + 'border:1px solid #ef4444;color:#fecaca;font-size:13px;font-weight:700';
+      nameEl.parentNode.insertBefore(msg, nameEl.nextSibling);
+    }
+    msg.textContent = 'Type your first name here first, so the host knows who is singing.';
+    nameEl.style.borderColor = '#ef4444';
+    nameEl.style.boxShadow = '0 0 0 3px rgba(239,68,68,.35)';
+    try { nameEl.scrollIntoView({block:'center', behavior:'smooth'}); } catch(e) { nameEl.scrollIntoView(); }
+    nameEl.focus();
+  }
+  // Typing a name clears the warning - nothing lingers once it is answered.
+  nameEl.addEventListener('input', function(){
+    if (nameEl.value.trim()) {
+      var m = document.getElementById('g-need-name');
+      if (m) m.remove();
+      nameEl.style.borderColor = '';
+      nameEl.style.boxShadow = '';
+    }
+  });
   function gShowMe(){
     var el = document.getElementById('g-whoami');
     if (el) el.textContent = G_ME ? "You're in as " + G_ME : '';
@@ -405,7 +433,7 @@ $_db = $tokenOk ? kar_catalog() : [];
     }
     if (!b || b.disabled) return;
     var name = gWho();
-    if (!name) { alert('Type your first name first, so the host knows who is singing!'); nameEl.focus(); return; }
+    if (!name) { gNeedName(); return; }
     var song = G_DB[parseInt(b.getAttribute('data-i'), 10)];
     b.disabled = true; b.textContent = '…';
     gPost({ action:'req', name:name, song:song }).then(function(d){
