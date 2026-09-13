@@ -406,7 +406,7 @@ if (!$KAR_LOCAL) {
         <div style="color:#94a3b8;font-size:12.5px;margin-top:-3px">That is all there is at first: a prompt, waiting. Nothing is typed yet.</div>
         <div><b style="color:#D2AD6C">2 · Paste in the command</b> — select the line below and copy it (<b>⌘C</b>). Click once inside the Terminal window, paste (<b>⌘V</b>) — the command appears after the prompt — and press <b>Return</b>. Copy and paste it — do not try to type it manually.</div>
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#e2e8f0;background:#0d1118;border:1px solid #334155;border-radius:8px;padding:9px 12px;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
-        <div><b style="color:#D2AD6C">3 · What it puts on your Mac</b> — four things:</div>
+        <div><b style="color:#D2AD6C">3 · What the installer does</b> — it puts four things on your Mac:</div>
         <ul style="margin:-3px 0 0;padding-left:20px;line-height:1.75">
           <li><b>A player.</b> Plays the song, puts the words on the screen, and changes the key and the speed while it is playing.</li>
           <li><b>A downloader.</b> Fetches a song from YouTube when you or a guest ask for one.</li>
@@ -415,8 +415,8 @@ if (!$KAR_LOCAL) {
         </ul>
         <div><b style="color:#D2AD6C">4 · What it will ask you</b> — where your songs are kept, and at some point it may ask for your Mac password: the same one you use to log in. Type it and press Return. <b>Nothing appears on screen as you type it</b> — no characters, not even dots. That is normal.</div>
         <div><b style="color:#D2AD6C">5 · What you will see</b> — several minutes of text scrolling past. None of it needs reading. It has finished when the prompt comes back and you can type again.</div>
-        <div><b style="color:#D2AD6C">6 · Check it worked</b> — press <b>✅ Verify installation</b> further down this card. It asks your Mac what is installed and reports back.</div>
-        <div><b style="color:#D2AD6C">7 · Later versions</b> — never go through Terminal. When there is a new release you install it from <b>📖 Guide → Software updates → ⬆︎ Cantoria Software Update</b>, inside Cantoria itself. You will not need the command above again.</div>
+        <div><b style="color:#D2AD6C">6 · Check it worked</b> — press <b>✅ Verify installation</b>, the button near the bottom of this card (<a href="#" onclick="var b=document.getElementById('kar-tools-btn'); if(b){b.scrollIntoView({block:'center'});} return false" style="color:#D2AD6C">take me to it</a>). It asks your Mac what is installed and reports back.</div>
+        <div><b style="color:#D2AD6C">7 · Future software updates</b> — never go through Terminal. When there is a new release, you retrieve it from the master computer from inside Cantoria: open <b>📖 Guide</b>, choose <a href="#" onclick="karGuideOpen('update');return false" style="color:#D2AD6C"><b>Software updates</b></a>, and press <b>⬆︎ Cantoria Software Update</b>. It downloads and installs itself.</div>
           </div>
 <?php if (!$KAR_LOCAL): ?>
           <p style="margin:12px 0 0"><b>Select the Mac.</b> The <b>Play on</b> selector in the gold bar determines which Mac receives playback and the setup actions below. It is shown only when more than one Mac is registered; with a single Mac there is nothing to choose and everything goes to it. If the Mac is not listed there, choose <b>＋ Add a Mac…</b>, enter a name, and set <code>"mac_name"</code> to the same value in <code>~/casai/karaoke_config.json</code> on that Mac. The two must match exactly.</p>
