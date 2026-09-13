@@ -644,8 +644,9 @@ if (!$KAR_LOCAL) {
     <div id="kar-q-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <span style="font-size:13.5px;font-weight:800;color:#D2AD6C">🎶 Singing Queue</span>
-        <button type="button" id="kar-helpbtn-q" onclick="karHelpToggle('q')" class="kar-helpbtn" title="Show or hide how this panel works — your choice is remembered on this computer"><span class="kar-helpico kar-helpico-big"></span></button>
+        <button type="button" onclick="karQClear()" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">Clear the queue</button>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
+        <button type="button" id="kar-helpbtn-q" onclick="karHelpToggle('q')" class="kar-helpbtn" style="margin-left:0" title="Show or hide how this panel works — your choice is remembered on this computer"><span class="kar-helpico kar-helpico-big"></span></button>
       </div>
       <div id="kar-help-q" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('q')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
 
@@ -660,7 +661,6 @@ if (!$KAR_LOCAL) {
           <input type="checkbox" id="kar-q-fair" onchange="try{localStorage.setItem('kar_q_fair',this.checked?'1':'')}catch(e){}">
           Scheduling fairness
         </label>
-        <button type="button" onclick="karQClear()" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px">Clear the queue</button>
       </div>
       <div id="kar-q-now" style="display:none;margin-top:10px;color:#D2AD6C;font-size:13.5px;font-weight:700"></div>
       <div id="kar-q-list" style="margin-top:4px"></div>
@@ -668,8 +668,8 @@ if (!$KAR_LOCAL) {
     <div id="kar-qr-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(192,132,252,.4);border-radius:10px;padding:16px 18px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <span style="font-size:13.5px;font-weight:800;color:#c084fc">📱 Guest QR</span>
-        <button type="button" id="kar-helpbtn-qr" onclick="karHelpToggle('qr')" class="kar-helpbtn" title="Show or hide how this panel works — your choice is remembered on this computer"><span class="kar-helpico kar-helpico-big"></span></button>
-        <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
+        <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
+        <button type="button" id="kar-helpbtn-qr" onclick="karHelpToggle('qr')" class="kar-helpbtn" style="margin-left:0" title="Show or hide how this panel works — your choice is remembered on this computer"><span class="kar-helpico kar-helpico-big"></span></button>
       </div>
       <!-- The big "scan this" line below stays in the panel body on purpose: it is aimed at
            the GUEST holding the phone, not at the host. Only the host-facing explanation
