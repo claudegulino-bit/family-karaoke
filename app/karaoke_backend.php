@@ -440,6 +440,9 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         // the video track off the introduction happens on a black screen; the worker turns it
         // back on at the end. Set BEFORE loadfile - mpv keeps it across the load, so there is
         // not even a flash. Always reasserted, so a previous announcement cannot leave it off.
+        // force-window FIRST: with no video track mpv makes no window at all, so the
+        // announcement would have nowhere to appear (the owner, 2026-09-13).
+        kar_mpv_send(['set_property', 'force-window', 'yes']);
         kar_mpv_send(['set_property', 'vid', ($mc && $crowd === '') ? 'no' : 'auto']);
         kar_mpv_send(['set_property', 'loop-file', $crowd !== '' ? 'inf' : 'no']);
         kar_mpv_send(['set_property', 'volume', 100]);
@@ -495,6 +498,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         } else {
             $args[] = '--pause';                          // held until the presentation is done
             $args[] = '--vid=no';                         // and no picture until then either
+            $args[] = '--force-window=yes';               // but keep a black window for the words
         }
         $args[] = '--osd-align-x=center';
         $args[] = '--osd-align-y=center';
