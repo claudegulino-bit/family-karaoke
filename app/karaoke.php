@@ -415,7 +415,7 @@ if (!$KAR_LOCAL) {
         </ul>
         <div><b style="color:#D2AD6C">4 · What it will ask you</b> — where your songs are kept, and at some point it may ask for your Mac password: the same one you use to log in. Type it and press Return. <b>Nothing appears on screen as you type it</b> — no characters, not even dots. That is normal.</div>
         <div><b style="color:#D2AD6C">5 · What you will see</b> — several minutes of text scrolling past. None of it needs reading. It has finished when the prompt comes back and you can type again.</div>
-        <div><b style="color:#D2AD6C">6 · Check it worked</b> — press <b>✅ Verify installation</b>, the button near the bottom of this card (<a href="#" onclick="var b=document.getElementById('kar-tools-btn'); if(b){b.scrollIntoView({block:'center'});} return false" style="color:#D2AD6C">take me to it</a>). It asks your Mac what is installed and reports back.</div>
+        <div><b style="color:#D2AD6C">6 · Check it worked</b> — click the button later in this card called <b>✅ Verify installation</b>. After a few seconds it tells you what is installed.</div>
         <div><b style="color:#D2AD6C">7 · Future software updates</b> — never go through Terminal. When there is a new release, you retrieve it from the master computer from inside Cantoria: open <b>📖 Guide</b>, choose <a href="#" onclick="karGuideOpen('update');return false" style="color:#D2AD6C"><b>Software updates</b></a>, and press <b>⬆︎ Cantoria Software Update</b>. It downloads and installs itself.</div>
           </div>
 <?php if (!$KAR_LOCAL): ?>
