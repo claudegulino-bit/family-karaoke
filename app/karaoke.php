@@ -140,6 +140,18 @@ if (!$KAR_LOCAL) {
      a bright ring in its own colour, which reads as selected on any background), lifts 2px,
      and grows a caret pointing down at the space it opened; every other tile dims. Exactly
      one tile is ever bright, so the answer is available without reading anything. */
+  /* A LABELLED GROUP on the header row (the owner, 2026-09-13). The first four controls are
+     one thing — they choose which list of songs you are looking at, and whose. Everything
+     else on that row plays or opens a panel. A caps label over them says so, in the same
+     form as the NOW PLAYING / KEY / TEMPO / PLAYBACK labels on the bar directly below, so
+     the two rows read as one design rather than two.
+     The row is bottom-aligned (align-items:flex-end) so the chips sit level with the search
+     box and the tiles, and the label lives in the space above them — his own suggestion, and
+     it is what makes the group look like a single object instead of four loose buttons. */
+  .kar-grp { display: inline-flex; flex-direction: column; gap: 5px; flex: 0 0 auto; }
+  .kar-grplbl { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+    color: #bfdbfe; background: rgba(96,165,250,.13); border: 1px solid rgba(96,165,250,.30);
+    border-radius: 7px; padding: 3px 9px; text-align: center; line-height: 1.3; }
   .kar-tile { transition: background .12s, border-color .12s, box-shadow .12s, transform .12s, opacity .12s; }
   .kar-tile-on { transform: translateY(-2px); }
   .kar-tile-on::after { content: ''; position: absolute; left: 50%; bottom: -20px; width: 0; height: 0;
@@ -174,12 +186,11 @@ if (!$KAR_LOCAL) {
   <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;flex-wrap:wrap">
     <div style="margin:0">
       <h1 style="margin:0;font-size:22px;font-weight:800;color:#f3f4f6;letter-spacing:.01em">🎤 Cantoria</h1>
-      <div style="color:#94a3b8;font-size:12px;margin-top:1px">Karaoke for any room</div>
     </div>
     <?php if ($KAR_LOCAL): ?>
     <span style="color:#64748b;font-size:12.5px">everything runs on this Mac — nothing to sign in to</span>
     <?php else: ?>
-    <span style="color:#64748b;font-size:12.5px">songs play in QMidi on the Mac · <a href="/app.php?view=people" style="color:#60A5FA;text-decoration:none">back to casAI</a></span>
+    <span style="color:#64748b;font-size:12.5px">songs play on the Mac · <a href="/app.php?view=people" style="color:#60A5FA;text-decoration:none">back to casAI</a></span>
     <?php endif; ?>
   </div>
   <?php
@@ -230,7 +241,10 @@ if (!$KAR_LOCAL) {
     <?php if ($_kj === null): ?>
     <p style="color:#94a3b8;font-size:13px">The karaoke song list hasn't been published to the server yet — ask Claude to run <code>karaoke_sync.py</code> and it will appear here.</p>
     <?php else: ?>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div class="kar-grp">
+        <div class="kar-grplbl">Songs and singers</div>
+        <div style="display:flex;gap:8px;align-items:center">
       <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8"><?= count($_kjDb) ?></span></button>
       <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1e293b;border:1.5px solid #60A5FA;color:#bfdbfe;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">🆕 New <span id="kar-new-count" style="font-weight:600;opacity:.8"><?= count($_kjNew) ?></span></button>
       <button type="button" id="kar-best-chip" class="kar-chip" onclick="karSwitch('best',this)" style="font-family:inherit;background:#1e293b;border:1.5px solid #60A5FA;color:#bfdbfe;cursor:pointer;font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px">⭐ Best of <span id="kar-best-name"><?= h($_kjWho !== '' ? $_kjWho : 'nobody yet') ?></span> <span id="kar-best-count" style="font-weight:600;opacity:.8"><?= $_kjWho !== '' ? count($_kjBestBy[$_kjWho]) : 0 ?></span></button>
@@ -241,6 +255,8 @@ if (!$KAR_LOCAL) {
         <option value="__add__">＋ Add a person…</option>
         <option value="__remove__">− Remove a person…</option>
       </select>
+        </div>
+      </div>
       <span style="position:relative;flex:1;min-width:260px;display:flex;align-items:center"><span style="position:absolute;left:13px;font-size:19px;line-height:1;pointer-events:none">🔍</span><input id="kar-search" type="text" placeholder="Search a song, an artist, a singer…" oninput="karRender()" onkeydown="if(event.key==='Escape'){karClearSearch(true);}" title="Type to filter the list. Esc clears it — switching views clears it too." style="font-family:inherit;width:100%;height:46px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:12px;color:#0f172a;font-size:15px;font-weight:600;padding:8px 14px 8px 42px;outline:none;box-shadow:0 0 0 3px rgba(210,173,108,.15)"></span>
       <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The singing queue — who sings next, in order" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#D2AD6C;border:1px solid #D2AD6C;color:#1a1305;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span id="kar-q-count" style="position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#0f1522;border:2px solid #D2AD6C;color:#f3d9a4;font-size:11px;font-weight:800;line-height:16px;text-align:center">0</span><span style="font-size:23px;line-height:1">🎤</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Singing Queue</span></button>
       <button type="button" onclick="karDlToggle()" id="kar-dl-btn" title="Search YouTube from here and download songs into the library" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">▶</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">YouTube Downloads</span></button>
