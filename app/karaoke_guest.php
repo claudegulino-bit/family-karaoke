@@ -386,7 +386,7 @@ $_db = $tokenOk ? kar_catalog() : [];
     for (var i = 0; i < G_DB.length && n < 40; i++) {
       if (G_DB[i].toLowerCase().indexOf(q) === -1) continue;
       n++;
-      out.push('<div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-top:1px solid #1e293b">'
+      out.push('<div style="display:flex;align-items:center;gap:8px;padding:9px 4px;border-top:1px solid #1e293b;cursor:pointer">'
         + '<span style="flex:1;color:#e2e8f0;font-size:13px">' + gEsc(G_DB[i].replace(/\.[a-z0-9]{2,4}$/i,'')) + '</span>'
         + '<button type="button" data-i="' + i + '" style="font-family:inherit;flex:0 0 auto;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:8px">Request</button>'
         + '</div>');
@@ -394,8 +394,16 @@ $_db = $tokenOk ? kar_catalog() : [];
     res.innerHTML = out.length ? out.join('') : '<p style="color:#64748b;font-size:12.5px">No songs match.</p>';
   }
   document.getElementById('g-results').addEventListener('click', function(ev){
+    // TAP ANYWHERE ON THE ROW, not only the small green button (the owner, 2026-09-13:
+    // "I click on one song and it doesn't do anything"). The YouTube results below already
+    // work that way, so the library results were the odd ones out - and on a phone the row
+    // is the obvious thing to hit.
     var b = ev.target.closest ? ev.target.closest('button') : null;
-    if (!b) return;
+    if (!b) {
+      var row = ev.target.closest ? ev.target.closest('div') : null;
+      b = row ? row.querySelector('button[data-i]') : null;
+    }
+    if (!b || b.disabled) return;
     var name = gWho();
     if (!name) { alert('Type your first name first, so the host knows who is singing!'); nameEl.focus(); return; }
     var song = G_DB[parseInt(b.getAttribute('data-i'), 10)];
