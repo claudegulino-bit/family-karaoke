@@ -600,13 +600,11 @@ if (!$KAR_LOCAL) {
     <div id="kar-yt-hint" style="display:none;margin-top:8px;background:rgba(210,173,108,.07);border:1px solid rgba(210,173,108,.25);border-radius:8px;padding:8px 14px;font-size:12.5px;color:#94a3b8"></div>
     <div id="kar-activity" style="display:none;margin-top:8px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.35);border-radius:8px;padding:8px 14px;font-size:12.5px;color:#e2e8f0;line-height:1.6"></div>
     <div id="kar-dl-panel" style="display:none;margin-top:10px;background:#20171d;border:1px solid rgba(239,68,68,.5);border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.55)">
-      <div style="font-size:11.5px;font-weight:800;color:#fca5a5;letter-spacing:.04em;margin:0 0 6px;padding-left:13px">ADD A SONG BY LINK</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+        <button type="button" onclick="karDlAdd()" id="kar-dl-add" title="Add the pasted YouTube link to the download list" style="font-family:inherit;background:#3f4757;border:1px solid #566072;color:#e2e8f0;cursor:pointer;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap;width:154px">Add a song by link</button>
         <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
-        <div class="kar-dlrt">
-  <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.45);color:#fca5a5;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
-        </div>
-        </div>
+        <div class="kar-dlrt"></div>
+      </div>
       <!-- The search box sits ON the header line rather than in a section of its own: the
            panel title and a "SEARCH YOUTUBE" label said the same thing twice and pushed the
            field down the page (the owner, 2026-09-12: "we don't need those two things, we only
@@ -614,7 +612,7 @@ if (!$KAR_LOCAL) {
            The page cannot run yt-dlp, so the Mac answers the search — the same machinery the
            guest page has had since 2026-09-08. -->
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-        <button type="button" onclick="karYtSearch()" id="kar-yt-btn" title="Search YouTube for a song" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap">▶ Search YouTube</button>
+        <button type="button" onclick="karYtSearch()" id="kar-yt-btn" title="Search YouTube for a song" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap;width:154px">▶ Search YouTube</button>
         <input id="kar-yt-q" type="text" placeholder="Type a singer or a song…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
         <div class="kar-dlrt">
           <button type="button" onclick="karDlClearClose()" title="Wipe the search results and close. To close WITHOUT wiping them, click the YouTube Downloads button above." style="font-family:inherit;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.55);color:#fca5a5;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">✕ Clear</button>
