@@ -374,7 +374,7 @@ if (!$KAR_LOCAL) {
         $_grp = '';
         foreach ($_karCards as [$_k, $_t, $_d, $_g]):
           if ($_g !== $_grp): $_grp = $_g; ?>
-        <div style="grid-column:1/-1;color:#D2AD6C;font-size:10.5px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;border-bottom:1px solid rgba(210,173,108,.30);padding-bottom:4px;margin:<?= $_grp === 'Setting up' ? '2px' : '10px' ?> 0 2px"><?= h($_grp) ?></div>
+        <div style="grid-column:1/-1;color:#8ea2bd;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-top:1px solid rgba(148,163,184,.22);padding-top:9px;margin:<?= $_grp === 'Setting up' ? '2px' : '14px' ?> 0 0"><?= h($_grp) ?></div>
         <?php endif; ?>
         <button type="button" id="kar-gc-<?= $_k ?>" onclick="karGuideOpen('<?= $_k ?>')" style="font-family:inherit;text-align:left;background:#1a2130;border:1px solid #334155;border-radius:9px;padding:11px 13px;cursor:pointer">
           <span style="display:block;color:#D2AD6C;font-size:13.5px;font-weight:800"><?= h($_t) ?></span>
