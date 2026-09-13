@@ -464,7 +464,7 @@ if (!$KAR_LOCAL) {
             <li><b>Choose a list.</b> The three boxes under <b>Songs and singers</b> select what the page shows: <b>🗂 Song Database</b> (everything), <b>🆕 New Songs</b> (added in the last 30 days) and <b>⭐ Best of</b> (one person's list — the dropdown chooses the person). The box outlined in gold is the list currently on screen.</li>
             <li><b>Search</b> — filters the list on screen by title, artist or singer's name. Esc clears it.</li>
             <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Best list renumbers it from 1.</li>
-            <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> toggles full screen and <b>Q</b> closes the player.</li>
+            <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> or a <b>double-click</b> switches full screen on and off; <b>Q</b> or the window's red <b>✕</b> closes the player.</li>
             <li><b>Pitch</b> — the key the song starts in. Use − and + to transpose by semitones. The value is saved.</li>
             <li><b>Reset</b> — plays the song once in its original key, then restores the saved pitch. Use it when another singer performs the song.</li>
             <li><b>⭐</b> adds the song to the Best list of the person named in the dropdown; clicking it again removes it.</li>
@@ -478,7 +478,7 @@ if (!$KAR_LOCAL) {
             <li><b>Key</b> and <b>Speed</b> take effect immediately, mid-song.</li>
             <li><b>The progress line</b> under the song name shows how far through it is — drag it to move within the song.</li>
             <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> pauses it where it is and becomes <b>▶ Resume</b>.</li>
-            <li><b>🎬 Lyrics Screen</b> hides the lyrics window or brings it back. It otherwise stays in front of the browser while a song plays. To end a song, close that window (<b>Q</b> on the Mac).</li>
+            <li><b>🎬 Lyrics Screen</b> hides the lyrics window or brings it back. It otherwise stays in front of the browser while a song plays. To end a song, close that window — <b>Q</b> or its red <b>✕</b> on the Mac.</li>
             <li>Changes made in the gold bar apply to the current performance only. A song's saved key is the <b>Pitch</b> value on its row.</li>
           </ul>
         </div>
