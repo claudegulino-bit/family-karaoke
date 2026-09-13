@@ -153,7 +153,12 @@ if (!$KAR_LOCAL) {
      the active signal, so making them uniform would have removed the only sign of which list
      is on screen. The ring takes that job instead - the same language as the header tiles, so
      "active" looks the same everywhere on this page. */
-  .kar-chip.kar-on { box-shadow: 0 0 0 2px #1A1F2C, 0 0 0 4px #93c5fd; }
+  /* The selected list LIGHTS UP rather than growing (the owner, 2026-09-13: "make it light
+     up without becoming a lot bigger"). A ring reads as size; a brighter fill and a soft
+     glow read as light, and neither changes the box by a single pixel. !important so it
+     beats the inline colours karSwitch writes on the rest state. */
+  .kar-chip.kar-on { background: #93c5fd !important; border-color: #dbeafe !important;
+    color: #0b2545 !important; box-shadow: 0 0 14px rgba(147,197,253,.55); }
   .kar-grp { display: inline-flex; flex-direction: column; gap: 10px; flex: 0 0 auto; }
   .kar-grplbl { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
     color: #bfdbfe; background: rgba(96,165,250,.13); border: 1px solid rgba(96,165,250,.30);
