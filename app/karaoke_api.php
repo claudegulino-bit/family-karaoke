@@ -409,7 +409,7 @@ try {
         // The fetching machine, not an archive: successes retire in 10 minutes (the song
         // lives under 🆕 New), failures stay 7 days because this is the ONLY place a
         // failure is ever visible.
-        $rows = $db->query("SELECT id, url, title, status, note, filename, requested_by FROM karaoke_downloads
+        $rows = $db->query("SELECT id, url, title, status, COALESCE(note,'') AS note, filename, requested_by FROM karaoke_downloads
             WHERE status IN ('Queued','Pending','Downloading')
                OR (status='Done'  AND COALESCE(done_at, requested_at) > datetime('now','localtime','-10 minutes'))
                OR (status='Error' AND COALESCE(done_at, requested_at) > datetime('now','localtime','-7 days')

@@ -894,10 +894,10 @@ function kar_have_matches(string $title): array {
         array_slice($scored, 0, 2));
 }
 
-function kar_yt_search(string $query, int $limit = 6): array {
+function kar_yt_search(string $query, int $limit = 12): array {
     $q = trim(preg_replace('/\s+/u', ' ', $query));
     if ($q === '') return [];
-    $limit = max(1, min(10, $limit));
+    $limit = max(1, min(20, $limit));   // 12 by default — six was too few in practice
     $cfg = kar_cfg();
     $cookies = !empty($cfg['browser_cookies'])
         ? ' --cookies-from-browser ' . escapeshellarg((string)$cfg['browser_cookies']) : '';

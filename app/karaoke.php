@@ -86,6 +86,13 @@ if (!$KAR_LOCAL) {
   * { box-sizing: border-box; }
   body { margin:0; background:#1A1F2C; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
   .kar-wrap { max-width:1660px; margin:0 auto; padding:18px 26px 26px; }
+  /* fixed right-hand column of the YouTube panel — keeps every field ending on one line */
+  .kar-dlrt { flex:0 0 350px; display:flex; gap:10px; align-items:center; justify-content:flex-start; }
+  /* help icon, inlined so both editions carry it with no extra file to ship */
+  /* big enough that the word inside the icon is legible (the owner, 2026-09-12) */
+  .kar-helpico-tile { width:26px !important; height:24px !important; margin:0 !important; vertical-align:middle !important; }
+  .kar-helpico { display:inline-block; width:20px; height:18px; vertical-align:-4px; margin-right:5px;
+    background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAsCAYAAAAjFjtnAAABS2lDQ1BJQ0MgUHJvZmlsZQAAeJx9kD9LQmEUhx/LiEqiQaihwdoCC7maS5NZROCg3qI/2/VqGqi93HujggaXvkH0EaIhGnOooY8QBAVNza2BS8ntXK20os7h8Hv4vee8HA70BAylyn6gUnWs7NJ8aH1jM9T/zAABgkSYMExbJdLplLTwqd+jcY/P07tp76/f7//GYL5gm6JvUjFTWQ74IsLpPUd5XBMOWrKU8LHHxTafeZxr83WrZyWbFL4VHjFLRl74STic6/KLXVwp75ofO3jbBwrVVV10TGqcBRZJSYbQiaJJzpJB/2Mm1ppJsoPiAIttipRwZDohjqJMQXiZKiYzhIU1uaxG3Lv1zxt2vNo5zGUEjjqefgiX+zBqd7zJCxiOw1VMGZbxdVlfw29vRbU2D9Wh78R1X9agfwqaD677Wnfd5in0PsJN4x35/Vu7WGvwfwAADqpJREFUeNq1mXuQHVWdxz/n9PO+70xmMnmRBJLIS0ISIg9jQMgCIlpsVihZw1YpIg9ZXChZZcEqWdhC1lJrtXis5daytavrltSKiAsKWC4b5BFNICQgRMIjJDNJ5j339r19u/ucs3/0nZ6Z5E4g69r/TM/pvn1+z+/v+/sdsWX7fpNzE7QRCMHUZabdd1oXAjBobcAYbNvGtm1cz8OybMSMj4HWmiSJieOIOIpRWiOEwJKy/UnTeU/DzEtMfg+iWGPnvYQ5JYXSouOLnZQRkAng+z65XB7P9bAdh3e9jCaKYprNBq2oRSsMEUIipOi83xGUGa7Z2MYIlBYoM1PmQ182gEBgtEZrTbFYolgs4nle5jltYO/AOHv6JxgcDmiGCVIKykWPeXOLLFlQYU5XDtfzcD0PpQxBUKfRCGi1WkgpZ1G6w5IRGGOw083NISY//BKA1grXdSmVSuTzBWTbai++sp9H//t1nn9hL3v6J6gFLZJEZ58VQuA5Fl3VHMcvm8O5Zy7lI+csp6+nQLlcolAsUq9NMDY2NrsSs2gldr66z1QLCcqIWVUQQpAkCeVymXKlgm1ZAGzZvo9//MFWntn6DmGY4Ps2vmdjWRKMmTKLEGAMcaJphDFxrJnXW2TjhSdw1eWr6enKYwwEQZ3R0dH3Jr6B0br13hRQSlGtVqlUqggBjWbM17/7DP/+8A6U0pRLPpYUNJoxzTDGALYtsS2JMRAnCqUMti0p5Bw81yJsJUzUWxyzoMIt132Ij523AoAwDBkeHkYpdRgQdFRgx+/2me6SQunOlldKUalUMuH39I/zhdt/zradA3RXc9iWZLzWQmvNsiXdfODUhZxy/FyOmV+mWHBRyjAy3mT32yNs2znA1p0DDA43KBVccr5D0IhohDHXblrLLdetayvRYnDw4Lv4QDBSk0dWwBhDPp9nzpwehIA39ozy6ZsfZt/+CbqrOcJWQj2IOGP1Ij596SrOPmMxef/ISLRvf42HHn+VH/xkB/sH63RXfLSBweGATRtXcveXNiAEBEHA0NDQEXLiPSgA0Nc3D8dxGBptcPkN/8nbe8foqvjUggjPtbn56rO44k9XZkgUJxpbipmwCCil0YBjpQINDNa5+/5f8/Djr1It+1hScmCoznV/sZbbrl+PASbGxxkbG8OyLIwxHRWwrr/hi7f7jkYzlQNCCLTWlMtlcvkCGJOFzZyuPBP1iN7uPP/09x/ngvXLMMagtEFKgSVTSN5fS+gfjxlrKgxQ8CystlJRoqmWPC46Zzmua/OrZ9/CdSyKeZfNW/aw9JgqJy7rwfP8tPDF8WH5YAyEkcTuZHWtNb7vU65UkAK+//BOntj8Bn09BYJGRLXs8cA3LmHF0m6iWOM6Eolge3+DH28f5Td7AoaDBKUNAnBtyTFdLue9r8zGlV30FmxUu4J//oq12Lbkrns2013NUSp63HXP05y5ahHzegvkcgUajeasCW19/i+/eLvvakzbA5PWLxZL+J7PyFiDm+58PGMPrUhx/99dzKqT5hEnqfCjTcWdv+jn608OELQ0564oc8XaOWxa28NHT65y0rwcE6HipztG+dELI+Q9i5UL8kgpSBLNB1YuYP9gwG9e6qda8jk4HBBGig3rjsV2HJI4Io6Tw5QII4ltTCq0MFOJ6zguhWIRIeA/fvYy+/ZP0NdTYHC4wVV/voZ1a48hSjSOLdk1GHLjj/dQCxV3XLyIS95fzcrMcJBgW4I1i/L82couxkPFvZsPcMdj+9g50OS28+fjWgKtDbdev57nXtjLwaGAatnnkSdf43OXr2bpoiqu59NoNJFSZrkwqYx9aOgYY/D9HJYUtKKER57cRSHvELYS5s0tct2mtRhjkCL12G/fCci7kgc2HUdf0eap3TX+bcsQrx0MiVQaQiXf4qylRa5e18ut5y9g1aIC920+wEhDsbDiECeactHlmk1rueXuJ5mbdzg43OAnj7/GjVeeQT5XIKjXiaIIKeUMT2SFLFGGQqGA7+ewbQfHsfntjgGuuPEhyiWPoZEGn7t8DV+5YT1K6bTatpNJCGjGmjt+0c9Pd4xy1rFFzj++wpJul1gZXh5o8l8vj9E/EXPr+Qv4xKldJNpgt5N6EmCCZsTFn/khQ6MNVKI5YXkPD953GUJAkiS0wpBWK6TZbCKlxUhtMoSkZE61i0KxMKMab9s5QCtKAA/PtbjwnGXpZtMsYNrZ8z+7azzx6jjf2riYC0+ozIjV9ceVuPLMXr71q/1899cHOf/4MmXfypQXImW3xbzL+tMX8/2HXqKr4rP77VGGRxvM6y1iWy6+56JNifGxMcbHJwCJ2P7KO2bZ4gqFQgmAZ7ft5ann3yaKFc9t28tbe8cQQjCnO8ejD3yKYt5Fa4OQaQjptvViZai1FD0FG21I35nGUh0r/WcoSLJ3Js2gMRhlsGzJI0/u4gu3P0Z3JS2U55y5hPlzS/R05bnkguNZ2JfKOTw8wtv9AXahUMiE/86/bOGb33s22zjnO/ieTS1osaivTDHvAmQsFGDy1rMFnm1na9Kaeseaht09BXvG79LnAux04bjFVXK+g9Iax5E8sfkNEqVR2vDAgy/y3a99jDUnz6NcrmAfbGHn/HybEh/g2//8PNWyh9UmYZPdllaGasVPK+hEzO2P7eOzZ/Vy+uICt/98HwsqLlef1ctXHt3LUD3BGBhrKi5d1cWZS4t89bF93HbBApbN8VAmFf7uJwd4c7hFrAzHzfG4Zl0vc4sO5aKP79kkSUrmigW33bkJhkcb3Pmdp/jRvZdh2RLP95GizTW2bN9H0k7OJNEolSISgja7TO3YiDRP765xoBYDsHVPwKsHQgCeeaPORKg4aX6O98/PMa/sMBQkPL27xniYzGiufvN2wGA9ZtXCPI++PMadP+9PYdGWWFJk+aG1QSlNFCtKRZfde0bpP1BDCoEUYgpGk0SnKWmOzAGlgKIns5guuJKck95bEj68vMzVH+zN3t+yJ6CSsyc7p0wJS8L75+f5q3P66Mpb3Lf5IPXE4FoCcwQKbYA4Vlmtea/tz0yqYWbeazO1QTPWGKCVmGxdaXOYUNN/F7Q0UoAlZhd+Js2fZtCjFV4ZQ9GzuOepA1z2wOu8MxrhtROw6Fk89soYH7n/NR59ZRwpUuE7NYN5R7LtnQY3PbSH7z1zkItPrpKzUqInjkIe+2gVkAIipTl7cYkT+3I88NxgJmSkDMt6fNYuLrC812u/LzKhzbTuW5s0FI/r8Th3xSIuOrEygyL80RQQCFqx4dwVZT68vMRPXholbvcSrVhz6oI8nzmj5zB3W+1xzCS6hrFm9aI8N6zvm9mkH6U89vTu670qb1uCRqTbljeZULYlCCJFI9bEylB0JUKQ8qrE0EoMyoBvC2xLEKu0j1AmpRVSHM084hAFFs0vo1S6mdYzE2Z64dIGxpsJyhgsKai3NI22C7SBB7eP8Mvf1xiqx1z1wbRWBC3F3zyyF8cSBJHmmxsXo7ShHqu0yTEcYSJCFoqx0hRyLj1d+cxbtlYJ4LBh3bGsPnkeW3cO0FX2Uy1NClTNZpxtMLdo8+1Ll3LK/BwAt16wgKKX1oivXrSQZqTb+aBZ0eszr+zwD59YgkwnKyTacGy3y19vmE/elVN50gG/dbuICiGItWZ4rMnnrl9DteynnlMK8fpbI2bZkgog6T9Y4657n+aFnftRWiPbsOZ7Nnd/eQOnr1qImKww/89XGsKCgYN1Pv7ZH9IME/I5G8ex0NpQyDlc+tGTuGbTaUghaIYtfv/mCHYYNqnXJYVCmQVzS9zztxcxXmsRxwopBdoYykUP17Eynyrd7gdEaiVI41eZmQNaKdLM1YdAqWxX2kM5UcaNLEktiLhm0xqu2LiSOFJ0VXOZDEmS0Gw00hzQxtAIGiglyOVy2LZNpeQd9tFEKYzWOI6TNefTYTJFGtExmK0OUr6bE40xFPMu3ZXclAyJIk5iwmaDRrOJMQJbkA6vGs0GcRzhOA5CyA7TuQStNZVKBdu2/wghlOLL6ERIoxlhW4JC3sUYQytKaIWNdPqhFGEYohIFtCmK1hqVxGil0FrPGp+T441KpYJlWR2mGeYwuj3DCO3Ri5jlmWNLnnruLepBRD7vcuLynnQuG0eEYZi1vUqpbOBlT3ep1powDDtWw8lmOgiClDYUi7iue1hsH+maDKXpOWEA0xZ+7/4a//rjl5CW5H3HzuGk5b0pciUxrVYLIURmzEl57AxQDUcs5dPXgyDIZke+72NZFkIIXt41yDe+9wxjE612oppp023NmWsW8uVr1h2uqBTsenOYm+74BeMTIVoZrt10GrYtSRKVWb+TbGlPzNHD4nSXlkplwlbCzXc9wUu/O0Cp6B6GPEIInn9xL5aU/MmHjiNJNFIKRsebPLN1Lz/75S7qjYh60OLqT53GhWen/XerFZIkyQyrT1fmXWej73YVikW6u7oYOFjnY5/9YSqY6HioggDCSE13OEmiiGKNJQWWJbnyk6u55dp17Wcxw8PDRFHUwfrpbNQWIp0smKP0w+TofSrp21zKGIwQHRsjIQVGG+Jp1rIsSV9PjlNO6OMzl53Kh9YuzrA+CIIs5mfLSXu2M6j3jn/pn0rZp1z0eP2tEUoFN5uLThd+dDzkqk+u5twPHkuSpEhSyDssWVhhwdxSBqdR1KLRaBCGYcfB7h9Epw+F1iSJ0dqQ9x3u+tIG7r7vaepBlI7XjZmq3onm4vPex1duOBvPtTryniROaLVSocNwKvaPGAl/aA5IKenq6iKfz2drzTBByJmeFUJkgsexIo6jzBDGpNieJEmG853jfqbjR2tW6oFDKMy7HRMfdn42Pj6OMeC6LrZjk/PtWQtZEqdnxHEcZ4d/k1U4jpNsPivaRFLM1guY9nBXSrCkAS34P6ApIDA6IaiPE3selrRm/U56xmyIkziLbWPasyeT5owUszC8ztwDu9YAjI0yR+8BM23NGI3jKqQ0dIag9JB8aiwiZ1jy0Ggxs3h8ugcMkv8FqbVkC4eY7A4AAAAASUVORK5CYII=) no-repeat center/contain; }
   code { background:#121620; padding:1px 5px; border-radius:4px; }
   /* Pitch stepper: real − / + buttons either side of the number, big enough to
      hit easily (the owner, 2026-09-06: "make the field wider, and the arrows could
@@ -221,7 +228,7 @@ if (!$KAR_LOCAL) {
       <button type="button" onclick="karDlToggle()" id="kar-dl-btn" title="Search YouTube from here and download songs into the library" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">▶</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">YouTube Downloads</span></button>
       <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#a855f7;border:1px solid #a855f7;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">📱</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Guest QR</span></button>
       <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">📖</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Guide</span></button>
-      <button type="button" onclick="location.reload()" title="Refresh — reload the song lists from the server" style="appearance:none;-webkit-appearance:none;font-family:inherit;margin-left:auto;background:#0ea5e9;border:1px solid #0ea5e9;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;padding:0"><span style="font-size:30px;line-height:1">🔄</span></button>
+      <button type="button" onclick="location.reload()" title="Refresh — reload the song lists from the server" style="appearance:none;-webkit-appearance:none;font-family:inherit;margin-left:auto;background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.08) 47%,rgba(255,255,255,0) 48%),linear-gradient(180deg,#5b6676 0%,#232c3a 100%);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 6px rgba(0,0,0,.28),0 5px 12px rgba(0,0,0,.45),0 2px 3px rgba(0,0,0,.35);color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;padding:0;flex-direction:column;gap:0"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))"><path d="M20.5 12a8.5 8.5 0 1 1-2.49-6.01"/><path d="M20.5 4v5.5h-5.5"/></svg><span style="font-size:8.5px;font-weight:800;letter-spacing:.01em;line-height:1;text-shadow:0 1px 1px rgba(0,0,0,.45)">REFRESH</span></button>
     </div>
     <div id="kar-now-bar" style="position:sticky;top:8px;z-index:40;margin-top:10px;background:#28241a;border:1px solid rgba(210,173,108,.45);border-radius:10px;padding:9px 6px 9px 16px;box-shadow:0 4px 16px rgba(0,0,0,.45)">
       <!-- Four labelled sections, divided by a rule, so the eye can find "the key" or "the
@@ -423,11 +430,13 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-downloads" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">YouTube Downloads</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#93c5fd">1 · Find the song</b> — enter an artist or title in <b>Search YouTube</b> and press <b>Search</b>. Results show the duration and flag possible duplicates. <b>▶ Watch</b> opens a result on YouTube, <b>📋 Copy link</b> copies its address, and <b>+ Add to list</b> places it in the download list below the results.</div>
-        <div><b style="color:#93c5fd">Or paste a link</b> — for a video found on YouTube itself (<b>open YouTube ↗</b> beside the box), copy its link, paste it into the box and press <b>+ Add to list</b>.</div>
-        <div><b style="color:#93c5fd">2 · Download</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. Songs download one at a time, typically a minute or two each. The panel can be closed meanwhile.</div>
-        <div><b style="color:#93c5fd">3 · Result</b> — a downloaded song leaves this panel and is listed under <b style="color:#c084fc">🆕 New</b> for 30 days. A <b style="color:#f87171">failed</b> download remains here with the reason.</div>
-        <div><b style="color:#93c5fd">Guest requests</b> — songs requested from guests' phones appear here under the guest's name and download automatically.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#fca5a5">1 · Search</b> — enter an artist or a title and press <b style="color:#fca5a5">▶ Search YouTube</b>. Twelve results are returned, each with its duration, its channel, and a warning where the song already exists in your library.</div>
+        <div><b style="color:#fca5a5">2 · Choose</b> — <b>▶ Watch</b> opens the video on YouTube in a new tab. <b style="color:#f3d9a4">📋 Copy link</b> copies its address. <b style="color:#fca5a5">+ Add to list</b> queues it for download. The row you open or copy stays marked, so it remains identifiable when you return from YouTube; a row already queued is marked in green.</div>
+        <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b style="color:#fca5a5">+ Add to list</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
+        <div><b style="color:#fca5a5">3 · Download</b> — press <b style="color:#6ee7b7">⬇ Download the list</b>. Songs are fetched one at a time, typically a minute or two each; the panel may be closed while this runs. <b>Clear the list</b> discards anything still queued.</div>
+        <div><b style="color:#fca5a5">4 · Result</b> — a completed song leaves this panel and is listed under <b style="color:#c084fc">🆕 New</b> for 30 days. A <b style="color:#f87171">failed</b> download remains here, in red, with the reason.</div>
+        <div><b style="color:#fca5a5">Closing the panel</b> — the <b>YouTube Downloads</b> button closes it and keeps the search results. <b style="color:#fca5a5">✕ Clear</b> discards the search results and closes.</div>
+        <div><b style="color:#fca5a5">Guest requests</b> — songs requested from guests’ phones appear here under the guest’s name and download automatically.</div>
           </div>
         </div>
 
@@ -590,11 +599,21 @@ if (!$KAR_LOCAL) {
     </div>
     <div id="kar-yt-hint" style="display:none;margin-top:8px;background:rgba(210,173,108,.07);border:1px solid rgba(210,173,108,.25);border-radius:8px;padding:8px 14px;font-size:12.5px;color:#94a3b8"></div>
     <div id="kar-activity" style="display:none;margin-top:8px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.35);border-radius:8px;padding:8px 14px;font-size:12.5px;color:#e2e8f0;line-height:1.6"></div>
-    <div id="kar-dl-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:14px 16px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-        <span style="font-size:13.5px;font-weight:800;color:#f3f4f6">▶ YouTube Downloads</span>
-        <button type="button" id="kar-helpbtn-dl" onclick="karHelpToggle('dl')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">? How it works</button>
-        <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
+    <div id="kar-dl-panel" style="display:none;margin-top:10px;background:#20171d;border:1px solid rgba(239,68,68,.5);border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.55)">
+      <!-- The search box sits ON the header line rather than in a section of its own: the
+           panel title and a "SEARCH YOUTUBE" label said the same thing twice and pushed the
+           field down the page (the owner, 2026-09-12: "we don't need those two things, we only
+           need one... move that up as much as possible so we don't waste any space").
+           The page cannot run yt-dlp, so the Mac answers the search — the same machinery the
+           guest page has had since 2026-09-08. -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <button type="button" onclick="karYtSearch()" id="kar-yt-btn" title="Search YouTube for a song" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap">▶ Search YouTube</button>
+        <input id="kar-yt-q" type="text" placeholder="Type a singer or a song…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+        <div class="kar-dlrt">
+          <button type="button" onclick="karDlClearClose()" title="Wipe the search results and close. To close WITHOUT wiping them, click the YouTube Downloads button above." style="font-family:inherit;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.55);color:#fca5a5;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">✕ Clear</button>
+          <a href="https://www.youtube.com" target="_blank" rel="noopener" onclick="karYtHint()" title="Browse YouTube itself in a new tab; copy a link and paste it here" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;padding:7px 13px;border-radius:8px;white-space:nowrap">▶ open YouTube ↗</a>
+          <button type="button" id="kar-helpbtn-dl" onclick="karHelpToggle('dl')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;appearance:none;-webkit-appearance:none;font-family:inherit;background:#374151;border:1px solid #4b5563;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px"><span class="kar-helpico kar-helpico-tile"></span><span class="kar-helplbl" style="font-size:10.5px;font-weight:800;line-height:1.15">Help</span></button>
+        </div>
       </div>
       <!-- Instructions live in their own block, opened by the ? button, instead of as small
            grey print always on screen (the owner, 2026-09-07: "I see a lot of explanation...
@@ -603,30 +622,27 @@ if (!$KAR_LOCAL) {
       <div id="kar-help-dl" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('dl')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
 
       </div>
-      <div style="font-size:11.5px;font-weight:800;color:#f87171;letter-spacing:.04em;margin:0 0 6px">SEARCH YOUTUBE</div>
-      <!-- Search YouTube from here. The page cannot run yt-dlp, so the Mac answers it —
-           the same machinery the guest page has had since 2026-09-08. This is what
-           retires the ▶ YouTube round trip as the only way to find a song. -->
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-        <input id="kar-yt-q" type="text" placeholder="Search YouTube — type a singer or a song…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
-        <button type="button" onclick="karYtSearch()" id="kar-yt-btn" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 16px;border-radius:8px">Search</button>
-      </div>
-      <div id="kar-yt-res"></div>
-      <div style="border-top:1px solid #1e293b;margin:12px 0 10px"></div>
-      <div style="font-size:11.5px;font-weight:800;color:#93c5fd;letter-spacing:.04em;margin:0 0 6px">DOWNLOAD LIST</div>
+      <div style="font-size:11.5px;font-weight:800;color:#fca5a5;letter-spacing:.04em;margin:0 0 6px">ADD A SONG BY LINK</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
-        <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(96,165,250,.10);border:1px solid #334155;color:#93c5fd;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
-        <a href="https://www.youtube.com" target="_blank" rel="noopener" onclick="karYtHint()" title="Browse YouTube itself in a new tab; copy a link and paste it here" style="font-family:inherit;color:#94a3b8;font-size:12px;text-decoration:none;border:1px solid #334155;padding:7px 11px;border-radius:8px">open YouTube ↗</a>
-        <button type="button" onclick="karDlStart()" id="kar-dl-start" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">⬇ Download the list</button>
-        <button type="button" onclick="karDlClear()" title="Empties the whole list at once — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">Clear the list</button>
+        <div class="kar-dlrt">
+  <button type="button" onclick="karDlAdd()" style="font-family:inherit;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.45);color:#fca5a5;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">+ Add to list</button>
+        </div>
+        </div>
+      <div style="border-top:1px solid #1e293b;margin:12px 0 10px"></div>
+      <div id="kar-yt-res"></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:15px 0 6px">
+        <button type="button" onclick="karDlStart()" id="kar-dl-start" title="Download everything in the list below" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap">⬇ Download the list</button>
       </div>
-      <div id="kar-dl-list" style="margin-top:8px"></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div id="kar-dl-list" style="flex:1;min-width:0;border:1px solid rgba(239,68,68,.28);border-radius:9px;background:rgba(0,0,0,.22);padding:8px 10px;min-height:84px"></div>
+        <div class="kar-dlrt"><button type="button" onclick="karDlClear()" title="Empties the whole list at once — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">Clear the list</button></div>
+      </div>
     </div>
     <div id="kar-q-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <span style="font-size:13.5px;font-weight:800;color:#D2AD6C">🎶 Singing Queue</span>
-        <button type="button" id="kar-helpbtn-q" onclick="karHelpToggle('q')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">? How it works</button>
+        <button type="button" id="kar-helpbtn-q" onclick="karHelpToggle('q')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px"><span class="kar-helpico"></span><span class="kar-helplbl">Help</span></button>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
       </div>
       <div id="kar-help-q" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('q')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
@@ -650,7 +666,7 @@ if (!$KAR_LOCAL) {
     <div id="kar-qr-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(192,132,252,.4);border-radius:10px;padding:16px 18px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <span style="font-size:13.5px;font-weight:800;color:#c084fc">📱 Guest QR</span>
-        <button type="button" id="kar-helpbtn-qr" onclick="karHelpToggle('qr')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">? How it works</button>
+        <button type="button" id="kar-helpbtn-qr" onclick="karHelpToggle('qr')" title="Show or hide how this panel works — your choice is remembered on this computer" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px"><span class="kar-helpico"></span><span class="kar-helplbl">Help</span></button>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
       </div>
       <!-- The big "scan this" line below stays in the panel body on purpose: it is aimed at
@@ -1634,7 +1650,9 @@ if (!$KAR_LOCAL) {
       if (btn) {
         btn.style.color       = on ? '#D2AD6C' : '#94a3b8';
         btn.style.borderColor = on ? '#D2AD6C' : '#334155';
-        btn.textContent       = on ? '? Hide this' : '? How it works';
+        var lbl               = btn.querySelector('.kar-helplbl');
+        if (lbl) lbl.textContent = on ? 'Hide' : 'Help';
+        else btn.textContent  = on ? '? Hide' : '? Help';
       }
     }
     // Put the card where the SONGS start, not under the header. Measured live because the
@@ -1814,11 +1832,15 @@ function karPickFolder(){
       });
       if (karDlTimer) { clearTimeout(karDlTimer); karDlTimer = null; }
     }
-    // Esc closes whatever panel is open — as long as you're not typing in a box.
+    // Esc closes whatever panel is open. The guard protects boxes where losing what you
+    // typed would hurt — but NOT the YouTube panel's own two boxes: opening that panel puts
+    // the cursor straight in the search field, so the old blanket guard meant Esc could
+    // never close it at all, and a half-typed query is nothing to protect.
+    var KAR_ESC_OK = { 'kar-yt-q': 1, 'kar-dl-url': 1 };
     document.addEventListener('keydown', function(ev){
       if (ev.key !== 'Escape') return;
-      var t = ev.target && ev.target.tagName;
-      if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+      var el = ev.target, t = el && el.tagName;
+      if ((t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') && !KAR_ESC_OK[el.id]) return;
       karPanelClose();
     });
     function karPanelShow(id){
@@ -1830,7 +1852,12 @@ function karPickFolder(){
       return true;
     }
     function karGuideToggle(){ karPanelShow('kar-guide-panel'); }
-    function karDlToggle(){ if (karPanelShow('kar-dl-panel')) karDlRefresh(); }
+    function karDlToggle(){
+      if (!karPanelShow('kar-dl-panel')) return;
+      karDlRefresh();
+      var q = document.getElementById('kar-yt-q');
+      if (q) { q.focus(); q.select(); }
+    }
     function karDlStatusStyle(st){
       if (st === 'Done') return 'color:#10B981';
       if (st === 'Error') return 'color:#EF4444';
@@ -1846,7 +1873,11 @@ function karPickFolder(){
         // 10 minutes, and the old wording ("Nothing in the list yet") read as a failure
         // (the owner, 2026-09-07: "he didn't download it... the link disappeared" — it had in
         // fact downloaded fine 20 seconds after he pasted it).
-        el.innerHTML = '<p style="color:#64748b;font-size:12.5px;margin:4px 0 0">The list is empty. Add songs from the search above, or paste a link.</p>';
+        var ghost = '<div style="display:flex;gap:10px;align-items:center;padding:8px 4px;opacity:.3">'
+          + '<span style="flex:0 0 106px;height:9px;border-radius:4px;background:#475569"></span>'
+          + '<span style="flex:1;height:9px;border-radius:4px;background:#334155"></span></div>';
+        el.innerHTML = ghost + ghost
+          + '<p style="color:#64748b;font-size:12px;margin:6px 0 0;text-align:center">Songs you add will be listed here.</p>';
         karDlHasSeen = true;
         return;
       }
@@ -1854,9 +1885,10 @@ function karPickFolder(){
         var name = r.title ? karEsc(r.title) : '<span style="color:#64748b">looking up the title…</span>';
         if (r.requested_by) { name += ' <span style="font-size:11px;color:#c084fc;font-weight:700">· requested by ' + karEsc(r.requested_by) + '</span>'; }
         // A failure's reason is the whole point of the row — show it in red, not grey.
+        var rnote = r.note || '';   // NULL when the song had no duplicate — never dereference it raw
         var noteCol = r.status === 'Error' ? '#f87171'
-          : ((r.note.indexOf('already') !== -1 || r.note.indexOf('own') !== -1) ? '#D2AD6C' : '#64748b');
-        var note = r.note ? '<div style="font-size:11px;color:' + noteCol + ';margin-top:1px">' + karEsc(r.note) + '</div>' : '';
+          : ((rnote.indexOf('already') !== -1 || rnote.indexOf('own') !== -1) ? '#D2AD6C' : '#64748b');
+        var note = rnote ? '<div style="font-size:11px;color:' + noteCol + ';margin-top:1px">' + karEsc(rnote) + '</div>' : '';
         var canRemove = (r.status === 'Queued' || r.status === 'Error');
         var fresh = !karDlSeen[r.id] && karDlHasSeen; karDlSeen[r.id] = 1;
         return '<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 6px;border-bottom:1px solid #1e293b;border-radius:6px;transition:background 1.8s' + (fresh ? ';background:rgba(96,165,250,.22)' : '') + '" ' + (fresh ? 'data-fresh="1"' : '') + '>'
@@ -1918,6 +1950,7 @@ function karPickFolder(){
     function karYtSearch(){
       var inp = document.getElementById('kar-yt-q'), q = inp.value.trim();
       if (!q) { inp.focus(); return; }
+      KAR_YT_Q = q;
       var btn = document.getElementById('kar-yt-btn'), res = document.getElementById('kar-yt-res');
       btn.disabled = true; btn.textContent = 'Searching…';
       res.innerHTML = '<div style="color:#D2AD6C;font-size:12.5px;padding:6px 2px">Looking on YouTube…</div>';
@@ -1941,12 +1974,54 @@ function karPickFolder(){
         }, 1200);
       }).catch(function(){ karYtDone(); res.innerHTML = '<div style="color:#f87171;font-size:12.5px;padding:6px 2px">Network hiccup — try again.</div>'; });
     }
-    function karYtDone(){ var b = document.getElementById('kar-yt-btn'); b.disabled = false; b.textContent = 'Search'; }
+    function karYtDone(){ var b = document.getElementById('kar-yt-btn'); b.disabled = false; b.textContent = '▶ Search YouTube'; }
 
+    // Coming back from YouTube, six near-identical results look the same and he cannot tell
+    // which one he just watched (the owner, 2026-09-12: "if I don't remember which one I
+    // watched, it'll be a problem"). So the row he opened or copied stays marked, and a row
+    // already in the download list keeps a stronger, permanent mark of its own.
+    var KAR_YT_OPENED = -1;
+    var KAR_YT_Q = '';
+    function karYtRowMark(row, state){
+      var tag = row.querySelector('.kar-ytmark');
+      if (state === 'added'){
+        row.style.background = 'rgba(22,163,74,.13)';
+        row.style.borderLeftColor = '#16a34a';
+        if (tag){ tag.textContent = '✓ already in the download list'; tag.style.color = '#6ee7b7'; tag.style.display = ''; }
+      } else if (state === 'open'){
+        row.style.background = 'rgba(239,68,68,.12)';
+        row.style.borderLeftColor = '#EF4444';
+        if (tag){ tag.textContent = '← this is the one you opened'; tag.style.color = '#fca5a5'; tag.style.display = ''; }
+      } else {
+        row.style.background = '';
+        row.style.borderLeftColor = 'transparent';
+        if (tag){ tag.style.display = 'none'; }
+      }
+    }
+    // The panel's own button is the only thing that wipes the search. Every other way out
+    // — the tile, Esc, opening another panel — is a plain close and leaves it as it was.
+    function karDlClearClose(){ karYtClear(false); karPanelClose(); }
+    function karYtClear(refocus){
+      KAR_YT_HITS = []; KAR_YT_OPENED = -1; KAR_YT_Q = '';
+      var r = document.getElementById('kar-yt-res'); if (r) r.innerHTML = '';
+      var q = document.getElementById('kar-yt-q');
+      if (q) { q.value = ''; if (refocus !== false) q.focus(); }
+    }
+    function karYtTouch(i){
+      KAR_YT_OPENED = i;
+      for (var j = 0; j < KAR_YT_HITS.length; j++){
+        var row = document.getElementById('kar-ytrow-' + j);
+        if (!row) continue;
+        if (row.dataset.added === '1') continue;   // "added" is the stronger state — leave it
+        karYtRowMark(row, j === i ? 'open' : '');
+      }
+    }
     function karYtRender(){
       var res = document.getElementById('kar-yt-res');
+      KAR_YT_OPENED = -1;
       if (!KAR_YT_HITS.length) { res.innerHTML = '<div style="color:#94a3b8;font-size:12.5px;padding:6px 2px">Nothing found — try the singer\'s name, or fewer words.</div>'; return; }
-      var out = ['<div style="color:#94a3b8;font-size:12px;padding:2px 2px 6px"><b style="color:#e2e8f0">▶ Watch</b> opens the video on YouTube · <b style="color:#f3d9a4">📋 Copy link</b> copies its address · <b style="color:#93c5fd">+ Add to list</b> places it in the download list below.</div>'];
+      var out = ['<div style="display:flex;align-items:center;gap:8px;padding:4px 2px 2px"><span style="color:#fca5a5;font-size:12px;font-weight:800">' + KAR_YT_HITS.length + ' results for \u201c' + karEsc(KAR_YT_Q) + '\u201d</span></div>',
+        '<div style="color:#94a3b8;font-size:12px;padding:2px 2px 6px"><b style="color:#e2e8f0">▶ Watch</b> opens the video on YouTube · <b style="color:#f3d9a4">📋 Copy link</b> copies its address · <b style="color:#fca5a5">+ Add to list</b> queues it for download.</div>'];
       for (var i = 0; i < KAR_YT_HITS.length; i++) {
         var h = KAR_YT_HITS[i];
         // A duplicate is a WARNING, never a refusal — he keeps several versions of a song
@@ -1954,15 +2029,17 @@ function karPickFolder(){
         var dup = (h.have && h.have.length)
           ? '<div style="color:#D2AD6C;font-size:11.5px;margin-top:2px">⚠ you may already have this — ' + karEsc(h.have[0].label) + '</div>'
           : '';
-        out.push('<div style="display:flex;gap:10px;align-items:center;padding:7px 2px;border-top:1px solid #1e293b">'
+        out.push('<div id="kar-ytrow-' + i + '" style="display:flex;gap:10px;align-items:center;padding:7px 0 7px 7px;border-top:1px solid #1e293b;border-left:3px solid transparent;border-radius:0 6px 6px 0">'
           + '<img src="' + karEscA(h.thumb) + '" alt="" style="flex:0 0 72px;width:72px;height:41px;object-fit:cover;border-radius:5px;background:#1e293b">'
           + '<div style="flex:1;min-width:0">'
           + '<div style="color:#e2e8f0;font-size:12.5px;font-weight:600;line-height:1.35">' + karEsc(h.title) + '</div>'
           + '<div style="color:#64748b;font-size:11px">' + karEsc(h.chan) + (h.len ? ' · ' + karEsc(h.len) : '') + '</div>'
-          + dup + '</div>'
-          + '<a href="' + karEscA(h.url) + '" target="_blank" rel="noopener" title="Open this video on YouTube" style="flex:0 0 auto;font-family:inherit;background:none;border:1px solid #334155;color:#e2e8f0;text-decoration:none;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">▶ Watch</a>'
+          + dup + '<div class="kar-ytmark" style="display:none;font-size:11px;font-weight:800;margin-top:2px"></div></div>'
+          + '<div class="kar-dlrt">'
+          + '<a href="' + karEscA(h.url) + '" target="_blank" rel="noopener" onclick="karYtTouch(' + i + ')" title="Open this video on YouTube — the row stays marked so you can find it when you come back" style="flex:0 0 auto;font-family:inherit;background:none;border:1px solid #334155;color:#e2e8f0;text-decoration:none;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">▶ Watch</a>'
           + '<button type="button" onclick="karYtCopy(' + i + ',this)" title="Copy this video\'s link" style="flex:0 0 auto;font-family:inherit;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#f3d9a4;cursor:pointer;font-size:12px;font-weight:700;padding:7px 11px;border-radius:8px">📋 Copy link</button>'
-          + '<button type="button" onclick="karYtAdd(' + i + ',this)" style="flex:0 0 auto;font-family:inherit;background:rgba(96,165,250,.16);border:1px solid #60A5FA;color:#bfdbfe;cursor:pointer;font-size:12.5px;font-weight:800;padding:7px 14px;border-radius:8px">+ Add to list</button>'
+          + '<button type="button" onclick="karYtAdd(' + i + ',this)" style="flex:0 0 auto;font-family:inherit;background:rgba(239,68,68,.16);border:1px solid #EF4444;color:#fecaca;cursor:pointer;font-size:12.5px;font-weight:800;padding:7px 14px;border-radius:8px">+ Add to list</button>'
+          + '</div>'
           + '</div>');
       }
       res.innerHTML = out.join('');
@@ -1973,6 +2050,7 @@ function karPickFolder(){
     // select-and-execCommand route, which works on either.
     function karYtCopy(i, btn){
       var h = KAR_YT_HITS[i]; if (!h) return;
+      karYtTouch(i);
       var done = function(ok){
         btn.textContent = ok ? '✓ Copied' : '📋 Copy link';
         if (!ok) { alert('Could not copy — the link is: ' + h.url); return; }
@@ -2001,6 +2079,8 @@ function karPickFolder(){
         btn.textContent = d.ok ? '✓ Added to list' : '+ Add to list';
         if (!d.ok) { alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
         btn.style.color = '#6ee7b7'; btn.style.borderColor = '#16a34a';
+        var row = document.getElementById('kar-ytrow-' + i);
+        if (row){ row.dataset.added = '1'; karYtRowMark(row, 'added'); }
         karDlRefresh();
       }).catch(function(){ btn.disabled = false; btn.textContent = '+ Add to list'; alert('Network error — the song was not added.'); });
     }
