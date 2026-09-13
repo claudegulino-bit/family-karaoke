@@ -121,6 +121,8 @@ if ($job === 'announce') {
             kar_mpv_send(['loadfile', kar_songs_dir() . '/' . $song, 'replace']);
             kar_mpv_send(['set_property', 'volume', 100]);
         } else {
+            // The picture was off for the whole introduction; it comes back with the song.
+            kar_mpv_send(['set_property', 'vid', 'auto']);
             kar_mpv_send(['seek', 0, 'absolute']);
         }
         kar_mpv_send(['set_property', 'pause', false]);
@@ -132,6 +134,7 @@ if ($job === 'announce') {
         // Whatever went wrong, the song must still play. If the crowd is on screen it has to
         // be replaced; if the song is held it has to be released. Do both, blindly.
         @kar_mpv_send(['set_property', 'loop-file', 'no']);
+        @kar_mpv_send(['set_property', 'vid', 'auto']);   // never leave a song with no picture
         @kar_mpv_send(['set_property', 'volume', 100]);
         @kar_mpv_send(['loadfile', kar_songs_dir() . '/' . $song, 'replace']);
         @kar_mpv_send(['set_property', 'pause', false]);

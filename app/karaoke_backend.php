@@ -434,6 +434,13 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         // Pause BEFORE loading: mpv keeps the property across a loadfile, so the new song
         // arrives already held. Setting it after would let a moment of audio escape.
         kar_mpv_send(['set_property', 'pause', $mc && $crowd === '']);
+        // AND THE PICTURE (the owner, 2026-09-13: "the announcement is still overlapping with
+        // the video"). Paused held the sound back but left the song's first frame on screen
+        // behind the announcement, so the video appeared to start and then start again. With
+        // the video track off the introduction happens on a black screen; the worker turns it
+        // back on at the end. Set BEFORE loadfile - mpv keeps it across the load, so there is
+        // not even a flash. Always reasserted, so a previous announcement cannot leave it off.
+        kar_mpv_send(['set_property', 'vid', ($mc && $crowd === '') ? 'no' : 'auto']);
         kar_mpv_send(['set_property', 'loop-file', $crowd !== '' ? 'inf' : 'no']);
         kar_mpv_send(['set_property', 'volume', 100]);
         // Re-assert the words window's on-top setting on EVERY song, not only at launch.
@@ -483,8 +490,12 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     if (!empty($cfg['words_on_top'])) $args[] = '--ontop';
     $args[] = '--osd-font-size=48';
     if ($mc) {
-        if ($crowd !== '') $args[] = '--loop-file=inf';   // the crowd keeps going
-        else               $args[] = '--pause';           // held until the presentation is done
+        if ($crowd !== '') {
+            $args[] = '--loop-file=inf';                  // the crowd keeps going
+        } else {
+            $args[] = '--pause';                          // held until the presentation is done
+            $args[] = '--vid=no';                         // and no picture until then either
+        }
         $args[] = '--osd-align-x=center';
         $args[] = '--osd-align-y=center';
         $args[] = '--osd-duration=60000';

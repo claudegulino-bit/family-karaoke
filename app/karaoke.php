@@ -809,7 +809,7 @@ if (!$KAR_LOCAL) {
          delete 48 with 12px gaps = 234, inset 9px (the section band's 8px padding + 1px border) —
          and the spacer runs to where the ＋ Add button starts. -->
     <div style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px 0 23px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
-      <span style="flex:0 0 auto;width:234px;margin-left:9px;text-align:center;color:#94a3b8;border-bottom:1px solid #334155;padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
+      <span style="flex:0 0 auto;width:234px;margin-left:9px;text-align:center;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
       <span style="flex:0 0 auto;width:70px"></span>
       <span style="flex:1;min-width:0;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Play and sing</span>
     </div>
