@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form_type'] ?? '') === 'ka
     header('Content-Type: application/json');
     if ($KAR_LOCAL) { $_cat = kar_songs(); }
     else {
-        $_kq  = @json_decode((string)@file_get_contents('/var/www/getcasa.ai/karaoke_songs.json'), true);
+        $_kq  = @json_decode((string)@file_get_contents('/var/www/your-server/karaoke_songs.json'), true);
         $_cat = (is_array($_kq) && !empty($_kq['database']) && is_array($_kq['database'])) ? array_values($_kq['database']) : [];
     }
     [$_new, $_dup] = $pdo ? kar_new_downloads($pdo, $_cat) : [[], []];
@@ -182,7 +182,7 @@ if (!$KAR_LOCAL) {
       $_mcVoice = function_exists('kar_mc_voice') ? (kar_mc_voice() ?: 'the Mac\'s default voice') : '';
       $_mcOn    = !function_exists('kar_mc_on') || kar_mc_on();
   } else {
-      $_kjPath = '/var/www/getcasa.ai/karaoke_songs.json';
+      $_kjPath = '/var/www/your-server/karaoke_songs.json';
       $_kj = is_file($_kjPath) ? json_decode((string)file_get_contents($_kjPath), true) : null;
       $_kjDb   = (is_array($_kj) && !empty($_kj['database']) && is_array($_kj['database'])) ? array_values($_kj['database']) : [];
       $_kjGen  = is_array($_kj) ? (string)($_kj['generated_at'] ?? '') : '';

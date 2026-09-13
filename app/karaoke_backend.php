@@ -294,7 +294,7 @@ function kar_songs(): array {
  *  the host page can never disagree about which songs exist. */
 function kar_catalog(?PDO $db = null): array {
     if (kar_is_local()) return kar_songs();
-    $j = @json_decode((string)@file_get_contents('/var/www/getcasa.ai/karaoke_songs.json'), true);
+    $j = @json_decode((string)@file_get_contents('/var/www/your-server/karaoke_songs.json'), true);
     return (is_array($j) && !empty($j['database']) && is_array($j['database'])) ? array_values($j['database']) : [];
 }
 
