@@ -460,7 +460,7 @@ try {
                 }
                 // App 4 is Cantoria itself: this page answered, so it is here.
                 $lines[] = "\u{2705} App 4 — Cantoria on this Mac";
-                if (!$allOk) $lines[] = 'Run the Terminal command in step 2 again, then press this button once more.';
+                if (!$allOk) $lines[] = "Run the Terminal command in step 2 again, then press \u{2705} Verify installation once more.";
                 $note = implode('|', $lines);
                 $db->prepare("UPDATE karaoke_play_queue SET status='Played', note=? WHERE id=?")->execute([$note, $id]);
             } else {
