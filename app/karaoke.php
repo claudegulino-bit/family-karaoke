@@ -261,10 +261,9 @@ if (!$KAR_LOCAL) {
         <div style="display:flex;gap:8px;align-items:center">
       <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjDb) ?></span></button>
       <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🆕 New <span id="kar-new-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjNew) ?></span></button>
-      <button type="button" id="kar-best-chip" class="kar-chip" onclick="karSwitch('best',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">⭐ Best of <span id="kar-best-name"><?= h($_kjWho !== '' ? $_kjWho : 'nobody yet') ?></span> <span id="kar-best-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= $_kjWho !== '' ? count($_kjBestBy[$_kjWho]) : 0 ?></span></button>
-      <select id="kar-who" onchange="karWhoChange(this)" title="Whose Best list — pick a person, or add a new one" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">
+      <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Whose Best list this is. Pick a name to see their songs, or add a new person." style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">
         <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
-        <option value="<?= h($_kbp) ?>"><?= h($_kbp) ?></option>
+        <option value="<?= h($_kbp) ?>">⭐ Best of <?= h($_kbp) ?> <?= count($_kjBestBy[$_kbp]) ?></option>
         <?php endforeach; ?>
         <option value="__add__">＋ Add a person…</option>
         <option value="__remove__">− Remove a person…</option>
@@ -813,12 +812,21 @@ if (!$KAR_LOCAL) {
       KAR_DATA.best = KAR_BEST_BY[karWho] || [];
       KAR_BEST_SET = {};
       KAR_DATA.best.forEach(function(n){ KAR_BEST_SET[n.replace(/\.[a-z0-9]{2,4}$/i,'')] = 1; });
-      var nm = document.getElementById('kar-best-name');
-      var ct = document.getElementById('kar-best-count');
-      if (nm) nm.textContent = karWho || 'nobody yet';
-      if (ct) ct.textContent = KAR_DATA.best.length;
+      // The dropdown IS the Best-of box now (the owner, 2026-09-13: "why do I need to click on
+      // Best of Claude… is there a way to eliminate one box"). Its own option carries the name
+      // AND the count, so one control does what two used to.
       var sel = document.getElementById('kar-who');
-      if (sel && sel.value !== karWho) sel.value = karWho;
+      if (sel) {
+        var o = sel.querySelector('option[value="' + (karWho || '').replace(/"/g, '\\"') + '"]');
+        if (o) o.textContent = '⭐ Best of ' + karWho + ' ' + KAR_DATA.best.length;
+        if (sel.value !== karWho) sel.value = karWho;
+      }
+    }
+    // Re-picking the SAME name fires no change event, so without this you could never get
+    // back to the Best list from Song Database or 🆕 New once the chip was gone. Touching the
+    // dropdown at all means "show me this person's songs" - which is what you wanted anyway.
+    function karWhoTouch(){
+      if (karView !== 'best') karSwitch('best', document.getElementById('kar-who'));
     }
     function karWhoChange(sel){
       if (sel.value === '__add__') {
@@ -830,7 +838,7 @@ if (!$KAR_LOCAL) {
         if (!KAR_BEST_BY[nn]) {
           KAR_BEST_BY[nn] = [];
           var opt = document.createElement('option');
-          opt.value = nn; opt.textContent = nn;
+          opt.value = nn; opt.textContent = '⭐ Best of ' + nn + ' 0';
           // Keep the list alphabetical: insert before the first name that sorts after it.
           var before = sel.querySelector('option[value="__add__"]');
           for (var oi = 0; oi < sel.options.length; oi++) {
@@ -863,7 +871,7 @@ if (!$KAR_LOCAL) {
           karWho = names.length ? names[0] : '';
           try { localStorage.setItem('kar_best_who', karWho); } catch(e){}
           karRebuildBest();
-          karSwitch('best', document.getElementById('kar-best-chip'));
+          karSwitch('best', document.getElementById('kar-who'));
         }).catch(function(){ alert('Network error — the removal was not sent.'); });
         return;
       } else {
@@ -874,7 +882,7 @@ if (!$KAR_LOCAL) {
       // Picking a person means "show me their songs" — jump straight to their Best list
       // (the owner, 2026-09-07: it only switched when the Best chip was already active,
       // which read as random). karSwitch re-renders, so no separate karRender needed.
-      karSwitch('best', document.getElementById('kar-best-chip'));
+      karSwitch('best', document.getElementById('kar-who'));
     }
     // The pitch written into the file name. Two notations are in real use: (0) (-3) on most of
     // the library, and [-2] [+1] on a couple of dozen older files. Parentheses win when both are
