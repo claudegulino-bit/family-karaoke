@@ -405,8 +405,14 @@ if (!$KAR_LOCAL) {
         </div>
         <div><b style="color:#D2AD6C">2 · Run the installer</b> — select the command below, copy it (<b>⌘C</b>), click once inside the Terminal window, paste (<b>⌘V</b>) and press <b>Return</b>. Copy it; do not retype it.</div>
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#e2e8f0;background:#0d1118;border:1px solid #334155;border-radius:8px;padding:9px 12px;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
-        <div><b style="color:#D2AD6C">3 · What the installer does</b> — resolves and installs the dependencies (<code>mpv</code>, <code>yt-dlp</code> and <code>ffmpeg</code>, preceded by Homebrew if the Mac does not already have it), installs Cantoria itself, creates a Desktop shortcut, and registers a background service so it starts with the Mac.</div>
-        <div><b style="color:#D2AD6C">4 · Prompts to expect</b> — it asks where the song library is kept. If Homebrew has to be installed it also requests the administrator password. <b>Terminal does not echo password input</b> — no characters, no dots appear as you type. That is standard behaviour, not a fault.</div>
+        <div><b style="color:#D2AD6C">3 · What the installer puts on the Mac</b> — four things:</div>
+        <ul style="margin:-3px 0 0;padding-left:20px;line-height:1.75">
+          <li><b>A player.</b> Plays the song, puts the words on the screen, and changes the key and the speed while it is playing.</li>
+          <li><b>A downloader.</b> Fetches a song from YouTube when you or a guest ask for one.</li>
+          <li><b>A media toolkit.</b> Checks each downloaded file is in a format the player can show — some YouTube files arrive with sound but no picture, and this is what catches them.</li>
+          <li><b>Cantoria itself.</b> The page you are reading, an icon on the Desktop to open it, and a background service so the Mac is ready to play whenever it is switched on.</li>
+        </ul>
+        <div><b style="color:#D2AD6C">4 · Prompts to expect</b> — it asks where the song library is kept. On a Mac that has never had developer software on it, the installer first has to add the standard macOS tool that fetches the three components above; that is the only step that asks for the administrator password. <b>Terminal does not echo password input</b> — no characters, no dots appear as you type. That is standard behaviour, not a fault.</div>
         <div><b style="color:#D2AD6C">5 · Expected output</b> — several minutes of scrolling progress, none of which needs to be read. Installation is complete when the shell prompt returns and accepts input again.</div>
         <div><b style="color:#D2AD6C">6 · Verify</b> — use <b>✅ Verify installation</b> further down this card. It queries that Mac and reports the installed versions.</div>
         <div><b style="color:#D2AD6C">7 · Subsequent releases</b> — are not installed from Terminal. Each Mac retrieves its own from <b>📖 Guide → Software updates → ⬆︎ Cantoria Software Update</b>. The command above is run once per machine and never again.</div>
@@ -447,7 +453,7 @@ if (!$KAR_LOCAL) {
           <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If the response is <i>command not found: brew</i>, Homebrew itself is missing — run the following first, then repeat the command above:</p>
           <div style="margin:0 0 8px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</div>
           <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Verify installation</button>
-          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Queries the Mac for the installed versions. Run this after the installer to confirm the player is present.</span>
+          <span id="kar-tools-msg" style="display:block;margin:4px 0 12px;color:#94a3b8;font-size:12px">Queries the Mac and reports the version of each of the three components installed in step 3. Run it after the installer to confirm they are present.</span>
           <p style="margin:0"><b>Keep the Mac on and awake</b> during a party. It handles playback and receives guests' requests.</p>
         </div>
 
