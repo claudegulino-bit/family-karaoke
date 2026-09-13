@@ -469,7 +469,6 @@ if (!$KAR_LOCAL) {
             <li><b>Reset</b> — plays the song once in its original key, then restores the saved pitch. Use it when another singer performs the song.</li>
             <li><b>⭐</b> adds the song to the Best list of the person named in the dropdown; clicking it again removes it.</li>
           </ul>
-          <p style="margin:10px 0 0;color:#94a3b8;font-size:12.5px"><label style="cursor:pointer"><input type="checkbox" id="kar-qmidi-cb" onchange="karQmidiToggle(this)" style="vertical-align:-1px;margin-right:6px">Also show the ▶ QMidi play button.</label></p>
         </div>
 
         <div class="kar-gs" id="kar-gs-while" style="display:none">
