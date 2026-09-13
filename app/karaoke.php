@@ -388,12 +388,28 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-setup" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Setting up the Mac</h3>
-          <p style="margin:0 0 10px">Required once per Mac. One command does the whole installation.</p>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">1 · Run one command</b> — on that Mac open <b>Terminal</b> (⌘ Space, type <code>Terminal</code>, Return), paste the line below and press Return.</div>
-        <div style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#e2e8f0;background:#0d1118;border:1px solid #334155;border-radius:8px;padding:9px 12px;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
-        <div><b style="color:#D2AD6C">2 · What it installs</b> — the player (<code>mpv</code>, <code>yt-dlp</code> and <code>ffmpeg</code>, preceded by Homebrew if the Mac does not already have it), Cantoria itself, a Desktop icon, and a background service so it is running whenever the Mac is.</div>
-        <div><b style="color:#D2AD6C">3 · What it asks you</b> — where the songs are kept. It also requests the Mac password once, but only if Homebrew has to be installed. <b>Password input is not shown on screen; this is normal.</b></div>
-        <div><b style="color:#D2AD6C">4 · Later versions</b> — are not installed this way. Each Mac collects them itself from <b>📖 Guide → Software updates → ⬆︎ Cantoria Software Update</b>. The command above is run once and never again.</div>
+          <p style="margin:0 0 10px">One-time installation, performed once on each Mac that will play music. A single command installs everything; no other configuration is required at the command line.</p>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Prerequisites</b> — macOS, an administrator account on that Mac, and an internet connection.</div>
+        <div><b style="color:#D2AD6C">1 · Open Terminal</b> — Terminal is the command-line application built into macOS. Press <b>⌘ Space</b>, type <code>Terminal</code>, press <b>Return</b>. A window like the one below opens. This is the only unfamiliar step; everything after it is copy and paste.</div>
+        <div style="margin:1px 0 2px;border-radius:10px;overflow:hidden;border:1px solid #3a4354;box-shadow:0 6px 18px rgba(0,0,0,.45)">
+          <div style="display:flex;align-items:center;gap:7px;background:linear-gradient(#3b414d,#2b303a);padding:7px 11px">
+            <span style="width:11px;height:11px;border-radius:50%;background:#ff5f57"></span>
+            <span style="width:11px;height:11px;border-radius:50%;background:#febc2e"></span>
+            <span style="width:11px;height:11px;border-radius:50%;background:#28c840"></span>
+            <span style="flex:1;text-align:center;margin-right:34px;color:#c7ccd6;font-size:11px;font-weight:700;letter-spacing:.02em">Terminal — zsh — 80&#215;24</span>
+          </div>
+          <div style="background:#0b0e14;padding:11px 13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.7;color:#d7dce5">
+            <div style="color:#78818f">Last login: Sat Sep 13 09:14:22 on ttys000</div>
+            <div style="word-break:break-all"><span style="color:#6ee7b7">you@Mac</span> <span style="color:#8ea2bd">~</span> % <span style="color:#f3d9a4">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</span><span style="display:inline-block;width:7px;height:14px;background:#d7dce5;vertical-align:-3px;margin-left:2px"></span></div>
+          </div>
+        </div>
+        <div><b style="color:#D2AD6C">2 · Run the installer</b> — select the command below, copy it (<b>⌘C</b>), click once inside the Terminal window, paste (<b>⌘V</b>) and press <b>Return</b>. Copy it; do not retype it.</div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#e2e8f0;background:#0d1118;border:1px solid #334155;border-radius:8px;padding:9px 12px;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/install.sh | bash</div>
+        <div><b style="color:#D2AD6C">3 · What the installer does</b> — resolves and installs the dependencies (<code>mpv</code>, <code>yt-dlp</code> and <code>ffmpeg</code>, preceded by Homebrew if the Mac does not already have it), installs Cantoria itself, creates a Desktop shortcut, and registers a background service so it starts with the Mac.</div>
+        <div><b style="color:#D2AD6C">4 · Prompts to expect</b> — it asks where the song library is kept. If Homebrew has to be installed it also requests the administrator password. <b>Terminal does not echo password input</b> — no characters, no dots appear as you type. That is standard behaviour, not a fault.</div>
+        <div><b style="color:#D2AD6C">5 · Expected output</b> — several minutes of scrolling progress, none of which needs to be read. Installation is complete when the shell prompt returns and accepts input again.</div>
+        <div><b style="color:#D2AD6C">6 · Verify</b> — use <b>✅ Verify installation</b> further down this card. It queries that Mac and reports the installed versions.</div>
+        <div><b style="color:#D2AD6C">7 · Subsequent releases</b> — are not installed from Terminal. Each Mac retrieves its own from <b>📖 Guide → Software updates → ⬆︎ Cantoria Software Update</b>. The command above is run once per machine and never again.</div>
           </div>
 <?php if (!$KAR_LOCAL): ?>
           <p style="margin:12px 0 0"><b>Select the Mac.</b> The <b>Play on</b> selector in the gold bar determines which Mac receives playback and the setup actions below. It is shown only when more than one Mac is registered; with a single Mac there is nothing to choose and everything goes to it. If the Mac is not listed there, choose <b>＋ Add a Mac…</b>, enter a name, and set <code>"mac_name"</code> to the same value in <code>~/casai/karaoke_config.json</code> on that Mac. The two must match exactly.</p>
