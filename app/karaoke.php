@@ -340,7 +340,8 @@ if (!$KAR_LOCAL) {
            gold for anything you can click or a heading, grey for everything you read.
            The dozen colours that were here before signalled nothing; they were decoration
            pretending to be structure. -->
-      <p style="margin:12px 0 0;color:#94a3b8;font-size:13px">Select a topic.</p>
+      <p id="kar-guide-intro" style="margin:12px 0 0;color:#94a3b8;font-size:13px">Select a topic.</p>
+      <p id="kar-guide-back" style="display:none;margin:12px 0 0"><button type="button" onclick="karGuideBack()" style="font-family:inherit;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:8px">← All topics</button></p>
 
       <div id="kar-guide-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:8px;margin:12px 0 4px">
         <?php
@@ -793,6 +794,7 @@ if (!$KAR_LOCAL) {
         <button type="button" onclick="karDelDo()" id="kar-del-yes" style="font-family:inherit;background:#7f1d1d;border:1px solid #ef4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 14px;border-radius:8px">✕ Remove</button>
       </div>
     </div>
+    <div id="kar-songs-area">
     <div id="kar-count" style="margin-top:10px;color:#64748b;font-size:11.5px"></div>
     <!-- Two group headings over the row: the left half is about setting a song up, the right half
          about singing it. These are hand-aligned to the controls below, so the numbers must stay in
@@ -824,6 +826,7 @@ if (!$KAR_LOCAL) {
     </div>
     <div id="kar-list" style="margin-top:4px;background:#121620;border:1px solid #334155;border-radius:10px;padding:6px 16px;height:calc(100vh - 275px);min-height:300px;overflow-y:auto"></div>
     <p style="margin:10px 0 0;color:#64748b;font-size:11.5px">List updated <?= h($_kjGen ?: 'unknown') ?> from the Google Drive song folders on the Mac · how everything works is under <b style="color:#94a3b8">📖 Guide</b> at the top.</p>
+    </div>
     <script>
     // WHERE ACTIONS GO — the third and last real difference between the two worlds.
     // Server: /app.php, which turns each one into a queue row for the Mac watcher.
@@ -1891,9 +1894,22 @@ function karPickFolder(){
       var body = document.getElementById('kar-guide-body');
       var secs = document.querySelectorAll('.kar-gs');
       for (var j = 0; j < secs.length; j++) secs[j].style.display = 'none';
-      if (same) { body.style.display = 'none'; return; }
+      if (same) { body.style.display = 'none'; karGuideCards(true); return; }   // closing a card brings the index back
       var sec = document.getElementById('kar-gs-' + key);
       if (sec) { sec.style.display = 'block'; body.style.display = 'block'; }
+      karGuideCards(same);   // one topic at a time: the index steps aside while a card is open
+    }
+    // Show or hide the card index and the "back" link above it.
+    function karGuideCards(show){
+      var g = document.getElementById('kar-guide-cards');
+      var i = document.getElementById('kar-guide-intro');
+      var b = document.getElementById('kar-guide-back');
+      if (g) g.style.display = show ? 'grid' : 'none';
+      if (i) i.style.display = show ? '' : 'none';
+      if (b) b.style.display = show ? 'none' : '';
+    }
+    function karGuideBack(){
+      if (karGuideOpenKey) karGuideOpen(karGuideOpenKey);   // toggles the open card shut
     }
     function karUpdState(kind, html){
       var box = document.getElementById('kar-upd-state');
@@ -1961,7 +1977,15 @@ function karPickFolder(){
           + (ok ? 'All four apps are installed.' : 'Not finished — see below.') + '</div>' + rows + '</div>';
       });
     }
+    // READING THE GUIDE IS A MODE (the owner, 2026-09-13: "just get into a guide state, and
+    // nothing else around"). The header and the gold bar stay - they are the permanent
+    // controls - but the song list steps out of the way while the Guide is open.
+    function karSongsArea(show){
+      var e = document.getElementById('kar-songs-area');
+      if (e) e.style.display = show ? '' : 'none';
+    }
     function karPanelClose(){
+      karSongsArea(true);
       // a help card belongs to its panel — it should not outlive it on screen
       ['dl','q','qr'].forEach(function(k){ try { localStorage.setItem('kar_help_' + k, '0'); } catch(e){} karHelpApply(k); });
       Object.keys(KAR_PANELS).forEach(function(pid){
@@ -1985,6 +2009,7 @@ function karPickFolder(){
       var wasOpen = document.getElementById(id).style.display !== 'none';
       karPanelClose();
       if (wasOpen) return false;
+      karSongsArea(id !== 'kar-guide-panel');
       document.getElementById(id).style.display = '';
       karBtnLight(id, true);
       return true;
