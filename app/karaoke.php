@@ -154,16 +154,18 @@ if (!$KAR_LOCAL) {
      is on screen. The ring takes that job instead - the same language as the header tiles, so
      "active" looks the same everywhere on this page. */
   /* The selected list LIGHTS UP rather than growing (the owner, 2026-09-13: "make it light
-     up without becoming a lot bigger"). A ring reads as size; a brighter fill and a soft
-     glow read as light, and neither changes the box by a single pixel. !important so it
-     beats the inline colours karSwitch writes on the rest state. */
-  .kar-chip.kar-on { background: #93c5fd !important; border-color: #dbeafe !important;
-    color: #0b2545 !important; box-shadow: 0 0 14px rgba(147,197,253,.55); }
+     up without becoming a lot bigger" and then "leave the colour blue and add a yellow line
+     around the box"). The blue fill never changes; a gold edge and a gold glow do the work.
+     The edge is drawn as an INSET shadow, not a thicker border, so the box stays exactly the
+     same size selected or not - measured both ways. Gold is the page's own accent (the search
+     box and the Now Playing bar). !important beats the inline colour karSwitch writes. */
+  .kar-chip.kar-on { border-color: #fbbf24 !important;
+    box-shadow: inset 0 0 0 1.5px #fbbf24, 0 0 13px rgba(251,191,36,.50); }
   .kar-grp { display: inline-flex; flex-direction: column; gap: 10px; flex: 0 0 auto; }
   .kar-grplbl { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
     color: #bfdbfe; background: rgba(96,165,250,.13); border: 1px solid rgba(96,165,250,.30);
     border-radius: 7px; padding: 3px 9px; text-align: center; line-height: 1.3;
-    align-self: center; width: calc(100% - 36px); }
+    align-self: center; width: calc(100% - 20px); }
   .kar-tile { transition: background .12s, border-color .12s, box-shadow .12s, transform .12s, opacity .12s; }
   .kar-tile-on { transform: translateY(-2px); }
   .kar-tile-on::after { content: ''; position: absolute; left: 50%; bottom: -20px; width: 0; height: 0;
