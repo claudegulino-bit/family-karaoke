@@ -87,6 +87,23 @@ if (!$KAR_LOCAL) {
   body { margin:0; background:#1A1F2C; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
   .kar-wrap { max-width:1660px; margin:0 auto; padding:18px 26px 26px; }
   /* fixed right-hand column of the YouTube panel — keeps every field ending on one line */
+  /* The printed guest sheet. Hidden on screen; on paper it is the ONLY thing that prints. */
+  #kar-qr-print { display:none; }
+  @media print {
+    body > *:not(#kar-qr-print) { display:none !important; }
+    #kar-qr-print { display:block !important; text-align:center; color:#000; background:#fff;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; padding:24px 18px; }
+    #kar-qr-print h1 { font-size:40px; margin:0 0 6px; letter-spacing:-.01em; }
+    #kar-qr-print .kar-pr-lead { font-size:20px; margin:0 0 22px; color:#333; }
+    #kar-qr-print #kar-qr-print-code { display:inline-block; padding:14px; border:2px solid #000; border-radius:12px; }
+    #kar-qr-print #kar-qr-print-code img,
+    #kar-qr-print #kar-qr-print-code canvas { display:block; width:420px; height:420px; }
+    #kar-qr-print .kar-pr-wifi { font-size:18px; margin:0 0 18px; color:#111; }
+    #kar-qr-print .kar-pr-ask { font-size:14px; color:#555; }
+    #kar-qr-print .kar-pr-steps { font-size:17px; line-height:1.6; margin:24px 0 0; color:#111; }
+    #kar-qr-print .kar-pr-url { font-size:10px; color:#777; margin:18px 0 0; word-break:break-all; }
+    @page { margin:12mm; }
+  }
   .kar-dlrt { flex:0 0 350px; display:flex; gap:10px; align-items:center; justify-content:flex-start; }
   /* help icon, inlined so both editions carry it with no extra file to ship */
   /* big enough that the word inside the icon is legible (the owner, 2026-09-12) */
@@ -796,6 +813,10 @@ if (!$KAR_LOCAL) {
         <div style="flex:1;min-width:240px">
           <p style="margin:0;color:#e2e8f0;font-size:15px;font-weight:800">📱 Guests: scan this with your phone camera</p>
           <p id="kar-qr-url" style="margin:10px 0 0;color:#64748b;font-size:10.5px;word-break:break-all"></p>
+          <p style="margin:12px 0 5px;color:#94a3b8;font-size:11.5px">Wi-Fi network printed on the sheet. This is <b style="color:#cbd5e1">per computer</b> — each Mac keeps its own, because each one sits on its own network. macOS will not tell us the name, so type it once:</p>
+          <input id="kar-qr-wifi" type="text" maxlength="60" placeholder="your Wi-Fi network name" onchange="karQrSaveWifi()" style="font-family:inherit;width:230px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:12.5px;padding:7px 10px;transition:border-color .2s">
+          <button type="button" onclick="karQrPrint()" title="Print one page with a big code — tape it on the wall so guests scan it there instead of crowding the Mac" style="margin-top:12px;margin-right:8px;font-family:inherit;background:rgba(192,132,252,.14);border:1px solid #c084fc;color:#e9d5ff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">🖨 Print it</button>
+          <button type="button" onclick="karQrWindow()" id="kar-qr-win" title="Puts the code in the corner of the lyrics screen, on top of everything, so the whole room can see it while you run the party" style="margin-top:12px;margin-right:8px;font-family:inherit;background:rgba(192,132,252,.14);border:1px solid #c084fc;color:#e9d5ff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">📺 Show on the lyrics screen</button>
           <button type="button" onclick="karQrRotate()" title="Issues a fresh code — every QR shown before stops working. Do this after a party so old guests can't keep requesting" style="margin-top:10px;font-family:inherit;background:none;border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:8px">🔄 New code (old QR stops working)</button>
         </div>
       </div>
@@ -1053,6 +1074,28 @@ if (!$KAR_LOCAL) {
       karRender();
     }
 
+    // The song list used to be sized by a GUESS — height:calc(100vh - 275px) — so the moment
+    // anything above it was taller than those 275 pixels (a panel open, the header wrapping on
+    // a narrower window) the page itself overflowed. Scrolling then carried the header buttons
+    // off the top and stopped dead a couple of inches later, because the list has its own
+    // scrollbar and the page had nothing more to give (the owner, 2026-09-14: "they go up enough
+    // where the top of the page gets hidden... is that intentional, or is that a mistake?").
+    // It was a mistake. Measure the space that is actually left instead, so the page fits the
+    // window, the header never leaves, and only the list scrolls.
+    function karFitList(){
+      var l = document.getElementById('kar-list');
+      if (!l) return;
+      // Document-relative top, so the answer does not change with how far the page is scrolled.
+      var top = l.getBoundingClientRect().top + (window.pageYOffset || document.documentElement.scrollTop || 0);
+      var h = window.innerHeight - top - 14;   // a little breathing room under the list
+      // ⚠ the stylesheet carries min-height:300px, which WINS over an inline height and
+      // silently reinstates the overflow on a short window. Stand it down; the floor below
+      // is the real one.
+      l.style.minHeight = '0';
+      l.style.height = Math.max(220, Math.round(h)) + 'px';
+    }
+    window.addEventListener('resize', karFitList);
+
     function karRender(){
       var listEl = document.getElementById('kar-list');
       if (!listEl) return;
@@ -1196,6 +1239,7 @@ if (!$KAR_LOCAL) {
       sng.textContent = karNowPlaying.replace(/\.[a-z0-9]{2,4}$/i,'');
       document.getElementById('kar-now-player').textContent = karNowPlayingPlayer === 'mpv' ? '· casAI player' : '· QMidi';
       document.getElementById('kar-live-val').textContent = (karLivePitch > 0 ? '+' : '') + karLivePitch;
+          try { karFitList(); } catch(e){}
     }
     var karLiveTempo = 100;
     // The Now Playing bar (with the Live pitch and Tempo controls) is page memory — without
@@ -1826,6 +1870,7 @@ if (!$KAR_LOCAL) {
         if (k !== key) { try { localStorage.setItem('kar_help_' + k, '0'); } catch(e){} karHelpApply(k); }
       });
       karHelpApply(key);
+          try { karFitList(); } catch(e){}
     }
     // ── "Choose the karaoke songs folder…" (Guide, step 2) ──────────────────────────────
     // The picker runs ON THE MAC, not here: a browser is never given a real filesystem
@@ -2009,6 +2054,7 @@ function karPickFolder(){
         karBtnLight(pid, false);
       });
       if (karDlTimer) { clearTimeout(karDlTimer); karDlTimer = null; }
+          try { karFitList(); } catch(e){}
     }
     // Esc closes whatever panel is open. The guard protects boxes where losing what you
     // typed would hurt — but NOT the YouTube panel's own two boxes: opening that panel puts
@@ -2029,6 +2075,7 @@ function karPickFolder(){
       document.getElementById(id).style.display = '';
       karBtnLight(id, true);
       return true;
+          try { karFitList(); } catch(e){}
     }
     function karGuideToggle(){ karPanelShow('kar-guide-panel'); }
     function karDlToggle(){
@@ -2460,9 +2507,98 @@ function karPickFolder(){
     function karQrToggle(){
       if (karPanelShow('kar-qr-panel') && !karQrShown) karQrLoad('get');
     }
+    // 🖨 Print — a second QR at print resolution, then the browser's own print dialog. No
+    // popup window: a blocker would swallow it silently and the button would look dead.
+    function karQrPrint(){
+      var url = (document.getElementById('kar-qr-url') || {}).textContent || '';
+      if (!url) { alert('The code is still loading — give it a second and press it again.'); return; }
+      var holder = document.getElementById('kar-qr-print-code');
+      holder.innerHTML = '';
+      new QRCode(holder, { text: url, width: 420, height: 420, correctLevel: QRCode.CorrectLevel.M });
+      // Only printed when there is something to say. On a Mac serving this page over the
+      // house network it is REQUIRED — a guest on mobile data cannot reach the page at all;
+      // over the internet it is a helpful extra for anyone with no signal.
+      var wifiEl = document.getElementById('kar-qr-print-wifi');
+      if (KAR_WIFI) {
+        wifiEl.innerHTML = (KAR_ON_LAN ? 'First join the Wi-Fi: ' : 'No signal? Join the Wi-Fi: ')
+          + '<b>' + karEsc(KAR_WIFI) + '</b><br><span class="kar-pr-ask">Ask the host for the password</span>';
+      } else if (KAR_ON_LAN) {
+        wifiEl.innerHTML = 'First join the house Wi-Fi<br><span class="kar-pr-ask">Ask the host for the network and password</span>';
+      } else { wifiEl.innerHTML = ''; }
+      document.getElementById('kar-qr-print-url').textContent = url;
+      // qrcodejs draws synchronously, but give the browser one frame to lay the image out
+      // before the print dialog snapshots the page.
+      setTimeout(function(){ window.print(); }, 120);
+    }
+
+    // 📺 Put the code in the corner of the lyrics screen. The Mac cannot draw a QR — it has
+    // no library and adding one would be a dependency on every family Mac — so the PICTURE
+    // is rendered here and sent with the request. Toggles: press again to take it away.
+    var karQrOnScreen = false;
+    function karQrWindow(){
+      var btn = document.getElementById('kar-qr-win');
+      var want = !karQrOnScreen;
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_qr_window');
+      fd.append('show', want ? '1' : '0');
+      fd.append('mac', karMac());
+      if (want) {
+        var url = (document.getElementById('kar-qr-url') || {}).textContent || '';
+        if (!url) { alert('The code is still loading — give it a second and press it again.'); return; }
+        // Rendered large so it stays sharp on a television, then drawn onto a WHITE square
+        // with a margin round it. That margin is not decoration — a QR needs a quiet zone or
+        // a phone cannot lock on, and this one ends up small, on a dark screen, over a moving
+        // picture, which is the hardest case there is.
+        var tmp = document.createElement('div');
+        new QRCode(tmp, { text: url, width: 480, height: 480, correctLevel: QRCode.CorrectLevel.M });
+        var el = tmp.querySelector('canvas') || tmp.querySelector('img');
+        if (!el) { alert('Could not build the picture of the code.'); return; }
+        var pad = 48, size = 480, c = document.createElement('canvas');
+        c.width = c.height = size + pad * 2;
+        var g = c.getContext('2d');
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+        var send = function(){
+          var data = '';
+          try { g.drawImage(el, pad, pad, size, size); data = c.toDataURL('image/png'); } catch (e) { data = ''; }
+          if (!data) { alert('Could not build the picture of the code.'); btn.disabled = false; return; }
+          fd.append('png', data);
+          karQrSend(fd, btn, want);
+        };
+        btn.disabled = true;
+        // qrcodejs uses a canvas everywhere modern, but falls back to an <img> whose data URL
+        // may not have decoded yet — drawing it too early would send a blank white square.
+        if (el.tagName === 'IMG' && !el.complete) { el.onload = send; el.onerror = send; } else { send(); }
+        return;
+      }
+      btn.disabled = true;
+      karQrSend(fd, btn, want);
+    }
+    function karQrSend(fd, btn, want){
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        btn.disabled = false;
+        if (!d.ok) { alert(d.error || 'That did not work.'); return; }
+        karQrOnScreen = want;
+        btn.textContent = want ? '📺 Take it off the lyrics screen' : '📺 Show on the lyrics screen';
+        btn.style.background = want ? '#a855f7' : 'rgba(192,132,252,.14)';
+        btn.style.color = want ? '#fff' : '#e9d5ff';
+      }).catch(function(){ btn.disabled = false; alert('Network error — nothing changed.'); });
+    }
+
     function karQrRotate(){
       if (!confirm('Issue a NEW guest code?\n\nEvery QR code shown or scanned before will stop working — guests will need to scan the new one.')) return;
       karQrLoad('rotate');
+    }
+    var KAR_WIFI = '', KAR_ON_LAN = false;
+    function karQrSaveWifi(){
+      var wf = document.getElementById('kar-qr-wifi');
+      KAR_WIFI = (wf.value || '').trim();
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_qr'); fd.append('action', 'wifi'); fd.append('wifi', KAR_WIFI);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert(d.error || 'Could not save that.'); return; }
+        wf.style.borderColor = '#16a34a';
+        setTimeout(function(){ wf.style.borderColor = '#334155'; }, 1400);
+      }).catch(function(){ alert('Network error — the name was not saved.'); });
     }
     function karQrLoad(action){
       var fd = new FormData();
@@ -2471,6 +2607,9 @@ function karPickFolder(){
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) { alert('Could not load the guest code' + (d.error ? ': ' + d.error : '') + '.'); return; }
         karQrShown = d.url;
+        KAR_WIFI = d.wifi || '';
+        KAR_ON_LAN = !!d.lan;   // true only on a Mac serving this page over the house network
+        var wf = document.getElementById('kar-qr-wifi'); if (wf) wf.value = KAR_WIFI;
         document.getElementById('kar-qr-url').textContent = d.url;
         var holder = document.getElementById('kar-qr-code');
         holder.innerHTML = '';
@@ -2576,9 +2715,23 @@ function karPickFolder(){
     karNowRestore();   // bring back the playing song's name/pitch/tempo after a reload
     karNowBar();       // the bar itself is always on screen — render its idle state too
     karRender();
+    karFitList();   // size the list to the window before anything is drawn on it
     </script>
     <?php endif; ?>
   </div>
 </div>
+    <!-- ⚠ MUST be a direct child of <body>. The print rule hides every top-level element
+         except this one — nested three divs deep, as it first was, its own wrapper got
+         hidden and took it with it, and the page printed blank (2026-09-14). Same trap
+         as the floating panels: position and print rules do not escape a hidden parent. -->
+    <div id="kar-qr-print">
+      <h1>Sing with us</h1>
+      <p class="kar-pr-lead">Point your phone camera at this code</p>
+      <p class="kar-pr-wifi" id="kar-qr-print-wifi"></p>
+      <div id="kar-qr-print-code"></div>
+      <p class="kar-pr-steps">Type your first name · find your song · tap <b>Request</b><br>
+         You will see your place in the queue. You can bring a song from YouTube too.</p>
+      <p class="kar-pr-url" id="kar-qr-print-url"></p>
+    </div>
 </body>
 </html>

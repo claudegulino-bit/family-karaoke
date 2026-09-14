@@ -1102,6 +1102,65 @@ function kar_yt_search(string $query, int $limit = 30, bool $wantKaraoke = true)
     return $rows;
 }
 
+/**
+ * The guest QR, on top of the lyrics screen.
+ *
+ * The panel holding the QR is exclusive — opening it closes whatever else was open — so the
+ * code was only ever on screen when the host was NOT running the party (the owner, 2026-09-14).
+ * This parks it in the corner of the lyrics screen instead, where the whole room is already
+ * looking, in its own borderless window.
+ *
+ * Deliberately NOT painted into the video: that would mean changing how the player builds the
+ * picture, and the player is the one thing that must not fail mid-party. A separate window can
+ * be closed on its own and the music carries on. It also has no IPC socket, so ⏹ Stop and the
+ * mutual silencing — which only ever quit mpv through that socket — cannot take it down.
+ *
+ * --ontop alone is NOT enough: a window in true fullscreen gets its own macOS Space and an
+ * ordinary floating window from another app vanishes behind it. --ontop-level=system raises it
+ * above the menu-bar level (measured on macOS 26: layer 3 -> layer 26) and --on-all-workspaces
+ * puts it on every Space.
+ */
+const KAR_QR_PNG = '/tmp/casai-guest-qr.png';
+const KAR_QR_PID = '/tmp/casai-guest-qr.pid';
+
+function kar_qr_hide(): void {
+    $pid = (int)@file_get_contents(KAR_QR_PID);
+    if ($pid > 1) @exec('kill ' . $pid . ' 2>/dev/null');
+    @unlink(KAR_QR_PID);
+}
+
+function kar_qr_show(string $dataUrl): string {
+    // The picture is drawn by the browser and sent here: this Mac has no QR library, and
+    // adding one would be a dependency on every family machine.
+    if (!preg_match('#^data:image/png;base64,([A-Za-z0-9+/=]+)$#', $dataUrl, $m)) {
+        throw new Exception('that is not a picture of a code');
+    }
+    $bytes = base64_decode($m[1], true);
+    if ($bytes === false || strlen($bytes) < 64) throw new Exception('the picture did not decode');
+    file_put_contents(KAR_QR_PNG, $bytes);
+
+    // Size and place it against the lyrics window when one has been remembered, so the code
+    // lands ON that screen and is big enough to scan from across a room.
+    $pad = 24; $side = 240; $x = 60; $y = 60;
+    $d = kar_cfg()['lyrics_window'] ?? null;
+    if (is_array($d) && isset($d['x'], $d['y'], $d['w'], $d['h'], $d['scale'], $d['menubar'])) {
+        $sc = (float)$d['scale'] ?: 1.0;
+        $side = (int)max(200, min(460, round((float)$d['h'] * $sc * 0.22)));
+        $x = (int)max(0, round(((float)$d['x'] + (float)$d['w']) * $sc) - $side - $pad);
+        $y = (int)max(0, round(((float)$d['y'] - (float)$d['menubar']) * $sc) + $pad);
+    }
+
+    kar_qr_hide();
+    $args = [kar_tool('mpv'), '--ontop', '--ontop-level=system', '--on-all-workspaces',
+             '--no-border', '--no-osc', '--no-input-default-bindings',
+             '--image-display-duration=inf', '--loop', '--really-quiet',
+             '--geometry=' . $side . 'x' . $side . '+' . $x . '+' . $y, KAR_QR_PNG];
+    $out = [];
+    @exec(implode(' ', array_map('escapeshellarg', $args)) . ' >/dev/null 2>&1 & echo $!', $out);
+    if (!empty($out[0])) file_put_contents(KAR_QR_PID, trim($out[0]));
+    return $side . 'x' . $side . '+' . $x . '+' . $y;
+}
+
 function kar_lan_ip(): string {
     $out = [];
     // The interface actually carrying traffic, asked of the routing table rather
@@ -1116,6 +1175,15 @@ function kar_lan_ip(): string {
         if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
     }
     return $_SERVER['SERVER_ADDR'] ?? '127.0.0.1';
+}
+
+/** One-row settings, the standalone twin of casAI's karaoke_settings upsert. */
+function kar_get_setting(string $k): string {
+    return (string)kar_db()->query("SELECT v FROM karaoke_settings WHERE k=" . kar_db()->quote($k))->fetchColumn();
+}
+function kar_set_setting(string $k, string $v): void {
+    kar_db()->prepare("INSERT INTO karaoke_settings (k,v) VALUES (?,?)
+                       ON CONFLICT(k) DO UPDATE SET v=excluded.v")->execute([$k, $v]);
 }
 
 function kar_guest_url(string $token): string {

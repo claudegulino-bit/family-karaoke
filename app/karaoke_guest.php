@@ -46,11 +46,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // The guest's own download requests (last 12h) — shown as live status on their phone.
     $dlState = function($name) use ($pdo, $KAR_12H) {
         if ($name === '') return [];
-        $st = $pdo->prepare("SELECT status, title, note FROM karaoke_downloads WHERE requested_by = ? AND requested_at > $KAR_12H ORDER BY id DESC LIMIT 5");
+        $st = $pdo->prepare("SELECT id, status, title, note FROM karaoke_downloads WHERE requested_by = ? AND requested_at > $KAR_12H ORDER BY id DESC LIMIT 5");
         $st->execute([$name]);
         $rows = [];
         foreach ($st as $r) {
-            $rows[] = ['status' => $r['status'], 'title' => (string)$r['title'], 'note' => (string)$r['note']];
+            // The id is what lets the page tell an old request from a new one — without it the
+            // baseline matches on undefined and hides EVERY request, new ones included.
+            $rows[] = ['id' => (int)$r['id'], 'status' => $r['status'],
+                       'title' => (string)$r['title'], 'note' => (string)$r['note']];
         }
         return $rows;
     };
@@ -156,6 +159,12 @@ $_db = $tokenOk ? kar_catalog() : [];
   body { margin:0; background:#1A1F2C; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
   .wrap { max-width:560px; margin:0 auto; padding:16px 14px 40px; }
   input { font-family:inherit; }
+  /* Three sections, built identically so their titles line up and they read as three
+     (the owner, 2026-09-14). Only the accent colour differs: gold = the queue, blue = the
+     songs we already have, red = YouTube — red means YouTube everywhere in Cantoria. */
+  .g-sec { margin-top:16px; border-radius:12px; padding:12px 14px; border:1px solid; }
+  .g-sec-t { margin:0 0 6px; font-size:14.5px; font-weight:800; }
+  .g-sec-s { margin:0 0 9px; color:#94a3b8; font-size:11.5px; line-height:1.45; }
 </style>
 </head>
 <body>
@@ -174,16 +183,20 @@ $_db = $tokenOk ? kar_catalog() : [];
     </div>
   </div>
   <div id="g-whoami" style="margin-top:6px;font-size:12px;color:#6ee7b7"></div>
-  <div id="g-line" style="margin-top:12px"></div>
-  <div style="margin-top:16px;background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.35);border-radius:10px;padding:12px 14px">
-    <p style="margin:0;color:#93c5fd;font-size:13.5px;font-weight:700">🎵 Find your song</p>
-    <p style="margin:6px 0 8px;color:#94a3b8;font-size:12px"><b style="color:#cbd5e1"><?= count($_db) ?> songs</b> are already here. Start typing and they appear — no button to press.</p>
-    <input id="g-search" type="text" placeholder="Type an artist or a song title…" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:15px;padding:11px 13px">
+  <div class="g-sec" style="background:rgba(210,173,108,.07);border-color:rgba(210,173,108,.35)">
+    <p class="g-sec-t" style="color:#D2AD6C">🎶 Current queue</p>
+    <p class="g-sec-s">Everyone waiting to sing, in order. Yours is highlighted.</p>
+    <div id="g-line"></div>
+  </div>
+  <div class="g-sec" style="background:rgba(96,165,250,.07);border-color:rgba(96,165,250,.35)">
+    <p class="g-sec-t" style="color:#93c5fd">🎵 Search for your song in our library</p>
+    <p class="g-sec-s"><b style="color:#cbd5e1"><?= count($_db) ?> songs</b> are already here. Start typing and they appear — no button to press.</p>
+    <input id="g-search" type="text" placeholder="Type an artist or a song title…" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:16px;padding:11px 12px">
     <div id="g-results" style="margin-top:8px"></div>
   </div>
-  <div style="margin-top:16px;background:rgba(210,173,108,.07);border:1px solid rgba(210,173,108,.3);border-radius:10px;padding:12px 14px">
-    <p style="margin:0;color:#D2AD6C;font-size:13.5px;font-weight:700">🎁 Not in the list above?</p>
-    <p style="margin:6px 0 8px;color:#94a3b8;font-size:12px">Then look on YouTube — type the singer or the name of the song. This brings in a <b style="color:#cbd5e1">new</b> song that nobody here has yet.</p>
+  <div class="g-sec" style="background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.35)">
+    <p class="g-sec-t" style="color:#fca5a5">▶ Search for your song on YouTube</p>
+    <p class="g-sec-s">If your song is not in the list above, look for it on YouTube. It is fetched for you and added to the queue under your name — it takes a few minutes.</p>
     <div style="display:flex;gap:8px">
       <input id="g-yt" type="text" placeholder="e.g. Volare, or Andrea Bocelli" maxlength="120" style="flex:1;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:14px;padding:10px 12px">
       <button type="button" id="g-ytbtn" onclick="gYt()" style="flex:0 0 auto;font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:700;padding:10px 16px;border-radius:10px">Search</button>
@@ -231,9 +244,15 @@ $_db = $tokenOk ? kar_catalog() : [];
       nameEl.style.boxShadow = '';
     }
   });
+  // Only worth saying when the name you were GIVEN differs from the one you typed — when a
+  // second Claude turns up you become "Claude G" and need to know it. Otherwise your name is
+  // in the box right above and repeating it is noise (the owner, 2026-09-14: "I don't know if
+  // that's needed. I see my name right there").
   function gShowMe(){
     var el = document.getElementById('g-whoami');
-    if (el) el.textContent = G_ME ? "You're in as " + G_ME : '';
+    if (!el) return;
+    var typed = (nameEl.value || '').trim().toLowerCase();
+    el.textContent = (G_ME && G_ME.toLowerCase() !== typed) ? "In the queue you are " + G_ME : '';
   }
   nameEl.addEventListener('change', function(){
     try { localStorage.setItem('kguest_name', nameEl.value.trim()); } catch(e){}
@@ -279,10 +298,27 @@ $_db = $tokenOk ? kar_catalog() : [];
       .then(function(r){ return r.json(); })
       .then(function(d){ if (d.queue) { gQueue = d.queue; gLine(); } gDls(d.dls); return d; });
   }
+  // Requests are remembered on the server for 12 hours so a guest can watch their song
+  // arrive. But re-opening the page later — a fresh scan of the code, usually — then showed
+  // last night's songs with a green tick beside them, which reads as something happening now
+  // (the owner, 2026-09-14: "it keeps the Dean Martin ... I think we should start from blank").
+  // So the first answer after a load is a BASELINE: whatever was already there is noted and
+  // never drawn. Only what the guest asks for during THIS visit appears.
+  var G_DLS_SEEN = null;
   function gDls(list){
     var el = document.getElementById('g-dls');
     if (!el) return;
-    if (!list || !list.length) { el.innerHTML = ''; return; }
+    list = list || [];
+    if (G_DLS_SEEN === null) {
+      G_DLS_SEEN = {};
+      for (var b = 0; b < list.length; b++) { if (list[b].id != null) G_DLS_SEEN[list[b].id] = 1; }
+      el.innerHTML = '';
+      return;
+    }
+    var fresh = [];
+    for (var f = 0; f < list.length; f++) { if (!G_DLS_SEEN[list[f].id]) fresh.push(list[f]); }
+    list = fresh;
+    if (!list.length) { el.innerHTML = ''; return; }
     var out = [];
     for (var i = 0; i < list.length; i++) {
       var d = list[i], txt, col;
@@ -405,14 +441,19 @@ $_db = $tokenOk ? kar_catalog() : [];
     for (var i = 0; i < waiting.length; i++) {
       var e = waiting[i];
       var mine = me && e.singer.toLowerCase() === me;
-      out.push('<div style="display:flex;gap:8px;align-items:baseline;padding:4px 2px;border-top:1px solid #1e293b;' + (mine ? 'background:rgba(210,173,108,.08);border-radius:6px' : '') + '">'
-        + '<span style="flex:0 0 20px;color:#64748b;font-size:12px;font-weight:700">' + (i + 1) + '.</span>'
-        + '<span style="color:' + (mine ? '#D2AD6C' : '#94a3b8') + ';font-size:13px;font-weight:700">' + gEsc(e.singer) + '</span>'
-        + '<span style="color:#cbd5e1;font-size:12.5px">' + gEsc(e.song) + '</span></div>');
+      out.push('<div style="display:flex;gap:9px;align-items:flex-start;padding:8px 4px;border-top:1px solid #1e293b;border-radius:7px;' + (mine ? 'background:rgba(210,173,108,.08);border-radius:6px' : '') + '">'
+        + '<span style="flex:0 0 20px;color:#64748b;font-size:12.5px;font-weight:700">' + (i + 1) + '.</span>'
+        // Name and song on ONE line, wrapping if it must: a line each would double the
+        // height of a busy queue and be harder to read, not easier.
+        + '<span style="flex:1;min-width:0;font-size:12.5px;line-height:1.45;word-break:break-word">'
+        +   '<b style="color:' + (mine ? '#D2AD6C' : '#e2e8f0') + ';font-weight:800">' + gEsc(e.singer) + '</b>'
+        +   '<span style="color:#94a3b8"> — ' + gEsc(e.song) + '</span>'
+        + '</span></div>');
     }
-    document.getElementById('g-line').innerHTML = out.length
-      ? '<div style="background:#121620;border:1px solid rgba(210,173,108,.3);border-radius:10px;padding:8px 10px">' + out.join('') + '</div>'
-      : '';
+    // The heading lives in the markup now, so the section is always there and lines up with
+    // the other two. An empty queue says so rather than vanishing.
+    document.getElementById('g-line').innerHTML = out.length ? out.join('')
+      : '<p style="margin:0;color:#64748b;font-size:12.5px">Nobody is waiting yet — be the first.</p>';
   }
   var srch = document.getElementById('g-search');
   srch.addEventListener('input', gResults);
@@ -452,6 +493,26 @@ $_db = $tokenOk ? kar_catalog() : [];
     }).catch(function(){ b.disabled = false; b.textContent = 'Request'; alert('Network hiccup — try again.'); });
   });
   gPost({ action:'state' }).catch(function(){});
+  // Scanning the code usually re-opens the SAME tab, and Safari hands it back exactly as it
+  // was left — old search results, an open confirmation, a half-typed song. The name is the
+  // one thing worth keeping; everything else starts blank.
+  function gFreshStart(){
+    var q = document.getElementById('g-yt'); if (q) q.value = '';
+    var r = document.getElementById('g-ytres'); if (r) r.innerHTML = '';
+    var c = document.getElementById('g-confirm'); if (c) c.innerHTML = '';
+    var sq = document.getElementById('g-search'); if (sq) sq.value = '';
+    var sr = document.getElementById('g-results'); if (sr) sr.innerHTML = '';
+    // A half-finished "another guest is already called Claude" prompt is worse than none.
+    var ir = document.getElementById('g-initial-row'); if (ir) ir.style.display = 'none';
+    var ii = document.getElementById('g-initial'); if (ii) ii.value = '';
+    var d = document.getElementById('g-dls'); if (d) d.innerHTML = '';
+    G_HITS = []; G_DLS_SEEN = null;   // re-baseline: nothing from before this scan is shown
+    if (G_POLL) { clearInterval(G_POLL); G_POLL = null; }
+  }
+  gFreshStart();
+  // Restored from the back/forward cache: the page never re-ran, so clear it by hand.
+  window.addEventListener('pageshow', function(ev){ if (ev.persisted) { gFreshStart(); gPost({ action:'state' }).catch(function(){}); } });
+
   setInterval(function(){ gPost({ action:'state' }).catch(function(){}); }, 12000);
 </script>
 <?php endif; ?>

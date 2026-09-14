@@ -189,8 +189,14 @@ try {
     }
 
     case 'karaoke_qr': {
-        $rotate = (string)($_POST['action'] ?? 'get') === 'rotate';
-        kj(['ok'=>true, 'error'=>'', 'url'=>kar_guest_url(kar_guest_token($rotate))]);
+        // The Wi-Fi name is typed by the host, not detected: macOS redacts the network name
+        // unless the process holds Location permission. Here it is REQUIRED on the sheet —
+        // this page is served over the house network, so a guest on mobile data cannot reach
+        // it at all (the owner, 2026-09-14).
+        $act = (string)($_POST['action'] ?? 'get');
+        if ($act === 'wifi') kar_set_setting('wifi_name', mb_substr(trim((string)($_POST['wifi'] ?? '')), 0, 60));
+        kj(['ok'=>true, 'error'=>'', 'wifi'=>kar_get_setting('wifi_name'), 'lan'=>true,
+            'url'=>kar_guest_url(kar_guest_token($act === 'rotate'))]);
     }
 
     // -------------------------------------------------------- the singing line
@@ -429,6 +435,25 @@ try {
         kj(['ok'=>true, 'error'=>'', 'status'=>$r['status'],
             'results'=>$r['results'] ? json_decode($r['results'], true) : [],
             'note'=>(string)$r['note']]);
+    }
+
+    case 'karaoke_qr_window': {
+        // 📺 Put the guest QR in the corner of the lyrics screen. Same feature as casAI's,
+        // but here the page and the player share one Mac, so it acts directly instead of
+        // going through a queue.
+        $show = (string)($_POST['show'] ?? '1') !== '0';
+        try {
+            if ($show) {
+                $png = (string)($_POST['png'] ?? '');
+                if (strlen($png) > 60000) kj(['ok'=>false, 'error'=>'that picture is too big']);
+                kar_qr_show($png);
+            } else {
+                kar_qr_hide();
+            }
+        } catch (Throwable $e) {
+            kj(['ok'=>false, 'error'=>$e->getMessage()]);
+        }
+        kj(['ok'=>true, 'error'=>'']);
     }
 
     case 'karaoke_dl_state': {
