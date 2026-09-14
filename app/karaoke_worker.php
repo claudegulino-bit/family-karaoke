@@ -233,10 +233,10 @@ function kar_set(PDO $db, int $id, array $fields): void {
 
 // --- 0 · answer searches -----------------------------------------------------
 // A guest is standing there with a phone open, so these go before anything else.
-$srch = $db->query("SELECT id, query FROM karaoke_searches WHERE status='Pending' ORDER BY id LIMIT 5")->fetchAll();
+$srch = $db->query("SELECT id, query, want_karaoke FROM karaoke_searches WHERE status='Pending' ORDER BY id LIMIT 5")->fetchAll();
 foreach ($srch as $q) {
     try {
-        $rows = kar_yt_search((string)$q['query']);
+        $rows = kar_yt_search((string)$q['query'], 30, (int)($q['want_karaoke'] ?? 1) === 1);
         $db->prepare("UPDATE karaoke_searches SET status=?, results=?, done_at=? WHERE id=?")
            ->execute([$rows ? 'Done' : 'Empty', json_encode($rows, JSON_UNESCAPED_UNICODE),
                       date('Y-m-d H:i:s'), (int)$q['id']]);
@@ -344,7 +344,9 @@ while ($row = $db->query("SELECT id, url, title, requested_by, auto_sing FROM ka
         continue;
     }
     $file = basename($path);
-    $note = 'downloaded into the songs folder';
+    // Says WHERE it went, not just that it worked — the panel sends you to the one place
+    // songs are tidied, rather than quietly competing with it (the owner, 2026-09-14).
+    $note = 'the song is now in 🆕 New Songs — rename it, set its key or remove it there';
     // Verify rather than assume — a wrong codec warns instead of quietly delivering a
     // file that will play with no picture.
     if (is_file($ffprobe)) {

@@ -208,6 +208,9 @@ const KAR_SCHEMA = [
         status       TEXT NOT NULL DEFAULT 'Pending',
         results      TEXT DEFAULT NULL,
         note         TEXT DEFAULT NULL,
+        -- 1 = steer the search at karaoke and hide the rest (the normal case); 0 = the
+        -- words exactly as typed, everything shown. The host's checkbox, 2026-09-14.
+        want_karaoke INTEGER NOT NULL DEFAULT 1,
         requested_at TEXT DEFAULT (datetime('now','localtime')),
         done_at      TEXT DEFAULT NULL)",
     "CREATE TABLE IF NOT EXISTS karaoke_settings (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
@@ -227,6 +230,12 @@ const KAR_SCHEMA = [
         kind TEXT, detail TEXT)",
 ];
 
+/** Columns added after a version shipped. Applied on every open, failures ignored —
+ *  see the note in kar_db(). Append here; never edit a line already released. */
+const KAR_ADD_COLUMNS = [
+    "ALTER TABLE karaoke_searches ADD COLUMN want_karaoke INTEGER NOT NULL DEFAULT 1",
+];
+
 function kar_db(): PDO {
     static $pdo = null;
     if ($pdo !== null) return $pdo;
@@ -240,6 +249,11 @@ function kar_db(): PDO {
     $pdo->exec('PRAGMA journal_mode=WAL');
     $pdo->exec('PRAGMA busy_timeout=5000');
     foreach (KAR_SCHEMA as $sql) $pdo->exec($sql);
+    // CREATE TABLE IF NOT EXISTS cannot add a column to a database that already exists,
+    // so every new column needs a line here too — otherwise a Mac that has been running
+    // Cantoria for months breaks on the first query after an update. SQLite throws
+    // "duplicate column name" when it is already there, which is the expected case.
+    foreach (KAR_ADD_COLUMNS as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { /* already present */ } }
     if ($fresh) kar_log('setup', 'created ' . $file);
     return $pdo;
 }
@@ -1018,17 +1032,47 @@ function kar_have_matches(string $title): array {
         array_slice($scored, 0, 2));
 }
 
-function kar_yt_search(string $query, int $limit = 12): array {
+/**
+ * The three words that mean "somebody can sing along to this" — the owner's own list
+ * (2026-09-14), measured against his real downloads before it was built: 14 of 14 genuine
+ * searches carry one of them. Two details earn their keep:
+ *   "lyric" is a PREFIX — ABBA's is "Official Lyric Video", singular, and an exact match
+ *                         on "lyrics" would have thrown it away.
+ *   "testo" is Italian  — half the library says Testo where YouTube's English results say
+ *                         Lyrics; an English-only list would quietly discard exactly the
+ *                         results he downloads most. The \b keeps "contesto" out.
+ *   deliberately NOT "instrumental" / "base" / "backing track" — an instrumental has the
+ *                         lead vocal stripped but NO words on screen, so it is singable only
+ *                         if you already know the song by heart. Two of his 2,057 files say
+ *                         instrumental and both are dance music. the owner, 2026-09-14: "we
+ *                         don't need an instrumental. If anyone wants, he can download it as
+ *                         a non-karaoke and non-lyrics" — i.e. by unticking the box. Do not
+ *                         add it back without asking him.
+ * The u modifier is not optional: without it the pattern is read as bytes and a title with
+ * an accent can silently fail to match (the em-dash lesson, 2026-08-21).
+ */
+function kar_looks_karaoke(string $title, string $chan = ''): bool {
+    // Title OR channel: "Karaoke Academy Italia" is a channel, and some channels never put
+    // the word in the title at all.
+    return (bool)preg_match('/karaoke|\blyric|\btesto/ui', $title . ' ' . $chan);
+}
+
+function kar_yt_search(string $query, int $limit = 30, bool $wantKaraoke = true): array {
     $q = trim(preg_replace('/\s+/u', ' ', $query));
     if ($q === '') return [];
-    $limit = max(1, min(20, $limit));   // 12 by default — six was too few in practice
+    $limit = max(1, min(40, $limit));   // over-fetch: ask for 30, the page shows the dozen
+                                        // that pass the filter. One request either way.
     $cfg = kar_cfg();
     $cookies = !empty($cfg['browser_cookies'])
         ? ' --cookies-from-browser ' . escapeshellarg((string)$cfg['browser_cookies']) : '';
     $cmd = escapeshellarg(kar_tool('yt-dlp'))
          . ' --no-warnings --flat-playlist --skip-download'
          . ' --print ' . escapeshellarg("%(id)s\t%(title)s\t%(duration)s\t%(channel)s")
-         . $cookies . ' ' . escapeshellarg('ytsearch' . $limit . ':' . $q . ' karaoke') . ' 2>/dev/null';
+         . $cookies . ' ' . escapeshellarg('ytsearch' . $limit . ':' . $q
+             // The appended word is the bigger lever of the two: the filter only hides
+             // what came back, this decides what YouTube is asked for at all. Unticking
+             // the box has to turn BOTH off or the choice is cosmetic (the owner, 2026-09-14).
+             . ($wantKaraoke ? ' karaoke' : '')) . ' 2>/dev/null';
     $out = (string)@shell_exec($cmd);
     $rows = [];
     foreach (explode("\n", $out) as $line) {
@@ -1037,18 +1081,22 @@ function kar_yt_search(string $query, int $limit = 12): array {
         $p = explode("\t", $line);
         if (count($p) < 2 || $p[0] === '' || $p[0] === 'NA') continue;
         $secs = (isset($p[2]) && is_numeric($p[2])) ? (int)$p[2] : 0;
+        $chan = $p[3] ?? '';
         $rows[] = [
             'id'    => $p[0],
             'url'   => 'https://www.youtube.com/watch?v=' . $p[0],
             'title' => $p[1],
             'secs'  => $secs,
             'len'   => $secs > 0 ? sprintf('%d:%02d', intdiv($secs, 60), $secs % 60) : '',
-            'chan'  => $p[3] ?? '',
+            'chan'  => $chan,
             // built from the id rather than asked for: always present, always valid
             'thumb' => 'https://i.ytimg.com/vi/' . $p[0] . '/mqdefault.jpg',
             // Full filenames, not display names: the page offers "sing ours", and that
             // request has to name a real file the catalogue will accept.
             'have'  => kar_have_matches($p[1]),
+            // The filter INFORMS, it never decides alone: every row is kept and tagged, so
+            // the page can say how many it is holding back and reveal them on a click.
+            'ok'    => kar_looks_karaoke($p[1], $chan),
         ];
     }
     return $rows;

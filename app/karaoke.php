@@ -525,11 +525,12 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-downloads" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">YouTube Downloads</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#fca5a5">1 · Search</b> — enter an artist or a title and press <b style="color:#fca5a5">▶ Search YouTube</b>. Twelve results are returned, each with its duration, its channel, and a warning where the song already exists in your library.</div>
-        <div><b style="color:#fca5a5">2 · Download it</b> — <b style="color:#fca5a5">⬇ Download</b> starts it immediately. <b>▶ Watch</b> opens the video on YouTube in a new tab first, and <b style="color:#f3d9a4">📋 Copy link</b> copies its address. The row you open or copy stays marked, so it remains identifiable when you return from YouTube; a row already queued is marked in green.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#fca5a5">1 · Search</b> — enter an artist or a title and press <b style="color:#fca5a5">▶ Search YouTube</b>. Each result carries its duration, its channel, and a warning where the song already exists in your library.</div>
+        <div><b style="color:#fca5a5">Karaoke &amp; lyrics only</b> — the checkbox beside the search box, normally ticked. YouTube is asked for the karaoke version, and of the thirty results returned, those shown are the ones naming <b>karaoke</b>, <b>lyrics</b> or <b>testo</b> in the title or the channel — all of them, however many that is. The rest are counted beside the heading and <b>Show them</b> displays them. Untick it to search for the ordinary record instead: your words go to YouTube exactly as typed and every result is shown. The setting is remembered on this computer.</div>
+        <div><b style="color:#fca5a5">2 · Download it</b> — <b style="color:#fca5a5">⬇ Download</b> starts it immediately. <b>▶ Watch</b> opens the video on YouTube in a new tab first. Every row you open stays marked — the most recent in red, the earlier ones as <b>✓ watched</b> — so after trying several you can see which they were and download whichever you chose. A row already downloading is marked in green. To send a link to somebody, open it with <b>▶ Watch</b> and copy it from the address bar.</div>
         <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b>⬇ Download this link</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
         <div><b style="color:#fca5a5">3 · It downloads straight away</b> — no second button. Songs are fetched one at a time, typically a minute or two each, and the panel may be closed while this runs. Tap several and they queue up behind one another. <b>Clear the list</b> tidies away anything finished or failed.</div>
-        <div><b style="color:#fca5a5">4 · Result</b> — a completed song leaves this panel and is listed under <b style="color:#c084fc">🆕 New Songs</b> for 30 days. A <b style="color:#f87171">failed</b> download remains here, in red, with the reason.</div>
+        <div><b style="color:#fca5a5">4 · Result</b> — a completed row reads <b style="color:#10B981">✓ Completed</b> and tells you the song is now under <b style="color:#c084fc">🆕 New Songs</b>, which is where songs are renamed, given a key or removed, and where they stay for 30 days. Completed rows remain here while anything else is still downloading — so you can see a whole batch arrive — and clear themselves a couple of minutes after the last one lands. A <b style="color:#f87171">failed</b> download does not clear: it stays here in red with the reason, because a song that never arrived cannot appear under 🆕 New Songs and this is the only place you would ever find out.</div>
         <div><b style="color:#fca5a5">Closing the panel</b> — the <b>YouTube Downloads</b> button closes it and keeps the search results. <b style="color:#fca5a5">✕ Clear</b> discards the search results and closes.</div>
         <div><b style="color:#fca5a5">Guest requests</b> — songs requested from guests’ phones appear here under the guest’s name and download automatically.</div>
           </div>
@@ -722,6 +723,15 @@ if (!$KAR_LOCAL) {
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <button type="button" onclick="karYtSearch()" id="kar-yt-btn" title="Search YouTube for a song" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap;width:186px">▶ Search YouTube</button>
         <input id="kar-yt-q" type="text" placeholder="Type a singer or a song…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+        <!-- Ticked, which is the normal case, this does TWO things: YouTube is asked for the
+             karaoke version, and results that name none of karaoke / lyrics / testo are held
+             back behind a count. Unticked, the words go to YouTube exactly as typed and
+             everything is shown — for the rare case of wanting the ordinary record rather
+             than something to sing to (the owner, 2026-09-14). -->
+        <label style="display:flex;align-items:center;gap:6px;color:#94a3b8;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap" title="On: YouTube is asked for the karaoke version, and results without karaoke, lyrics or testo in the name are held back behind a count. Off: your words go to YouTube exactly as typed and every result is shown — for when you want the ordinary song rather than something to sing to.">
+          <input type="checkbox" id="kar-yt-only" checked onchange="KAR_YT_ONLY=this.checked;try{localStorage.setItem('kar_yt_only',this.checked?'1':'0')}catch(e){}">
+          Karaoke &amp; lyrics only
+        </label>
         <div class="kar-dlrt">
           <button type="button" onclick="karDlClearClose()" title="Wipe the search results and close. To close WITHOUT wiping them, click the YouTube Downloads button above." style="font-family:inherit;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.55);color:#fca5a5;cursor:pointer;font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px">✕ Clear</button>
           <a href="https://www.youtube.com" target="_blank" rel="noopener" onclick="karYtHint()" title="Browse YouTube itself in a new tab; copy a link and paste it here" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;font-size:12.5px;font-weight:700;text-decoration:none;padding:7px 13px;border-radius:8px;white-space:nowrap">▶ open YouTube ↗</a>
@@ -2046,7 +2056,8 @@ function karPickFolder(){
           + '<span style="flex:0 0 106px;height:9px;border-radius:4px;background:#475569"></span>'
           + '<span style="flex:1;height:9px;border-radius:4px;background:#334155"></span></div>';
         el.innerHTML = ghost + ghost
-          + '<p style="color:#64748b;font-size:12px;margin:6px 0 0;text-align:center">Songs you add will be listed here.</p>';
+          + '<p style="color:#64748b;font-size:12px;margin:6px 0 0;text-align:center">Nothing downloading right now. '
+          + 'Songs that arrived are under <b style="color:#c084fc">🆕 New Songs</b>; anything that failed stays here, in red.</p>';
         karDlHasSeen = true;
         return;
       }
@@ -2062,7 +2073,7 @@ function karPickFolder(){
         var fresh = !karDlSeen[r.id] && karDlHasSeen; karDlSeen[r.id] = 1;
         return '<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 6px;border-bottom:1px solid #1e293b;border-radius:6px;transition:background 1.8s' + (fresh ? ';background:rgba(96,165,250,.22)' : '') + '" ' + (fresh ? 'data-fresh="1"' : '') + '>'
           + '<span style="flex:0 0 106px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;' + karDlStatusStyle(r.status) + '">'
-          + (r.status === 'Downloading' ? '⬇ Downloading' : r.status === 'Done' ? '✓ Done' : r.status === 'Error' ? '✕ Didn\'t work' : r.status) + '</span>'
+          + (r.status === 'Downloading' ? '⬇ Downloading' : r.status === 'Done' ? '✓ Completed' : r.status === 'Error' ? '✕ Didn\'t work' : r.status) + '</span>'
           + '<div style="flex:1;min-width:0"><div style="font-size:13px;color:#e2e8f0;word-break:break-word">' + name + '</div>' + note + '</div>'
           + (canRemove ? '<button type="button" onclick="karDlRemove(' + r.id + ')" title="Remove this line from the list (the URL only — no file is touched)" style="font-family:inherit;flex:0 0 auto;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:0 2px">✕</button>' : '')
           + '</div>';
@@ -2139,12 +2150,16 @@ function karPickFolder(){
     function karYtSearch(){
       var inp = document.getElementById('kar-yt-q'), q = inp.value.trim();
       if (!q) { inp.focus(); return; }
-      KAR_YT_Q = q;
+      // The mode is captured AT SEARCH TIME, so ticking the box afterwards cannot quietly
+      // re-filter results that came back from a search never steered at karaoke.
+      KAR_YT_Q = q; KAR_YT_SHOWALL = false; KAR_YT_MODE = KAR_YT_ONLY;
+      KAR_YT_OPENED = -1; KAR_YT_WATCHED = {}; KAR_YT_ADDED = {};
       var btn = document.getElementById('kar-yt-btn'), res = document.getElementById('kar-yt-res');
       btn.disabled = true; btn.textContent = 'Searching…';
       res.innerHTML = '<div style="color:#D2AD6C;font-size:12.5px;padding:6px 2px">Looking on YouTube…</div>';
       if (karYtPoll) { clearInterval(karYtPoll); karYtPoll = null; }
       var fd = new FormData(); fd.append('form_type','karaoke_yt_search'); fd.append('q', q);
+      fd.append('only', KAR_YT_ONLY ? '1' : '0');
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) { karYtDone(); res.innerHTML = '<div style="color:#f87171;font-size:12.5px;padding:6px 2px">' + karEsc(d.error || 'Search failed.') + '</div>'; return; }
         var tries = 0;
@@ -2169,7 +2184,27 @@ function karPickFolder(){
     // which one he just watched (the owner, 2026-09-12: "if I don't remember which one I
     // watched, it'll be a problem"). So the row he opened or copied stays marked, and a row
     // already in the download list keeps a stronger, permanent mark of its own.
-    var KAR_YT_OPENED = -1;
+    // Three marks, strongest first: a row already downloading (green, permanent) · the one
+    // just opened (red, moves) · every earlier one you opened (grey, permanent). The trail
+    // is the point — watching three songs used to leave only the third marked, so coming
+    // back to pick the first meant hunting through sixteen near-identical rows from memory
+    // (the owner, 2026-09-14: "I watch number three, and by that time I think I wanna
+    // download number one. How does that work?").
+    var KAR_YT_OPENED = -1, KAR_YT_WATCHED = {}, KAR_YT_ADDED = {};
+
+    // Marks live in those three objects, never only in the DOM: the rows are rebuilt from
+    // scratch whenever the list is re-rendered — pressing Show them, for one — and painting
+    // them again from state is what stops a re-render wiping the trail.
+    function karYtPaint(){
+      for (var j = 0; j < KAR_YT_HITS.length; j++){
+        var row = document.getElementById('kar-ytrow-' + j);
+        if (!row) continue;
+        var st = KAR_YT_ADDED[j] ? 'added'
+               : (j === KAR_YT_OPENED ? 'open' : (KAR_YT_WATCHED[j] ? 'watched' : ''));
+        if (st === 'added') row.dataset.added = '1';
+        karYtRowMark(row, st);
+      }
+    }
     var KAR_YT_Q = '';
     function karYtRowMark(row, state){
       var tag = row.querySelector('.kar-ytmark');
@@ -2181,6 +2216,10 @@ function karPickFolder(){
         row.style.background = 'rgba(239,68,68,.12)';
         row.style.borderLeftColor = '#EF4444';
         if (tag){ tag.textContent = '← this is the one you opened'; tag.style.color = '#fca5a5'; tag.style.display = ''; }
+      } else if (state === 'watched'){
+        row.style.background = 'rgba(148,163,184,.07)';
+        row.style.borderLeftColor = '#64748b';
+        if (tag){ tag.textContent = '✓ watched'; tag.style.color = '#94a3b8'; tag.style.display = ''; }
       } else {
         row.style.background = '';
         row.style.borderLeftColor = 'transparent';
@@ -2191,70 +2230,79 @@ function karPickFolder(){
     // — the tile, Esc, opening another panel — is a plain close and leaves it as it was.
     function karDlClearClose(){ karYtClear(false); karPanelClose(); }
     function karYtClear(refocus){
-      KAR_YT_HITS = []; KAR_YT_OPENED = -1; KAR_YT_Q = '';
+      KAR_YT_HITS = []; KAR_YT_OPENED = -1; KAR_YT_Q = ''; KAR_YT_SHOWALL = false;
+      KAR_YT_WATCHED = {}; KAR_YT_ADDED = {};
       var r = document.getElementById('kar-yt-res'); if (r) r.innerHTML = '';
       var q = document.getElementById('kar-yt-q');
       if (q) { q.value = ''; if (refocus !== false) q.focus(); }
     }
     function karYtTouch(i){
+      KAR_YT_WATCHED[i] = 1;   // never cleared: every song you opened stays on the trail
       KAR_YT_OPENED = i;
-      for (var j = 0; j < KAR_YT_HITS.length; j++){
-        var row = document.getElementById('kar-ytrow-' + j);
-        if (!row) continue;
-        if (row.dataset.added === '1') continue;   // "added" is the stronger state — leave it
-        karYtRowMark(row, j === i ? 'open' : '');
-      }
+      karYtPaint();
     }
+    // Only results whose title or channel says karaoke / lyric / testo are shown — the owner's
+    // rule, 2026-09-14. The ones held back are never thrown away: they are counted on screen
+    // and one click brings them back, because a filter that hides silently can lie.
+    var KAR_YT_SHOWALL = false;
+    // Ticked by default: a Mac nobody has configured behaves like a karaoke machine.
+    var KAR_YT_ONLY = true, KAR_YT_MODE = true;
+    function karYtToggleAll(){ KAR_YT_SHOWALL = !KAR_YT_SHOWALL; karYtRender(); }
+
     function karYtRender(){
       var res = document.getElementById('kar-yt-res');
-      KAR_YT_OPENED = -1;
       if (!KAR_YT_HITS.length) { res.innerHTML = '<div style="color:#94a3b8;font-size:12.5px;padding:6px 2px">Nothing found — try the singer\'s name, or fewer words.</div>'; return; }
-      var out = ['<div style="display:flex;align-items:center;gap:8px;padding:4px 2px 2px"><span style="color:#fca5a5;font-size:12px;font-weight:800">' + KAR_YT_HITS.length + ' results for \u201c' + karEsc(KAR_YT_Q) + '\u201d</span></div>',
-        '<div style="color:#94a3b8;font-size:12px;padding:2px 2px 6px"><b style="color:#e2e8f0">▶ Watch</b> opens the video on YouTube · <b style="color:#f3d9a4">📋 Copy link</b> copies its address · <b style="color:#fca5a5">⬇ Download</b> queues it for download.</div>'];
-      for (var i = 0; i < KAR_YT_HITS.length; i++) {
-        var h = KAR_YT_HITS[i];
+      // Which rows to draw, as ORIGINAL indices into KAR_YT_HITS: every button in a row
+      // indexes that array, so a filtered view must never renumber them.
+      var pass = [], rest = [];
+      for (var k = 0; k < KAR_YT_HITS.length; k++) { (KAR_YT_HITS[k].ok ? pass : rest).push(k); }
+      // A search where nothing at all carries one of the words is shown in full rather than
+      // as an empty page: the filter narrows the list, it never leaves you with nothing.
+      // Three ways everything gets shown: the box was unticked for this search, he asked
+      // to see the rest, or nothing at all carried one of the words — a filter that
+      // narrows must never leave him with an empty page.
+      var showAll = !KAR_YT_MODE || KAR_YT_SHOWALL || !pass.length;
+      // EVERY result that passes is shown, never a fixed dozen. Capping it would put the
+      // thirteenth good one out of sight — which is the exact problem this whole search
+      // was built to solve (the owner, 2026-09-14). So the count below is only ever the
+      // results that did not match, and the line beside it can be taken literally.
+      var show = showAll ? pass.concat(rest) : pass;
+      var hidden = KAR_YT_HITS.length - show.length;
+      var head = '<span style="color:#fca5a5;font-size:12px;font-weight:800">' + show.length
+               + (showAll ? ' results' : ' karaoke results') + ' for “' + karEsc(KAR_YT_Q) + '”</span>';
+      if (!KAR_YT_MODE) {
+        head += '<span style="color:#94a3b8;font-size:12px">· every result, not only the singable ones</span>';
+      } else if (hidden > 0) {
+        head += '<span style="color:#94a3b8;font-size:12px">· ' + hidden + ' more, without karaoke or lyrics in the name</span>'
+             +  '<button type="button" onclick="karYtToggleAll()" style="font-family:inherit;background:none;border:1px solid #334155;color:#cbd5e1;cursor:pointer;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:7px">Show them</button>';
+      } else if (showAll && rest.length) {
+        head += '<button type="button" onclick="karYtToggleAll()" style="font-family:inherit;background:none;border:1px solid #334155;color:#cbd5e1;cursor:pointer;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:7px">Karaoke &amp; lyrics only</button>';
+      }
+      var out = ['<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 2px 2px">' + head + '</div>',
+        '<div style="color:#94a3b8;font-size:12px;padding:2px 2px 6px"><b style="color:#e2e8f0">▶ Watch</b> opens the video on YouTube, and the row stays marked · <b style="color:#fca5a5">⬇ Download</b> fetches it.</div>'];
+      for (var n = 0; n < show.length; n++) {
+        var i = show[n], h = KAR_YT_HITS[i];
         // A duplicate is a WARNING, never a refusal — he keeps several versions of a song
         // on purpose, and tidies up from 🆕 New at the end of the night.
         var dup = (h.have && h.have.length)
           ? '<div style="color:#D2AD6C;font-size:11.5px;margin-top:2px">⚠ you may already have this — ' + karEsc(h.have[0].label) + '</div>'
           : '';
+        // Shown only once the held-back rows are revealed, so it is clear which is which.
+        var why = (h.ok || !KAR_YT_MODE) ? '' : ' · <span style="color:#f59e0b">no karaoke or lyrics in the name</span>';
         out.push('<div id="kar-ytrow-' + i + '" style="display:flex;gap:10px;align-items:center;padding:7px 0 7px 7px;border-top:1px solid #1e293b;border-left:3px solid transparent;border-radius:0 6px 6px 0">'
           + '<img src="' + karEscA(h.thumb) + '" alt="" style="flex:0 0 72px;width:72px;height:41px;object-fit:cover;border-radius:5px;background:#1e293b">'
           + '<div style="flex:1;min-width:0">'
           + '<div style="color:#e2e8f0;font-size:12.5px;font-weight:600;line-height:1.35">' + karEsc(h.title) + '</div>'
-          + '<div style="color:#64748b;font-size:11px">' + karEsc(h.chan) + (h.len ? ' · ' + karEsc(h.len) : '') + '</div>'
+          + '<div style="color:#64748b;font-size:11px">' + karEsc(h.chan) + (h.len ? ' · ' + karEsc(h.len) : '') + why + '</div>'
           + dup + '<div class="kar-ytmark" style="display:none;font-size:11px;font-weight:800;margin-top:2px"></div></div>'
           + '<div class="kar-dlrt">'
           + '<a href="' + karEscA(h.url) + '" target="_blank" rel="noopener" onclick="karYtTouch(' + i + ')" title="Open this video on YouTube — the row stays marked so you can find it when you come back" style="flex:0 0 auto;font-family:inherit;background:none;border:1px solid #334155;color:#e2e8f0;text-decoration:none;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px">▶ Watch</a>'
-          + '<button type="button" onclick="karYtCopy(' + i + ',this)" title="Copy this video\'s link" style="flex:0 0 auto;font-family:inherit;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#f3d9a4;cursor:pointer;font-size:12px;font-weight:700;padding:7px 11px;border-radius:8px">📋 Copy link</button>'
           + '<button type="button" onclick="karYtAdd(' + i + ',this)" style="flex:0 0 auto;font-family:inherit;background:rgba(239,68,68,.16);border:1px solid #EF4444;color:#fecaca;cursor:pointer;font-size:12.5px;font-weight:800;padding:7px 14px;border-radius:8px">⬇ Download</button>'
           + '</div>'
           + '</div>');
       }
       res.innerHTML = out.join('');
-    }
-
-    // Copy a result's link. navigator.clipboard needs a secure context, and the standalone
-    // edition runs on plain http on the house network — so fall back to the old
-    // select-and-execCommand route, which works on either.
-    function karYtCopy(i, btn){
-      var h = KAR_YT_HITS[i]; if (!h) return;
-      karYtTouch(i);
-      var done = function(ok){
-        btn.textContent = ok ? '✓ Copied' : '📋 Copy link';
-        if (!ok) { alert('Could not copy — the link is: ' + h.url); return; }
-        setTimeout(function(){ btn.textContent = '📋 Copy link'; }, 2500);
-      };
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(h.url).then(function(){ done(true); }, function(){ done(karYtCopyLegacy(h.url)); });
-      } else { done(karYtCopyLegacy(h.url)); }
-    }
-    function karYtCopyLegacy(text){
-      var ta = document.createElement('textarea'); ta.value = text;
-      ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta);
-      ta.focus(); ta.select(); var ok = false;
-      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-      document.body.removeChild(ta); return ok;
+      karYtPaint();   // the rows are brand new — put the marks back on them
     }
 
     // Adding goes through the SAME list as a pasted link, so ⬇ Download the list still
@@ -2268,8 +2316,8 @@ function karPickFolder(){
         btn.textContent = d.ok ? '✓ Downloading…' : '⬇ Download';
         if (!d.ok) { alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
         btn.style.color = '#6ee7b7'; btn.style.borderColor = '#16a34a';
-        var row = document.getElementById('kar-ytrow-' + i);
-        if (row){ row.dataset.added = '1'; karYtRowMark(row, 'added'); }
+        KAR_YT_ADDED[i] = 1;   // in state, not just the DOM — Show them rebuilds the rows
+        karYtPaint();
         karDlGo().then(karDlRefresh);
       }).catch(function(){ btn.disabled = false; btn.textContent = '⬇ Download'; alert('Network error — the song was not added.'); });
     }
@@ -2434,6 +2482,8 @@ function karPickFolder(){
     // the picker itself is hidden by karApplyQmidiVis(), which runs after this line.
     if (!karShowQmidi) document.getElementById('kar-q-player').value = 'mpv';
     try { if (localStorage.getItem('kar_q_fair') === '1') document.getElementById('kar-q-fair').checked = true; } catch(e){}
+    try { KAR_YT_ONLY = localStorage.getItem('kar_yt_only') !== '0';
+          document.getElementById('kar-yt-only').checked = KAR_YT_ONLY; } catch(e){}
     karQFetch();
     setInterval(function(){
       var p = document.getElementById('kar-q-panel');

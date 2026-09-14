@@ -410,7 +410,12 @@ try {
                                 WHERE requested_by = 'host' AND requested_at > " . kar_ago(1, 'minutes'));
         $recent->execute();
         if ((int)$recent->fetchColumn() >= 12) kj(['ok'=>false,'error'=>'give it a moment — too many searches at once']);
-        $db->prepare("INSERT INTO karaoke_searches (query, requested_by) VALUES (?, 'host')")->execute([$q]);
+        // 'only' is the host's "Karaoke & lyrics only" checkbox. It is stored rather than
+        // applied here: the Mac is what actually runs the search, and it decides both
+        // whether to steer the query at karaoke and whether the page filters the results.
+        $only = (string)($_POST['only'] ?? '1') === '0' ? 0 : 1;
+        $db->prepare("INSERT INTO karaoke_searches (query, requested_by, want_karaoke) VALUES (?, 'host', ?)")
+           ->execute([$q, $only]);
         $sid = (int)$db->lastInsertId();
         kar_worker_spawn();   // nothing polls a queue here — start it now
         kj(['ok'=>true, 'error'=>'', 'sid'=>$sid]);
@@ -427,12 +432,25 @@ try {
     }
 
     case 'karaoke_dl_state': {
-        // The fetching machine, not an archive: successes retire in 10 minutes (the song
-        // lives under 🆕 New), failures stay 7 days because this is the ONLY place a
-        // failure is ever visible.
+        // How long a finished row stays: until the BATCH is done, then two minutes. A fixed
+        // timer is wrong here — add three songs and they fetch one at a time, so by the time
+        // the third lands a short timer would already have cleared the first two and you
+        // could never see that all three arrived. While anything is still in flight the whole
+        // batch stays on screen; once nothing is left fetching, the completed rows have done
+        // their job and go. Failures stay 7 days regardless: a song that failed has NO file,
+        // so it can never appear under 🆕 New, and this is the only place anyone ever learns
+        // it did not arrive.
+        // "The batch" means precisely this: everything asked for since the oldest song still
+        // in flight was asked for. A blanket window would drag last night's downloads back
+        // onto the screen the moment a new one starts.
+        $batch = $db->query("SELECT MIN(requested_at) FROM karaoke_downloads
+                             WHERE status IN ('Queued','Pending','Downloading')")->fetchColumn();
+        $doneWindow = (is_string($batch) && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $batch))
+            ? "datetime('" . $batch . "','-1 minute')"
+            : "datetime('now','localtime','-2 minutes')";
         $rows = $db->query("SELECT id, url, title, status, COALESCE(note,'') AS note, filename, requested_by FROM karaoke_downloads
             WHERE status IN ('Queued','Pending','Downloading')
-               OR (status='Done'  AND COALESCE(done_at, requested_at) > datetime('now','localtime','-10 minutes'))
+               OR (status='Done'  AND COALESCE(done_at, requested_at) > $doneWindow)
                OR (status='Error' AND COALESCE(done_at, requested_at) > datetime('now','localtime','-7 days')
                    -- a failure that a LATER attempt at the same song got right is not a
                    -- failure any more — leaving it in red beside a green success was read as

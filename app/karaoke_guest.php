@@ -325,12 +325,22 @@ $_db = $tokenOk ? kar_catalog() : [];
     }).catch(function(){ btn.disabled = false; btn.textContent = 'Search'; res.innerHTML = '<div style="color:#f87171;font-size:12.5px">Network hiccup — try again.</div>'; });
   }
 
+  // Only results whose title or channel says karaoke / lyric / testo (the owner, 2026-09-14).
+  // A guest gets no toggle — the phone should show the singable ones and nothing else. If a
+  // search turns up none at all, the full list is shown rather than an empty page.
   function gYtRender(){
     var res = document.getElementById('g-ytres');
     if (!G_HITS.length) { res.innerHTML = '<div style="color:#94a3b8;font-size:12.5px;padding:6px 2px">Nothing found — try the singer\'s name, or fewer words.</div>'; return; }
+    // ORIGINAL indices: gPick() indexes G_HITS, so a filtered list must not renumber them.
+    var pass = [];
+    for (var k = 0; k < G_HITS.length; k++) { if (G_HITS[k].ok) pass.push(k); }
+    if (!pass.length) { for (var m = 0; m < G_HITS.length; m++) pass.push(m); }
+    // Every match is shown: there is no "more" button on a phone, so a cap here would
+    // not hide a result, it would lose it.
+    var show = pass;
     var out = [];
-    for (var i = 0; i < G_HITS.length; i++) {
-      var h = G_HITS[i];
+    for (var n = 0; n < show.length; n++) {
+      var i = show[n], h = G_HITS[i];
       out.push('<div onclick="gPick(' + i + ')" style="display:flex;gap:9px;align-items:center;padding:7px 4px;border-top:1px solid #1e293b;cursor:pointer">'
         + '<img src="' + gEsc(h.thumb) + '" alt="" style="flex:0 0 64px;width:64px;height:36px;object-fit:cover;border-radius:5px;background:#1e293b">'
         + '<div style="flex:1;min-width:0">'
