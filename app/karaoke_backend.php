@@ -649,22 +649,118 @@ function kar_mc_clip(string $text, string $voice, int $rate): string {
  *
  * Kept as three separate clips joined by silence rather than one sentence — that is what
  * makes the pause a dial instead of a guess, and it survives changing the voice. */
+// ── THE THREE ANNOUNCERS (the owner, 2026-09-14) ──────────────────────────────────────
+// A song is announced WHOLE in its own language, by that language's voice. Four phrasings
+// each, and they are the SAME FOUR MOODS in every language - formal welcome · and-now ·
+// your turn · applause - so the rotation varies the wording without changing the character
+// of the MC. Each line is three parts because the audio is three clips joined by real
+// silence; that rhythm was settled by ear on 10 Sep and is untouched here.
+//
+// ⚠ THIS IS THE SECOND IMPLEMENTATION. casAI's watcher announces through
+// ~/Karaoke/sounds/announce.py; this is the standalone edition's own. They must be changed
+// TOGETHER or the two will drift - the phrasings and the language test below are a
+// deliberate mirror of that file.
+const KAR_MC_PHRASINGS = [
+  'en' => [['Ladies and gentlemen',       '{singer} will sing',                   '{title}, by {artist}!'],
+           ['And now',                    '{singer} will sing our next song',     '{title}, by {artist}!'],
+           ['Next up',                    '{singer} is about to sing',            '{title}, by {artist}!'],
+           ["Let's hear it for {singer}", 'who is going to sing',                 '{title}, by {artist}!']],
+  'it' => [['Signore e signori',           '{singer} canterà',                     '{title}, di {artist}!'],
+           ['E adesso',                    '{singer} canterà la prossima canzone', '{title}, di {artist}!'],
+           ['Tocca a {singer}',            'che canta',                            '{title}, di {artist}!'],
+           ['Un applauso per {singer}',    'che si appresta a cantare',            '{title}, di {artist}!']],
+  'es' => [['Señoras y señores',           '{singer} cantará',                     '{title}, de {artist}!'],
+           ['Y ahora',                     '{singer} cantará la próxima canción',  '{title}, de {artist}!'],
+           ['Le toca a {singer}',          'que canta',                            '{title}, de {artist}!'],
+           ['Un aplauso para {singer}',    'que está a punto de cantar',           '{title}, de {artist}!']],
+];
+
+/** Which language is this song? Read from the title, where the answer honestly is. The
+ *  decisive signal is shape, not vocabulary: Italian and Spanish words almost always end in
+ *  a vowel (~90%), English ones rarely (~35%). Undecided answers English. */
+function kar_mc_lang(string $title, string $artist = ''): string {
+    $noise = ' party video lyrics lyric testo testi karaoke official audio hd hq live remastered versione version base musicale sanremo vincitore folk dance napoletano napoletana canzoni alta qualita qualità academy italia cover instrumental full album new nuovo mix spanish english csg csg0 csg1 the of ';
+    $it = ' il lo la gli le un uno una di del della dei delle che non se per con mi ti ci vi ne è ma come quando dove tutto tutti questo quella quello sono sei siamo amore cuore notte vita tempo sempre più mai perché me te noi voi loro nel nella sul sulla da dal dalla alla ai al così anche solo senza dopo prima ancora niente nulla uomo donna mondo giorno sera cielo mare sole luna casa cosa canta canzone ';
+    $es = ' el los las de que no si por para tu su es está están pero como cuando donde todo todos nada nadie quien corazón amor noche vida siempre nunca sin más muy bien ser estar hacer tener querer mujer hombre mundo día sol mar luna casa cosa yo ella nosotros ustedes canción ';
+    $en = ' the a an of to in on for with and or but you your my me is are am was were be been do dont cant wont love heart night day time life world man woman girl boy baby never always all some this that what when where how why go going get got make take say said know now here there out up down over again away home come like just only from ';
+    $t = mb_strtolower($title . ' ' . $artist);
+    $t = preg_replace('/\.[a-z0-9]{2,4}$/u', '', $t);
+    $t = preg_replace('/\(.*?\)|\[.*?\]/u', ' ', $t);
+    $t = preg_replace("/[^a-zàèéìòùáíóúüñ'\s-]/u", ' ', $t);
+    $w = [];
+    foreach (preg_split('/\s+/u', trim($t)) as $x) {
+        $x = trim($x, "-'");
+        if (mb_strlen($x) > 1 && mb_strpos($noise, ' ' . $x . ' ') === false) $w[] = $x;
+    }
+    $n = count($w);
+    if ($n < 2) return 'en';
+    $acc = 0; $cit = 0; $ces = 0; $cen = 0; $vend = 0;
+    foreach ($w as $x) {
+        if (preg_match('/[àèéìòùáíóúñ]/u', $x)) $acc++;
+        if (mb_strpos($it, ' ' . $x . ' ') !== false) $cit++;
+        if (mb_strpos($es, ' ' . $x . ' ') !== false) $ces++;
+        if (mb_strpos($en, ' ' . $x . ' ') !== false) $cen++;
+        if (mb_strpos('aeiou', mb_substr($x, -1)) !== false) $vend++;
+    }
+    $romance = 3.0 * $acc + 1.5 * ($cit + $ces) - 1.5 * $cen + (($vend / $n) - 0.55) * 8.0;
+    if ($romance <= 1.0) return 'en';
+    // Spanish or Italian? Grave accents (è ò ì ù) are Italian only; Spanish uses acute and ñ.
+    // Spanish ends words on consonants far more often, and the attached pronouns pair up:
+    // bésame/abrázame against baciami/abbracciami.
+    $txt = implode(' ', $w);
+    $sp = $ces * 2 + preg_match_all('/ñ/u', $txt) * 4 + preg_match_all('/[áíóú]/u', $txt) * 2;
+    $il = $cit * 2 + preg_match_all('/[èòìù]/u', $txt) * 4;
+    foreach ($w as $x) {
+        if (preg_match('/(ción|dad|ame|arme|arte|mos|cho|cha)$/u', $x)) $sp += 2;
+        if (mb_strlen($x) > 3 && mb_strpos('snrlzd', mb_substr($x, -1)) !== false) $sp += 1;
+        if (mb_strpos($x, 'gli') !== false || mb_strpos($x, 'gn') !== false) $il += 3;
+        if (preg_match('/(zione|mento|ami|armi|arti|iamo|etto|ino)$/u', $x)) $il += 2;
+    }
+    return $sp > $il ? 'es' : 'it';
+}
+
+/** A shuffled bag, not a cycle: never the same phrasing twice running, and all four are
+ *  used before any repeats. */
+function kar_mc_phrasing(string $lang): array {
+    $set = KAR_MC_PHRASINGS[$lang] ?? KAR_MC_PHRASINGS['en'];
+    $f   = kar_data_dir() . '/mc/phrasing_bag.json';
+    $bag = is_file($f) ? (json_decode((string)@file_get_contents($f), true) ?: []) : [];
+    $left = $bag[$lang] ?? [];
+    if (!$left) {
+        $left = range(0, count($set) - 1);
+        shuffle($left);
+        $last = $bag[$lang . '_last'] ?? null;
+        if ($last !== null && count($left) > 1 && $left[0] === $last) { $left[] = array_shift($left); }
+    }
+    $i = (int)array_shift($left);
+    $bag[$lang] = array_values($left);
+    $bag[$lang . '_last'] = $i;
+    @mkdir(dirname($f), 0775, true);
+    @file_put_contents($f, json_encode($bag));
+    return $set[$i];
+}
+
 function kar_mc_build(string $singer, string $title, string $artist): string {
     $c      = kar_cfg();
-    $lead   = (string)($c['announce_lead'] ?? 'And now');
-    $verb   = (string)($c['announce_verb'] ?? 'will sing');
-    $by     = (string)($c['announce_by']   ?? 'from');
     $pause  = (float)($c['announce_pause'] ?? 0.9);
-    $voice  = kar_mc_voice();
-
-    $tail = $title . ($artist !== '' ? ', ' . $by . ' ' . $artist : '');
+    // The song picks its own announcer: language from the title, then that language's voice
+    // and one of its four phrasings.
+    $lang   = kar_mc_lang($title, $artist);
+    $voice  = (string)($c['announce_voice_' . $lang] ?? '');
+    if ($voice === '') $voice = ['en' => 'Evan (Enhanced)', 'it' => 'Alice', 'es' => 'Mónica'][$lang];
+    [$p1, $p2, $p3] = kar_mc_phrasing($lang);
+    if ($artist === '') $p3 = '{title}!';
+    $fill = function (string $x) use ($singer, $title, $artist): string {
+        return str_replace(['{singer}', '{title}', '{artist}'], [$singer, $title, $artist], $x);
+    };
+    $lead = $fill($p1); $mid = $fill($p2); $tail = $fill($p3);
     $a = kar_mc_clip($lead, $voice, 178);
-    $b = kar_mc_clip($singer . ' ' . $verb, $voice, 178);
+    $b = kar_mc_clip($mid !== '' ? $mid : ' ', $voice, 178);
     $d = kar_mc_clip($tail, $voice, 115);
     if ($a === '' || $b === '' || $d === '') return '';
 
     $dir = kar_data_dir() . '/mc';
-    $out = $dir . '/' . substr(sha1($voice . '|' . $lead . '|' . $singer . '|' . $verb . '|' . $tail . '|' . $pause), 0, 16) . '.wav';
+    $out = $dir . '/' . substr(sha1($voice . '|' . $lead . '|' . $mid . '|' . $tail . '|' . $pause), 0, 16) . '.wav';
     if (is_file($out) && filesize($out) > 0) return $out;
 
     $ff = kar_tool('ffmpeg');
