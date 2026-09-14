@@ -259,7 +259,7 @@ if (!$KAR_LOCAL) {
       <div class="kar-grp">
         <div class="kar-grplbl">Songs and singers</div>
         <div style="display:flex;gap:8px;align-items:center">
-      <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🗂 Song Database <span style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjDb) ?></span></button>
+      <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🗂 Song Database <span id="kar-db-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjDb) ?></span></button>
       <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🆕 New Songs <span id="kar-new-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjNew) ?></span></button>
       <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Whose Best list this is. Pick a name to see their songs, or add a new person." style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">
         <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
@@ -1432,6 +1432,7 @@ if (!$KAR_LOCAL) {
         });
         delete KAR_PITCH[songD];
         karRebuildBest();
+        karChipCounts();
         karRender();
       }).catch(function(){ alert('Network error — the removal was not sent.'); });
     }
@@ -2455,6 +2456,16 @@ function karPickFolder(){
       rows.forEach(function(r){ if (r.status === 'Done' && !karNewDoneSeen[r.id]) { karNewDoneSeen[r.id] = 1; if (!first) fresh = true; } });
       if (fresh) karNewRefresh();
     }
+    // The numbers ON THE CHIPS come from the server at page load, so anything that changes
+    // a list in place - a delete, a download arriving - left them stale until a refresh
+    // (the owner, 2026-09-14: "I deleted a bunch... in the button it still says fifteen").
+    // Every path that changes a list calls this instead.
+    function karChipCounts(){
+      var d = document.getElementById('kar-db-count');
+      if (d) d.textContent = KAR_DATA.db.length;
+      var n = document.getElementById('kar-new-count');
+      if (n) n.textContent = KAR_DATA.new.length;
+    }
     function karNewRefresh(){
       var fd = new FormData(); fd.append('form_type', 'karaoke_new_list');
       fetch(location.pathname, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
@@ -2462,7 +2473,7 @@ function karPickFolder(){
         KAR_DATA.new = d.new || [];
         if (d.db && d.db.length) KAR_DATA.db = d.db;
         Object.keys(d.dup || {}).forEach(function(k){ KAR_DUP[k] = d.dup[k]; });
-        var c = document.getElementById('kar-new-count'); if (c) c.textContent = KAR_DATA.new.length;
+        karChipCounts();
         if (karView === 'new' || karView === 'db') karRender();
       }).catch(function(){});
     }
