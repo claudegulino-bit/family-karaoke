@@ -541,6 +541,19 @@ const KAR_MC_WALK_UP  = 14.0;  // applause + screen, while the singer reaches th
 // building the voice takes a few seconds — that came out as the announcement landing on top of
 // the music. Paused, the overlap is not merely quiet, it is impossible.
 
+/** The name to SAY. A person can keep more than one Best list - "Claude" for songs sung
+ *  well, "Claude — practice" for ones still being learned - and the list name doubles as the
+ *  singer name. Announce the part before the separator so the MC does not say "Claude —
+ *  practice will sing". A dash inside a name (Jean-Paul) is untouched: the separator must
+ *  have spaces around it, or be a bracket. */
+function kar_mc_name(string $singer): string {
+    foreach ([' — ', ' – ', ' - ', ' ('] as $sep) {
+        $i = mb_strpos($singer, $sep);
+        if ($i !== false) return trim(mb_substr($singer, 0, $i));
+    }
+    return $singer;
+}
+
 /** Is the MC switched on? Off by "announce": false in karaoke_standalone.json. */
 function kar_mc_on(): bool {
     $c = kar_cfg();

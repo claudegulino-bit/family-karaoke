@@ -45,6 +45,8 @@ if ($job === 'announce') {
     $song   = (string)($spec['song'] ?? '');
     $singer = (string)($spec['singer'] ?? '');
     if ($song === '' || $singer === '') exit;
+    // Announced and shown as the person, not the list: "Claude — practice" says "Claude".
+    if (function_exists('kar_mc_name')) $singer = kar_mc_name($singer);
 
     // Nothing below may stop the music. If any step fails, put the volume back and let
     // the song play — a party does not care that the announcer failed.
