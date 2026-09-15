@@ -55,6 +55,29 @@ function kar_is_local(): bool {
     return $v;
 }
 
+// ── PHP AND SQLITE MUST AGREE ON WHAT TIME IT IS ──────────────────────────────────────
+// SQLite stamps every row with datetime('now','localtime') — the Mac's own clock — while
+// PHP writes done_at with date(), on PHP's timezone. A bare Homebrew PHP has no timezone
+// of its own and answers UTC, so the two land HOURS apart and every comparison between
+// them is silently wrong: a finished download sat in the panel for four hours instead of
+// two minutes (Kitchen Mac, 2026-09-14 — and this laptop's own rows were 4h out too).
+//
+// ⚠ Do NOT guard this on `!ini_get('date.timezone')`. PHP reports 'UTC' from ini_get even
+// when the setting is COMMENTED OUT in php.ini, so such a guard never fires on precisely
+// the machines that need it — measured on two Macs, 14 Sep 2026.
+//
+// Standalone only. The server names its timezone deliberately and its database shares
+// that same clock, so there is nothing to reconcile there and nothing to disturb.
+if (kar_is_local()) {
+    $_kar_tz = @readlink('/etc/localtime');
+    if ($_kar_tz && preg_match('#zoneinfo/(.+)$#', $_kar_tz, $_kar_m)
+        && in_array($_kar_m[1], timezone_identifiers_list(), true)
+        && $_kar_m[1] !== date_default_timezone_get()) {
+        date_default_timezone_set($_kar_m[1]);
+    }
+    unset($_kar_tz, $_kar_m);
+}
+
 /**
  * "N units ago", in whichever dialect this install speaks. The standalone edition is
  * SQLite and casAI is MariaDB, and a cutoff written in one is a fatal error in the

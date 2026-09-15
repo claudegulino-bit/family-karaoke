@@ -237,7 +237,17 @@ try {
                 if (!(int)$db->query("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Singing'")->fetchColumn()) return;
                 $since = (int)$db->query("SELECT v FROM karaoke_settings WHERE k='singing_since'")->fetchColumn();
                 if (!$since || time() < $since + 25) return;
-                if (function_exists('kar_mpv_alive') && kar_mpv_alive()) return;   // still playing
+                // The player is deliberately kept open between songs (--idle=yes --keep-open=always),
+                // so "is mpv running" is true all evening and can never tell us a song ended — which
+                // is exactly why the last singer of the night stayed on the panel. Ask what the player
+                // is DOING instead: at the end of a file mpv parks with eof-reached true, while
+                // mid-song — even PAUSED — it is false. core-idle looks equivalent and is a trap: it
+                // goes true on a pause, so a singer who stopped to talk would be marked Done and
+                // dropped off the panel. Measured on two Macs, 14 Sep 2026.
+                if (function_exists('kar_mpv_alive') && kar_mpv_alive()) {
+                    $eof = json_decode((string)kar_mpv_send(['get_property', 'eof-reached']), true);
+                    if (!is_array($eof) || ($eof['data'] ?? null) !== true) return;   // still on the song
+                }
                 $db->exec("UPDATE karaoke_sing_queue SET status='Done' WHERE status='Singing'");
             } catch (Throwable $e) { /* never break the panel over this */ }
         };
