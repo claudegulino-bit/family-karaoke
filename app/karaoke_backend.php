@@ -777,14 +777,53 @@ function kar_mc_phrasing(string $lang): array {
     return $set[$i];
 }
 
+/** The best announcer voice for a language THAT IS ACTUALLY INSTALLED on this Mac.
+ *
+ * ⚠ WHY THIS EXISTS. The Enhanced voices are a separate download in System Settings, so on a
+ * Mac that has never been set up for Cantoria they are simply absent. Naming one anyway made
+ * `say` fail, kar_mc_clip return '', kar_mc_build return '' — and the announcement went SILENT
+ * with nothing on screen to say why, only "FAILED TO BUILD" in data/mc.log. That is the worst
+ * shape of bug for a brand-new install: everything looks fine and one feature is quietly dead.
+ *
+ * So: take what the owner configured if it is installed, else the best installed voice for that
+ * language, else ANY voice in that language, else '' — which makes kar_mc_clip drop the -v flag
+ * and use the Mac's own default. Worse, but it still speaks. Never silent. */
+function kar_mc_voice_for(string $lang): string {
+    static $have = null;
+    if ($have === null) $have = (string)@shell_exec('say -v "?" 2>/dev/null');
+    $c = kar_cfg();
+
+    // 1) what the owner asked for, if this Mac actually has it
+    $want = trim((string)($c['announce_voice_' . $lang] ?? ''));
+    if ($want !== '' && strpos($have, $want) !== false) return $want;
+
+    // 2) the nicest voice we know of for that language, if installed
+    $pref = [
+        'en' => ['Ava (Premium)', 'Evan (Enhanced)', 'Samantha (Enhanced)', 'Samantha', 'Alex'],
+        'it' => ['Alice (Enhanced)', 'Alice', 'Federica (Enhanced)', 'Luca (Enhanced)'],
+        'es' => ['Mónica (Enhanced)', 'Mónica', 'Diego (Enhanced)', 'Diego', 'Paulina'],
+    ];
+    foreach (($pref[$lang] ?? []) as $v) {
+        if (strpos($have, $v) !== false) return $v;
+    }
+
+    // 3) any installed voice at all in that language — `say -v "?"` lists "Name   xx_YY   # sample"
+    $code = ['en' => 'en_', 'it' => 'it_', 'es' => 'es_'][$lang] ?? 'en_';
+    foreach (explode("\n", $have) as $line) {
+        if (preg_match('/^(.+?)\s{2,}' . $code . '/', $line, $m)) return trim($m[1]);
+    }
+
+    // 4) the Mac's own default. Not ideal, but it speaks.
+    return '';
+}
+
 function kar_mc_build(string $singer, string $title, string $artist): string {
     $c      = kar_cfg();
     $pause  = (float)($c['announce_pause'] ?? 0.9);
     // The song picks its own announcer: language from the title, then that language's voice
     // and one of its four phrasings.
     $lang   = kar_mc_lang($title, $artist);
-    $voice  = (string)($c['announce_voice_' . $lang] ?? '');
-    if ($voice === '') $voice = ['en' => 'Evan (Enhanced)', 'it' => 'Alice', 'es' => 'Mónica'][$lang];
+    $voice  = kar_mc_voice_for($lang);
     [$p1, $p2, $p3] = kar_mc_phrasing($lang);
     if ($artist === '') $p3 = '{title}!';
     $fill = function (string $x) use ($singer, $title, $artist): string {
