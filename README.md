@@ -34,6 +34,21 @@ Then:
 3. In the browser it opens, press **📖 Guide** and follow section 1 — it will ask you to
    point at your songs folder, and check that everything is installed.
 
+## The applause
+
+Cantoria ships with applause, so the walk to the microphone is never silent. It is
+*"Sound Effects - Applause after a concert"* by **Amada44** from Wikimedia Commons, released under
+the **Creative Commons CC0 1.0 Universal Public Domain Dedication** — free to copy, redistribute and
+use commercially, no attribution required. Credited anyway, because knowing where a file came from
+is worth more than the licence asks. Trimmed to 24 seconds with a 2-second fade.
+<https://commons.wikimedia.org/wiki/File:Sound_Effects_-_Applause_after_a_concert.ogg>
+
+Would you rather see a cheering crowd on the screen? Put a video named `applause.mp4` in a folder
+called `@ Cantoria/sounds` next to your songs folder — a video is preferred wherever one is found,
+and if your songs are shared through Drive every Mac in the house gets it at once. Use something you
+own or that is genuinely free to pass on: most "free stock" sites forbid redistributing their files
+on a standalone basis, which is exactly what including one here would be.
+
 ## Keeping it up to date
 
 Press **Update** in the Guide. Or run `~/Karaoke/update.sh` in Terminal.
