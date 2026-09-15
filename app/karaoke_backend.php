@@ -841,6 +841,10 @@ function kar_mc_applause(): string {
     $tries = [trim((string)($c['applause'] ?? ''))];
     foreach (['mp4', 'mov', 'm4v', 'wav', 'mp3', 'm4a'] as $ext) {
         $tries[] = __DIR__ . '/sounds/applause.' . $ext;
+        // Shipped with the bundle, flat beside the page — update.sh copies files with a plain
+        // `cp`, so a subdirectory would never arrive. This is the CC0 recording every install
+        // gets out of the box, so a fresh Mac is never silent during the walk to the mic.
+        $tries[] = __DIR__ . '/applause.' . $ext;
         if ($near  !== '') $tries[] = $near . 'applause.' . $ext;
         if ($songs !== '') $tries[] = $songs . '/applause.' . $ext;
     }
