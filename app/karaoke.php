@@ -262,6 +262,22 @@ if (!$KAR_LOCAL) {
     box-shadow: inset 0 0 0 1.5px #e2e8f0, 0 0 10px rgba(226,232,240,.28) !important; }
   .kar-simple .kar-pitch   { font-size: 16px !important; }
   .kar-simple .kar-pstep   { font-size: 17px !important; }
+
+  /* The three searches, in the order you use them: your own songs, then YouTube, then a
+     link somebody handed you. One box; the mode decides what the box DOES. the owner,
+     2026-09-18: "there are three types of search ... it would be nice to have those three
+     in the sequence, somewhere in the header". */
+  .kar-smode { appearance:none; -webkit-appearance:none; font-family:inherit; cursor:pointer;
+               font-size:11.5px; font-weight:800; letter-spacing:.01em; padding:6px 11px; white-space:nowrap;
+               border-radius:8px; background:#1a2230; border:1.5px solid #60A5FA; color:#93c5fd;
+               transition:background .12s, color .12s, border-color .12s; }
+  .kar-smode.kar-on { background:#2563eb; border-color:#93c5fd; color:#fff; }
+  .kar-smode.kar-yt.kar-on   { background:#dc2626; border-color:#fca5a5; }
+  .kar-smode.kar-yt          { border-color:#EF4444; color:#fca5a5; }
+  .kar-smode.kar-lk.kar-on   { background:#7c3aed; border-color:#c4b5fd; }
+  .kar-smode.kar-lk          { border-color:#a78bfa; color:#c4b5fd; }
+  .kar-arrow { display:flex; align-items:center; gap:12px; padding:9px 12px; border-radius:10px;
+               margin-bottom:6px; font-size:14px; }
   /* The "? How it works" cards FLOAT — they used to sit inside their panel and make it
      twice as tall, which is what made the panels feel heavy. Now they stand beside the
      work instead of on top of it, and stay put until closed.
@@ -359,7 +375,18 @@ if (!$KAR_LOCAL) {
       </select>
         </div>
       </div>
-      <span style="position:relative;flex:1;min-width:260px;display:flex;align-items:center"><span style="position:absolute;left:13px;font-size:19px;line-height:1;pointer-events:none">🔍</span><input id="kar-search" type="text" placeholder="Search a song, an artist, a singer…" oninput="karRender()" onkeydown="if(event.key==='Escape'){karClearSearch(true);}" title="Type to filter the list. Esc clears it — switching views clears it too." style="font-family:inherit;width:100%;height:46px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:12px;color:#0f172a;font-size:15px;font-weight:600;padding:8px 14px 8px 42px;outline:none;box-shadow:0 0 0 3px rgba(210,173,108,.15)"></span>
+      <div id="kar-searchbar" style="flex:1;min-width:440px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the songs you already have">Search Karaoke List</button>
+          <button type="button" class="kar-smode kar-yt" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">Search YouTube</button>
+          <button type="button" class="kar-smode kar-lk" id="kar-sm-link" onclick="karSetMode('link')" title="Paste a link somebody gave you and download it">Download link</button>
+        </div>
+        <span style="position:relative;display:flex;align-items:center;gap:8px">
+          <span id="kar-sicon" style="position:absolute;left:13px;font-size:19px;line-height:1;pointer-events:none;z-index:1">🔍</span>
+          <input id="kar-search" type="text" placeholder="Search a song, an artist, a singer…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type to filter the list. Esc clears it — switching views clears it too." style="font-family:inherit;flex:1;min-width:0;height:46px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:12px;color:#0f172a;font-size:15px;font-weight:600;padding:8px 14px 8px 42px;outline:none;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
+          <button type="button" id="kar-go" onclick="karSearchGo()" style="display:none;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;height:46px;padding:0 18px;border-radius:10px;font-size:14px;font-weight:800;background:#dc2626;border:1.5px solid #fca5a5;color:#fff">Search</button>
+        </span>
+      </div>
       <div class="kar-grp" id="kar-grp-special">
         <div class="kar-grplbl">Special features</div>
         <div style="display:flex;gap:8px;align-items:center">
@@ -973,6 +1000,11 @@ if (!$KAR_LOCAL) {
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
       </span>
     </div>
+    <!-- Songs that have just come down. A download must end in something you can press, not in
+           a hunt: the owner, 2026-09-18 — "I just want that song we download to show up as a simple
+           click and play". It is ALSO the only place a FAILED download is visible in simple mode,
+           where the Downloads panel is hidden; without it a song that never arrives fails silently. -->
+    <div id="kar-arrivals" style="display:none;margin:0 0 8px"></div>
     <div id="kar-list" style="margin-top:4px;background:#121620;border:1px solid #334155;border-radius:10px;padding:6px 16px;height:calc(100vh - 275px);min-height:300px;overflow-y:auto"></div>
     <p style="margin:10px 0 0;color:#64748b;font-size:11.5px">List updated <?= h($_kjGen ?: 'unknown') ?> from the Google Drive song folders on the Mac · how everything works is under <b style="color:#94a3b8">📖 Guide</b> at the top.</p>
     </div>
@@ -2497,6 +2529,7 @@ function karPickFolder(){
         return '<div class="kar-row" style="display:flex;align-items:center;gap:14px;padding:10px 6px;border-top:1px solid #1e293b">'
           + '<button type="button" onclick="karSimpleGet(' + i + ',this)" style="font-family:inherit;flex:0 0 auto;width:130px;cursor:pointer;'
           + 'font-size:15px;font-weight:800;padding:10px 0;border-radius:8px;background:rgba(22,163,74,.18);border:1px solid #16a34a;color:#6ee7b7">Get this one</button>'
+          + '<a href="' + karEscA(h.url) + '" target="_blank" rel="noopener" title="Listen to it on YouTube first" style="flex:0 0 auto;font-family:inherit;text-decoration:none;font-size:14px;font-weight:800;padding:10px 14px;border-radius:8px;background:rgba(239,68,68,.14);border:1px solid #EF4444;color:#fca5a5">▶ Watch</a>'
           + '<img src="' + karEscA(h.thumb) + '" alt="" style="flex:0 0 auto;width:96px;height:54px;object-fit:cover;border-radius:5px;background:#1e293b">'
           + '<span style="font-size:17px;color:#e2e8f0;line-height:1.35">' + karEsc(h.title)
           // ⚠ KEEP THIS. The server already tells us which songs he owns that look like this one
@@ -2513,65 +2546,173 @@ function karPickFolder(){
     }
     function karSimpleGet(i, btn){
       var h = KAR_YT_HITS[i]; if (!h) return;
-      btn.disabled = true; btn.textContent = 'Getting...';
+      btn.disabled = true; btn.textContent = 'Getting…';
       var fd = new FormData(); fd.append('form_type', 'karaoke_dl_add'); fd.append('url', h.url);
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) { btn.disabled = false; btn.textContent = 'Get this one';
           alert('Could not fetch that song' + (d.error ? ': ' + d.error : '') + '.'); return; }
-        karDlGo();                        // start it at once - no second button to find
-        btn.textContent = 'Downloading...';
-        var tries = 0;
-        var iv = setInterval(function(){
-          tries++;
-          if (tries > 120) { clearInterval(iv); btn.textContent = 'Still going...'; return; }
-          var fp = new FormData(); fp.append('form_type', 'karaoke_dl_state');
-          fetch(KAR_API, {method:'POST', body: fp}).then(function(r){ return r.json(); }).then(function(st){
-            (st.rows || []).forEach(function(row){
-              if (row.url !== h.url) return;
-              if (row.status === 'Done') {
-                clearInterval(iv);
-                btn.textContent = 'Got it';
-                // Put THE SONG in front of him, not the whole library. the owner, 2026-09-17:
-                // "the song went to the new songs, which doesn't exist in this simple mode" - and
-                // clearing the search dropped him into all 2,060 with only a message to go on.
-                // Searching its OWN filename always finds it; searching the words he originally
-                // typed often would not, because YouTube's title is rarely what was typed.
-                // Chained off karNewRefresh so the render happens AFTER the song is in KAR_DATA.
-                // PUT THE REAL NAME IN THE SEARCH BAR. the owner, 2026-09-17, refining his own
-                // earlier idea after seeing it fail: keeping HIS words does not lock the song in
-                // when the download arrives under a different name - which is most of the time,
-                // and always after a misspelling, since he searched one thing and YouTube called
-                // it another. The filename is the one string guaranteed to match itself, so the
-                // song is alone on screen with its Play button: "press play, that would be great".
-                //
-                // ⚠ It has to happen HERE, on completion - not when he taps Get. At tap time the
-                // real name does not exist yet (yt-dlp creates it, and sanitises it: his own song
-                // turned "/" into "⧸"), and touching the search box then would re-render the list
-                // and wipe out the YouTube results he is still looking at.
-                //
-                // Chained off karNewRefresh so the render happens AFTER the song is in KAR_DATA.
-                karNewRefresh().then(function(){
-                  var el = document.getElementById('kar-search');
-                  var nm = (row.filename || '').replace(/\.[^.]+$/, '');
-                  if (el && nm) el.value = nm;
-                  karRender();
-                  var c = document.getElementById('kar-count');
-                  if (c) {
-                    c.style.cssText = 'margin-top:10px;background:rgba(22,163,74,.14);border:1px solid #16a34a;'
-                      + 'border-radius:8px;padding:8px 12px;color:#6ee7b7;font-size:14px;font-weight:700';
-                    c.textContent = 'Downloaded - press Play. Clear the search to see all your songs.';
-                  }
-                });
-              } else if (row.status === 'Error') {
-                clearInterval(iv); btn.disabled = false; btn.textContent = 'Get this one';
-                alert('That one would not download' + (row.note ? ': ' + row.note : '') + '. Try a different version.');
-              }
-            });
-          }).catch(function(){});
-        }, 3000);
+        btn.textContent = 'Downloading…';
+        // It lands in the arrival strip under the search box, with a Play button on it.
+        // This used to set the search box to the file's own name instead. That worked, but it
+        // threw away whatever he was looking for, and a filtered list is not "click and play" -
+        // it is "look, it is the only one left". the owner, 2026-09-18: "I just want that song we
+        // download to show up as a simple click and play".
+        karArrAdd(h.url, h.title);
+        karDlGo().then(karArrPoll);
       }).catch(function(){ btn.disabled = false; btn.textContent = 'Get this one';
-        alert('Network error - nothing was downloaded.'); });
+        alert('Network error — the song was not added.'); });
     }
+    // ------------------------------------------------------------------ THE THREE SEARCHES
+    // One box. The mode decides what it does: filter the songs you have, look on YouTube, or
+    // take a link somebody handed you. the owner, 2026-09-18: "there are three types of search...
+    // it would be nice to have those three in the sequence". They share ONE YouTube renderer and
+    // ONE download path with the Downloads panel - this project has been bitten repeatedly by two
+    // implementations of the same thing drifting apart.
+    var KAR_SMODE = 'list';
+    try { KAR_SMODE = localStorage.getItem('kar_smode') || 'list'; } catch(e){}
+    if (['list','yt','link'].indexOf(KAR_SMODE) < 0) KAR_SMODE = 'list';
+
+    function karSetMode(m){
+      if (['list','yt','link'].indexOf(m) < 0) m = 'list';
+      var was = KAR_SMODE;
+      KAR_SMODE = m;
+      try { localStorage.setItem('kar_smode', m); } catch(e){}
+      ['list','yt','link'].forEach(function(k){
+        var b = document.getElementById('kar-sm-' + (k === 'link' ? 'link' : k));
+        if (b) b.classList.toggle('kar-on', k === m);
+      });
+      var inp = document.getElementById('kar-search'),
+          go  = document.getElementById('kar-go'),
+          ic  = document.getElementById('kar-sicon');
+      if (!inp) return;
+      if (m === 'list'){
+        inp.placeholder = 'Search a song, an artist, a singer…';
+        inp.style.borderColor = '#D2AD6C'; inp.style.boxShadow = '0 0 0 3px rgba(210,173,108,.15)';
+        if (ic) ic.textContent = '🔍';
+        if (go) go.style.display = 'none';
+        // Coming back from YouTube results, the list area is showing hits, not songs.
+        if (was !== 'list') { inp.value = ''; karRender(); }
+      } else if (m === 'yt'){
+        inp.placeholder = 'What song are you looking for?';
+        inp.style.borderColor = '#EF4444'; inp.style.boxShadow = '0 0 0 3px rgba(239,68,68,.15)';
+        if (ic) ic.textContent = '▶';
+        if (go){ go.style.display = ''; go.textContent = 'Search'; go.style.background = '#dc2626'; go.style.borderColor = '#fca5a5'; }
+      } else {
+        inp.placeholder = 'Paste the link here…';
+        inp.style.borderColor = '#a78bfa'; inp.style.boxShadow = '0 0 0 3px rgba(167,139,250,.15)';
+        if (ic) ic.textContent = '🔗';
+        if (go){ go.style.display = ''; go.textContent = 'Download'; go.style.background = '#7c3aed'; go.style.borderColor = '#c4b5fd'; }
+      }
+      inp.focus();
+    }
+    // Typing only filters in list mode - in the other two the box is holding a question, not a filter.
+    function karSearchInput(){ if (KAR_SMODE === 'list') karRender(); }
+    function karSearchKey(ev){
+      if (ev.key === 'Escape'){ karClearSearch(true); return; }
+      if (ev.key === 'Enter' && KAR_SMODE !== 'list'){ ev.preventDefault(); karSearchGo(); }
+    }
+    function karSearchGo(){
+      if (KAR_SMODE === 'yt') karSimpleYt();
+      else if (KAR_SMODE === 'link') karLinkAdd();
+      else karRender();
+    }
+    // A pasted link goes through the SAME add-and-start path as a YouTube result.
+    function karLinkAdd(){
+      var inp = document.getElementById('kar-search');
+      var url = (inp.value || '').trim();
+      if (!url) return;
+      if (!/^https?:\/\//i.test(url)) { alert('That does not look like a link. It should start with http.'); return; }
+      var go = document.getElementById('kar-go');
+      go.disabled = true; go.textContent = '…';
+      var fd = new FormData(); fd.append('form_type', 'karaoke_dl_add'); fd.append('url', url);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        go.disabled = false; go.textContent = 'Download';
+        if (!d.ok) { alert('That link was not accepted' + (d.error ? ': ' + d.error : '') + '.'); return; }
+        inp.value = '';
+        karArrAdd(url, 'your link');
+        karDlGo().then(karArrPoll);
+      }).catch(function(){ go.disabled = false; go.textContent = 'Download'; alert('Network error — the link was not sent.'); });
+    }
+
+    // ------------------------------------------------------- SONGS THAT HAVE JUST ARRIVED
+    // Keyed by url, because that is the one thing known at the moment of the click - the real
+    // filename does not exist until yt-dlp has made it (and sanitised it).
+    var KAR_ARR = {}, KAR_ARR_TIMER = null;
+    function karArrAdd(url, title){
+      if (!KAR_ARR[url]) KAR_ARR[url] = { url: url, title: title || 'a song', status: 'Downloading', file: '' };
+      karArrRender();
+    }
+    function karArrDismiss(url){ delete KAR_ARR[url]; karArrRender(); }
+    function karArrRender(){
+      var box = document.getElementById('kar-arrivals');
+      if (!box) return;
+      var keys = Object.keys(KAR_ARR);
+      if (!keys.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+      box.style.display = '';
+      box.innerHTML = keys.map(function(u){
+        var a = KAR_ARR[u], esc = karEsc(a.file ? a.file.replace(/\.[^.]+$/, '') : a.title);
+        if (a.status === 'Done'){
+          return '<div class="kar-arrow" style="background:rgba(22,163,74,.14);border:1px solid #16a34a">'
+            + '<span style="flex:0 0 auto;font-size:17px">🎵</span>'
+            + '<span style="flex:1;min-width:0;color:#d1fae5;font-weight:700;word-break:break-word">' + esc + '</span>'
+            + '<button type="button" onclick="karArrPlay(' + karEscA(JSON.stringify(u)) + ',this)" style="flex:0 0 auto;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;background:#16a34a;border:1px solid #6ee7b7;color:#fff;font-size:14px;font-weight:800;padding:8px 18px;border-radius:9px">▶ Play</button>'
+            + '<button type="button" onclick="karArrDismiss(' + karEscA(JSON.stringify(u)) + ')" title="Hide this" style="flex:0 0 auto;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;background:none;border:none;color:#94a3b8;font-size:16px;padding:2px 6px">✕</button>'
+            + '</div>';
+        }
+        if (a.status === 'Error'){
+          return '<div class="kar-arrow" style="background:rgba(239,68,68,.12);border:1px solid #EF4444">'
+            + '<span style="flex:0 0 auto;font-size:17px">✕</span>'
+            + '<span style="flex:1;min-width:0;color:#fca5a5"><b>That song did not download.</b> ' + karEsc(a.note || '') + '</span>'
+            + '<button type="button" onclick="karArrDismiss(' + karEscA(JSON.stringify(u)) + ')" style="flex:0 0 auto;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;background:none;border:none;color:#94a3b8;font-size:16px;padding:2px 6px">✕</button>'
+            + '</div>';
+        }
+        return '<div class="kar-arrow" style="background:rgba(210,173,108,.12);border:1px solid #D2AD6C">'
+          + '<span style="flex:0 0 auto;font-size:17px">⬇</span>'
+          + '<span style="flex:1;min-width:0;color:#f3d9a4">Getting <b>' + esc + '</b>…</span>'
+          + '</div>';
+      }).join('');
+    }
+    // No autoplay, ever - a song starting by itself mid-party is the wrong kind of surprise.
+    function karArrPlay(url, btn){
+      var a = KAR_ARR[url]; if (!a || !a.file) return;
+      btn.disabled = true; btn.textContent = '…';
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_play'); fd.append('mac', karMac());
+      fd.append('song', a.file); fd.append('player', 'mpv');
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        btn.disabled = false; btn.innerHTML = '▶ Play';
+        if (!d.ok){ alert('Could not play that song. ' + karWhyFail(d.error)); return; }
+        karNowPlaying = a.file; karNowStarted(); karNowPlayingPlayer = 'mpv';
+        karLivePitch = karSavedPitch(a.file); karLiveTempo = 100;
+        karNowSave();
+        var t = document.getElementById('kar-tempo-val'); if (t) t.textContent = '100%';
+        karNowBar();
+        if (KAR_SMODE === 'list') karRender();
+      }).catch(function(){ btn.disabled = false; btn.innerHTML = '▶ Play'; alert('Network error — the play request was not sent.'); });
+    }
+    // One poll for every arrival at once, however they were started.
+    function karArrPoll(){
+      if (KAR_ARR_TIMER) return;
+      var tries = 0;
+      KAR_ARR_TIMER = setInterval(function(){
+        tries++;
+        var live = Object.keys(KAR_ARR).filter(function(u){ return KAR_ARR[u].status === 'Downloading'; });
+        if (!live.length || tries > 200){ clearInterval(KAR_ARR_TIMER); KAR_ARR_TIMER = null; return; }
+        var fd = new FormData(); fd.append('form_type', 'karaoke_dl_state');
+        fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(st){
+          var landed = false;
+          (st.rows || []).forEach(function(row){
+            var a = KAR_ARR[row.url]; if (!a || a.status !== 'Downloading') return;
+            if (row.title) a.title = row.title;
+            if (row.status === 'Done'){ a.status = 'Done'; a.file = row.filename || ''; landed = true; }
+            else if (row.status === 'Error'){ a.status = 'Error'; a.note = row.note || ''; }
+          });
+          // The song has to be in KAR_DATA before Play can find it.
+          if (landed) karNewRefresh().then(karArrRender); else karArrRender();
+        }).catch(function(){});
+      }, 2500);
+    }
+
     function karYtDone(){ var b = document.getElementById('kar-yt-btn'); b.disabled = false; b.textContent = '▶ Search YouTube'; }
 
     // Coming back from YouTube, six near-identical results look the same and he cannot tell
@@ -2715,7 +2856,8 @@ function karPickFolder(){
         btn.style.color = '#6ee7b7'; btn.style.borderColor = '#16a34a';
         KAR_YT_ADDED[i] = 1;   // in state, not just the DOM — Show them rebuilds the rows
         karYtPaint();
-        karDlGo().then(karDlRefresh);
+        karArrAdd(h.url, h.title);          // same arrival strip, however it was started
+        karDlGo().then(function(){ karDlRefresh(); karArrPoll(); });
       }).catch(function(){ btn.disabled = false; btn.textContent = '⬇ Download'; alert('Network error — the song was not added.'); });
     }
     document.getElementById('kar-yt-q').addEventListener('keydown', function(ev){
@@ -3067,6 +3209,7 @@ function karPickFolder(){
     karHelpApply('qr');
     karNowRestore();   // bring back the playing song's name/pitch/tempo after a reload
     karNowBar();       // the bar itself is always on screen — render its idle state too
+    karSetMode(KAR_SMODE);   // placeholder, colours and the Go button follow the remembered mode
     karRender();
     karFitList();   // size the list to the window before anything is drawn on it
     </script>
