@@ -204,7 +204,11 @@ if (!$KAR_LOCAL) {
      inert whenever the class is absent. */
   .kar-simple .kar-grplbl,
   .kar-simple #kar-grp-special,
-  .kar-simple #kar-chip-new,
+  /* 🆕 New Songs is NOT hidden any more (the owner, 2026-09-18). Simple mode hid it, while the
+     download messages kept telling him the song was "under 🆕 New Songs" - pointing at a chip
+     he could not see. It is also the review bench: the Duplicate column, renaming, and where
+     a song goes to be tidied. "That's one of the things we're gonna need for the whole
+     project." Do not hide it again. */
   .kar-simple #kar-sec-key,
   .kar-simple #kar-sec-tempo,
   .kar-simple #kar-lbl-playback,
