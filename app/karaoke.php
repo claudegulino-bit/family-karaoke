@@ -216,10 +216,11 @@ if (!$KAR_LOCAL) {
   .kar-simple #kar-bands,
   .kar-simple #kar-h-del,
   .kar-simple #kar-h-add,
-  .kar-simple #kar-h-seq,
+  /* Seq Number is NOT hidden any more (the owner, 2026-09-18: "let's bring the numbers back").
+     A freshly downloaded song is row 1 of 🆕 New Songs, and the number is what makes that
+     readable at a glance. The header and the cells below must be unhidden together. */
   .kar-simple .kar-del,
   .kar-simple .kar-q-add,
-  .kar-simple .kar-num,
   .kar-simple .kar-sectgap,
   .kar-simple .kar-ghdr,
   .kar-simple #kar-guide-cards > button { display: none !important; }
