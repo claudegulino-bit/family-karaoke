@@ -2539,7 +2539,12 @@ function karPickFolder(){
       }).catch(function(){ say('#f87171', 'Network hiccup - try again.'); });
     }
     function karSimpleYtRender(){
-      var out = KAR_YT_HITS.slice(0, 8).map(function(h, i){
+      // ⚠ NO CAP. EVERY result is shown. The Mac fetches 30 and a cap here throws the rest
+      // away - which is the exact problem the over-fetch was built to solve: the one you want
+      // is the thirteenth. the owner removed a cap from the OTHER renderer on 2026-09-14, and
+      // this one kept its own at 8 until he searched Celentano and got eight songs
+      // (2026-09-18). If you are about to add slice() here, don't.
+      var out = KAR_YT_HITS.map(function(h, i){
         return '<div class="kar-row" style="display:flex;align-items:center;gap:14px;padding:10px 6px;border-top:1px solid #1e293b">'
           + '<button type="button" onclick="karSimpleGet(' + i + ',this)" style="font-family:inherit;flex:0 0 auto;width:130px;cursor:pointer;'
           + 'font-size:15px;font-weight:800;padding:10px 0;border-radius:8px;background:rgba(22,163,74,.18);border:1px solid #16a34a;color:#6ee7b7">Get this one</button>'
@@ -2556,7 +2561,8 @@ function karPickFolder(){
           + '</span></div>';
       }).join('');
       document.getElementById('kar-list').innerHTML =
-        '<p style="color:#94a3b8;font-size:14px;padding:12px 6px 2px">Tap the one you want. It downloads and joins your songs.</p>' + out;
+        '<p style="color:#94a3b8;font-size:14px;padding:12px 6px 2px">' + KAR_YT_HITS.length +
+        ' results \u2014 tap the one you want. It downloads and joins your songs.</p>' + out;
     }
     function karSimpleGet(i, btn){
       var h = KAR_YT_HITS[i]; if (!h) return;
@@ -2583,14 +2589,16 @@ function karPickFolder(){
     // ONE download path with the Downloads panel - this project has been bitten repeatedly by two
     // implementations of the same thing drifting apart.
     var KAR_SMODE = 'list';
-    try { KAR_SMODE = localStorage.getItem('kar_smode') || 'list'; } catch(e){}
-    if (['list','yt','link'].indexOf(KAR_SMODE) < 0) KAR_SMODE = 'list';
+    // ⚠ The mode is DELIBERATELY not remembered. the owner, 2026-09-18: "we have to make sure
+    // that the karaoke list is the default. No matter what we come in from, when we get here,
+    // the karaoke list search is the default." YouTube and Link are momentary errands; the
+    // list is home. Remembering YouTube would bring the page back with the song list replaced
+    // by last night's results and no obvious way back. Do not add persistence here.
 
     function karSetMode(m){
       if (['list','yt','link'].indexOf(m) < 0) m = 'list';
       var was = KAR_SMODE;
       KAR_SMODE = m;
-      try { localStorage.setItem('kar_smode', m); } catch(e){}
       ['list','yt','link'].forEach(function(k){
         var b = document.getElementById('kar-sm-' + (k === 'link' ? 'link' : k));
         if (b) b.classList.toggle('kar-on', k === m);
