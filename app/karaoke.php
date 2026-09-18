@@ -214,12 +214,14 @@ if (!$KAR_LOCAL) {
   .kar-simple #kar-lbl-playback,
   .kar-simple #kar-lyrics-btn,
   .kar-simple #kar-bands,
-  .kar-simple #kar-h-del,
+  /* Delete is NOT hidden any more (the owner, 2026-09-18: "let's bring the delete button back").
+     It is how a duplicate gets removed, which is the other half of reviewing a download in
+     🆕 New Songs. The file is MOVED to the Deleted folder, never destroyed. The header and the
+     ✕ cells below must be unhidden together. */
   .kar-simple #kar-h-add,
   /* Seq Number is NOT hidden any more (the owner, 2026-09-18: "let's bring the numbers back").
      A freshly downloaded song is row 1 of 🆕 New Songs, and the number is what makes that
      readable at a glance. The header and the cells below must be unhidden together. */
-  .kar-simple .kar-del,
   .kar-simple .kar-q-add,
   .kar-simple .kar-sectgap,
   .kar-simple .kar-ghdr,
