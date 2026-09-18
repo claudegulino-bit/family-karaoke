@@ -2019,9 +2019,25 @@ if (!$KAR_LOCAL) {
     // ── SIMPLE / COMPLETE ────────────────────────────────────────────────────────────
     // Remembered per browser, exactly like the QMidi switch. Default is COMPLETE, so
     // nothing changes for anyone until it is deliberately turned on.
-    var karSimple = false;
-    try { karSimple = localStorage.getItem('kar_simple') === '1'; } catch (e) {}
+    // the owner, 2026-09-18: "we can now hide the Complete button. Don't delete it yet. Just hide
+    // it." Simple now carries New Songs, Seq, Delete and the whole Guide, so the switch is
+    // clutter rather than a choice. NOTHING was removed - flip this one flag back to true and the
+    // switch reappears and the remembered value is honoured again.
+    var KAR_MODE_SWITCH = false;
+
+    // the owner, 2026-09-18: "make simple the default". A browser that has never chosen gets
+    // SIMPLE - which matters for the day the switch comes back, and for every Mac that has never
+    // seen this page. An explicit stored choice still wins; only the absence of one changed.
+    var karSimple = true;
+    try { var _ks = localStorage.getItem('kar_simple'); if (_ks !== null) karSimple = (_ks === '1'); } catch (e) {}
+    // ⚠ The STORED default is Complete, and with the switch hidden there is no way out of it - a
+    // browser that never opted in, or that last used Complete, would be stranded on a page with
+    // no control to fix it. So while the switch is hidden, simple is forced. Deliberately NOT
+    // written to localStorage: his real preference is left untouched for when the switch returns.
+    if (!KAR_MODE_SWITCH) karSimple = true;
     function karApplySimple(){
+      var sw = document.getElementById('kar-mode-sw');
+      if (sw) sw.style.display = KAR_MODE_SWITCH ? 'inline-flex' : 'none';
       var p = document.getElementById('karaoke-page');
       if (p) p.classList.toggle('kar-simple', karSimple);
       var s = document.getElementById('kar-mode-s'), c = document.getElementById('kar-mode-c');
