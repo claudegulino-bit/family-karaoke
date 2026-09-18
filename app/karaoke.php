@@ -1148,6 +1148,11 @@ if (!$KAR_LOCAL) {
       });
       btn.classList.add('kar-on');
       btn.style.background='#334155'; btn.style.borderColor='#94a3b8'; btn.style.color='#f1f5f9';
+      // Picking a list means "show me my songs", so the SEARCH MODE follows the view. Without
+      // this the list came back but the bar still said YouTube, and typing in it did nothing -
+      // which is indistinguishable from a frozen page. the owner, 2026-09-18: "I clicked on the
+      // song database, but it wouldn't go back... doesn't allow me to do anything."
+      if (KAR_SMODE !== 'list') karSetMode('list', true);
       // Switching views starts fresh. the owner, 2026-09-10: a search left in the box quietly
       // filtered the next view too, so 🆕 New would come up empty and the reason was invisible.
       karClearSearch(false);
@@ -2595,7 +2600,7 @@ function karPickFolder(){
     // list is home. Remembering YouTube would bring the page back with the song list replaced
     // by last night's results and no obvious way back. Do not add persistence here.
 
-    function karSetMode(m){
+    function karSetMode(m, skipRender){
       if (['list','yt','link'].indexOf(m) < 0) m = 'list';
       var was = KAR_SMODE;
       KAR_SMODE = m;
@@ -2615,7 +2620,7 @@ function karPickFolder(){
         if (ic) ic.textContent = '\uD83D\uDD0D';
         if (go) go.style.display = 'none';
         // Coming back from YouTube results, the list area is showing hits, not songs.
-        if (was !== 'list') { inp.value = ''; karRender(); }
+        if (was !== 'list') { inp.value = ''; if (!skipRender) karRender(); }
       } else if (m === 'yt'){
         inp.placeholder = 'What song are you looking for?';
         if (ic) ic.textContent = '\u25B6';
