@@ -223,16 +223,17 @@ if (!$KAR_LOCAL) {
      A freshly downloaded song is row 1 of 🆕 New Songs, and the number is what makes that
      readable at a glance. The header and the cells below must be unhidden together. */
   .kar-simple .kar-q-add,
-  .kar-simple .kar-sectgap,
-  .kar-simple .kar-ghdr,
-  .kar-simple #kar-guide-cards > button { display: none !important; }
-  /* ⚠ These two must out-rank the hide rule above. "#kar-guide-cards > button" carries an id,
-     a class AND a type, so a bare "#kar-gc-sing" (id + class) LOSES to it even with !important
-     - specificity is compared before !important among equally-important rules. Repeating the
-     parent id here makes it two ids and it wins. Measured: without this, simple mode showed an
-     EMPTY Guide. */
-  .kar-simple #kar-guide-cards > #kar-gc-sing,
-  .kar-simple #kar-guide-cards > #kar-gc-while { display: block !important; }
+  .kar-simple .kar-sectgap { display: none !important; }
+  /* The Guide is NOT trimmed any more (the owner, 2026-09-18: "let's bring all chapters of the
+     guide back"). Simple mode used to show 2 of the 9 cards and hide the group headings, which
+     left the page describing features it was also hiding. Everything the page can do now has a
+     card. Nothing here hides a Guide card - do not add a rule that does.
+     ⚠ Historical note worth keeping: the hide rule used to be
+     "#kar-guide-cards > button", which carries an id, a class AND a type - so a bare
+     "#kar-gc-sing" exception (id + class) LOST to it even with !important, because specificity
+     is compared BEFORE !important among equally-important rules. That shipped an EMPTY Guide
+     until it was rendered and looked at. If a selector like that ever comes back, repeat the
+     parent id in the exception to make it two ids. */
 
   /* Guide stops being green in simple mode. Green means GO on this page (Play, Start); a manual
      has no business wearing it, and in simple mode it was the loudest thing in the corner and the
