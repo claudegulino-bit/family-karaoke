@@ -176,17 +176,36 @@ if (!$KAR_LOCAL) {
      The edge is drawn as an INSET shadow, not a thicker border, so the box stays exactly the
      same size selected or not - measured both ways. Gold is the page's own accent (the search
      box and the Now Playing bar). !important beats the inline colour karSwitch writes. */
-  /* The three lists, INSIDE the white bar, styled exactly like the three searches beside them.
-     the owner, 2026-09-18. Colours live HERE, never inline: karSwitch used to paint each chip, and
-     an inline dark background fights the white bar they now sit on. */
-  .kar-chip { appearance:none; -webkit-appearance:none; font-family:inherit; cursor:pointer;
-              background:none; border:none; padding:5px 7px; border-radius:7px;
-              font-size:14px; font-weight:700; color:#94a3b8; white-space:nowrap;
-              max-width:240px; text-overflow:ellipsis; overflow:hidden;
+  /* ONE rule for BOTH bars. the owner, 2026-09-18: "larger... a nice lively font and maybe a
+     little colourful as well, because now we have eliminated all those colours from the buttons."
+     So the colour lives here, on the two white bars, and ONLY on the option actually in use -
+     one per bar, so at most two coloured words on screen. Everything idle stays grey.
+     ⚠ The font stack is macOS-resident on purpose: Avenir Next ships with the system, so a family
+     Mac renders it offline. Do NOT swap in a web font - the standalone must not need a download
+     to look right.
+     ⚠ Colours live HERE, never inline: karSwitch used to paint each chip, which fights the bar. */
+  .kar-chip, .kar-smode {
+              appearance:none; -webkit-appearance:none; cursor:pointer;
+              font-family:"Avenir Next",Avenir,"Segoe UI",system-ui,-apple-system,sans-serif;
+              background:none; border:none; padding:6px 9px; border-radius:8px;
+              font-size:17px; font-weight:600; letter-spacing:.005em; color:#94a3b8;
+              white-space:nowrap; max-width:270px; text-overflow:ellipsis; overflow:hidden;
               transition:color .12s, background .12s; }
-  .kar-chip:hover  { color:#475569; }
-  .kar-chip.kar-on { color:#0f172a; background:rgba(15,23,42,.075); }
-  .kar-chip option { color:#0f172a; background:#f8fafc; }
+  .kar-chip:hover, .kar-smode:hover   { color:#475569; }
+  .kar-chip.kar-on, .kar-smode.kar-on { color:#0f172a; background:rgba(15,23,42,.06); font-weight:700; }
+  .kar-chip option { color:#0f172a; background:#f8fafc; font-size:15px; }
+  /* the typing field matches the buttons. Kept in CSS, NOT inline: a double-quoted font
+     stack inside a double-quoted style="" ends the attribute early and silently spills
+     the rest out as junk attributes. It cost an hour once. */
+  #kar-search { font-family:"Avenir Next",Avenir,"Segoe UI",system-ui,-apple-system,sans-serif; }
+  /* a little colour, and only on the one in use */
+  #kar-chip-db.kar-on  { color:#1d4ed8; background:rgba(29,78,216,.10); }
+  #kar-chip-new.kar-on { color:#047857; background:rgba(4,120,87,.11); }
+  #kar-who.kar-on      { color:#b45309; background:rgba(180,83,9,.11); }
+  /* the same blue as the Song Database chip on the left - it is the same thing */
+  #kar-sm-list.kar-on  { color:#1d4ed8; background:rgba(29,78,216,.10); }
+  #kar-sm-yt.kar-on    { color:#dc2626; background:rgba(220,38,38,.10); }
+  #kar-sm-link.kar-on  { color:#7c3aed; background:rgba(124,58,237,.10); }
   .kar-grp { display: inline-flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
   .kar-grplbl { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
     color: #bfdbfe; background: rgba(96,165,250,.13); border: 1px solid rgba(96,165,250,.30);
@@ -287,13 +306,9 @@ if (!$KAR_LOCAL) {
   /* The three searches, INSIDE the white bar. Barely there until you look: grey on white,
      no border, no colour coding. The one in use goes dark on a soft backdrop. the owner,
      2026-09-18: "not colours, but just barely visible". */
-  .kar-smode { appearance:none; -webkit-appearance:none; font-family:inherit; cursor:pointer;
-               background:none; border:none; padding:4px 9px; border-radius:7px;
-               font-size:14px; font-weight:700; color:#94a3b8; white-space:nowrap;
-               transition:color .12s, background .12s; }
-  .kar-smode:hover  { color:#475569; }
-  .kar-smode.kar-on { color:#0f172a; background:rgba(15,23,42,.075); }
-  .kar-sdiv { color:#cbd5e1; font-size:13px; user-select:none; }
+  /* .kar-smode is styled WITH .kar-chip in one rule above - the two bars must look
+     identical, and two copies of the same declarations is how they stop being. */
+  .kar-sdiv { color:#d4dbe4; font-size:16px; user-select:none; }
   .kar-arrow { display:flex; align-items:center; gap:12px; padding:9px 12px; border-radius:10px;
                margin-bottom:6px; font-size:14px; }
   /* The "? How it works" cards FLOAT — they used to sit inside their panel and make it
@@ -384,8 +399,8 @@ if (!$KAR_LOCAL) {
            Both bars are flex:1 1 0 so they are exactly the same width. The colours come from
            CSS on .kar-chip now, NOT inline from karSwitch, or they would fight the white bar. -->
       <div id="kar-listbar" style="flex:0 0 auto;display:flex;align-items:center">
-        <div id="kar-lbar" style="flex:1;min-width:0;display:flex;align-items:center;height:54px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:12px;padding:0 10px;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
-          <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)">🗂 Song Database <span id="kar-db-count"><?= count($_kjDb) ?></span></button>
+        <div id="kar-lbar" style="flex:1;min-width:0;display:flex;align-items:center;height:60px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:13px;padding:0 10px;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
+          <button type="button" id="kar-chip-db" class="kar-chip kar-on" onclick="karSwitch('db',this)">🗂 Song Database <span id="kar-db-count"><?= count($_kjDb) ?></span></button>
           <span class="kar-sdiv">|</span>
           <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away">🆕 New Songs <span id="kar-new-count"><?= count($_kjNew) ?></span></button>
           <span class="kar-sdiv">|</span>
@@ -404,12 +419,12 @@ if (!$KAR_LOCAL) {
            IS the mode: pick one and its placeholder, its icon and its button follow. -->
       <!-- Capped on purpose. the owner, 2026-09-18: "leave space on the right side for two more
            buttons" - the Guest QR and one more still to come. -->
-      <div id="kar-searchbar" style="flex:0 1 600px;min-width:380px;display:flex;align-items:center">
-        <div id="kar-bar" style="flex:1;min-width:0;display:flex;align-items:center;height:54px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:12px;padding:0 8px 0 14px;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
+      <div id="kar-searchbar" style="flex:0 1 660px;min-width:400px;display:flex;align-items:center">
+        <div id="kar-bar" style="flex:1;min-width:0;display:flex;align-items:center;height:60px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:13px;padding:0 8px 0 14px;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
           <span id="kar-sicon" style="flex:0 0 auto;font-size:20px;line-height:1;pointer-events:none;margin-right:10px">🔍</span>
-          <input id="kar-search" type="text" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type here. Esc clears it." style="font-family:inherit;flex:1;min-width:60px;background:none;border:none;outline:none;color:#0f172a;font-size:17px;font-weight:600;padding:0">
+          <input id="kar-search" type="text" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type here. Esc clears it." style="font-family:inherit;flex:1;min-width:60px;background:none;border:none;outline:none;color:#0f172a;font-size:19px;font-weight:600;padding:0">
           <span style="flex:0 0 auto;display:flex;align-items:center;gap:1px;margin-left:8px">
-            <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the karaoke list — the songs you already have">Karaoke List</button>
+            <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the song database — the songs you already have">Song Database</button>
             <span class="kar-sdiv">|</span>
             <button type="button" class="kar-smode" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">YouTube</button>
             <span class="kar-sdiv">|</span>
