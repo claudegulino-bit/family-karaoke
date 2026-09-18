@@ -129,7 +129,7 @@ if (!$KAR_LOCAL) {
      Same tint on both, told apart by the gap between them — the owner, 2026-09-10. The widths in
      the group-heading row above are tied to these: left content 124+12+48+12+48 = 244, +16 padding
      = 260. Change a column width and that number has to change with it. */
-  .kar-sect { display: flex; align-items: center; gap: 12px; padding: 3px 8px;
+  .kar-sect { display: flex; align-items: center; gap: 10px; padding: 1px 8px;
     background: rgba(148,163,184,.10); border: 1px solid rgba(148,163,184,.10); border-radius: 8px; }
   .kar-sect-a { flex: 0 0 auto; }
   .kar-sect-b { flex: 1; min-width: 0; }
@@ -142,7 +142,7 @@ if (!$KAR_LOCAL) {
   .kar-preset.is-idle { visibility: hidden; }
   .kar-pgrp.is-saved { border-color: #D2AD6C; }
   .kar-pgrp.is-temp  { border-style: dashed; border-color: #60A5FA; }
-  .kar-pstep { flex: 0 0 auto; width: 26px; height: 24px; font-size: 16px; font-weight: 700; line-height: 1;
+  .kar-pstep { flex: 0 0 auto; width: 24px; height: 20px; font-size: 16px; font-weight: 700; line-height: 1;
     background: transparent; border: 0; color: #94a3b8; border-radius: 0; cursor: pointer;
     font-family: inherit; padding: 0; }
   .kar-preset { flex: 0 0 auto; width: 26px; height: 24px; font-size: 19px; font-weight: 400; line-height: 1;
@@ -184,40 +184,102 @@ if (!$KAR_LOCAL) {
      Mac renders it offline. Do NOT swap in a web font - the standalone must not need a download
      to look right.
      ⚠ Colours live HERE, never inline: karSwitch used to paint each chip, which fights the bar. */
-  .kar-chip, .kar-smode {
+  /* ── THE HEADER PILL (2026-09-18) ──────────────────────────────────────────────────
+     One recipe for every control in the header, taken from the Play button the owner picked out
+     himself: a TINT of a hue behind text of the SAME hue.
+     ⚠ The two white bars are GONE on purpose. White forces DARK text, and dark text is only
+     legible if each label is a different strong colour — which is exactly how the bar ended up
+     with a blue word, an orange word and a red word inside it: "white with the different text
+     of the different colors... doesn't look nice at all". On the dark page a soft tint reads
+     the same at ANY hue, so every control can share one look. Do not put the white bars back
+     without solving that first.
+     Colour then only has to carry MEANING — his rule, "if there's no reason, they don't have
+     to be different":
+         emerald = your songs    sky = searching    amber = the party tools
+         slate   = reference     green = play       red   = stop
+     They match because they share one recipe and one brightness, not one hue.
+     ⚠ Colours live HERE, never inline: karSwitch used to paint each chip and karBtnLight each
+     tile, and an inline style beats any rule written here. Both are class-only now. */
+  .kar-chip, .kar-smode, .kar-tool, .kar-ref {
               appearance:none; -webkit-appearance:none; cursor:pointer;
               font-family:"Avenir Next",Avenir,"Segoe UI",system-ui,-apple-system,sans-serif;
-              background:none; border:none; padding:6px 9px; border-radius:8px;
-              font-size:17px; font-weight:600; letter-spacing:.005em; color:#94a3b8;
+              height:36px; padding:0 13px; border-radius:9px;
+              font-size:14px; font-weight:600; letter-spacing:.005em;
+              background:rgba(148,163,184,.07); border:1px solid rgba(148,163,184,.18); color:#94a3b8;
               white-space:nowrap; max-width:270px; text-overflow:ellipsis; overflow:hidden;
-              transition:color .12s, background .12s; }
-  .kar-chip:hover, .kar-smode:hover   { color:#475569; }
-  .kar-chip.kar-on, .kar-smode.kar-on { color:#0f172a; background:rgba(15,23,42,.06); font-weight:700; }
+              transition:color .12s, background .12s, border-color .12s, box-shadow .12s; }
+  /* a <select> does not lay out reliably as a flex container, so only the buttons get it */
+  button.kar-chip, .kar-smode, .kar-tool, .kar-ref { display:inline-flex; align-items:center; gap:7px; }
+  select.kar-chip { display:inline-block; }
+  .kar-smode:hover, .kar-ref:hover { color:#cbd5e1; background:rgba(148,163,184,.14); }
   .kar-chip option { color:#0f172a; background:#f8fafc; font-size:15px; }
   /* the typing field matches the buttons. Kept in CSS, NOT inline: a double-quoted font
      stack inside a double-quoted style="" ends the attribute early and silently spills
      the rest out as junk attributes. It cost an hour once. */
   #kar-search { font-family:"Avenir Next",Avenir,"Segoe UI",system-ui,-apple-system,sans-serif; }
-  /* a little colour, and only on the one in use */
-  #kar-chip-db.kar-on  { color:#1d4ed8; background:rgba(29,78,216,.10); }
-  #kar-chip-new.kar-on { color:#047857; background:rgba(4,120,87,.11); }
-  #kar-who.kar-on      { color:#b45309; background:rgba(180,83,9,.11); }
-  /* the same blue as the Song Database chip on the left - it is the same thing */
-  #kar-sm-list.kar-on  { color:#1d4ed8; background:rgba(29,78,216,.10); }
-  #kar-sm-yt.kar-on    { color:#dc2626; background:rgba(220,38,38,.10); }
-  #kar-sm-link.kar-on  { color:#7c3aed; background:rgba(124,58,237,.10); }
+  #kar-search::placeholder { color:#93a4bb; }   /* was #64748b — too faint to read as an invitation */
+  /* ── THE TOP ROW IS BLUE (2026-09-18) ──────────────────────────────────────────────
+     the owner sent a picture of the button he wanted and said: "all buttons on the top row
+     should be like this for this colour, and they should be like that normally. If you click
+     on it, you just light it up — just a little bit, not much. All buttons on top with the
+     exception of the Q and the guest QR."
+     These three values are SAMPLED from that picture, not chosen: fill #2A384C, and the
+     border and the text are the SAME light blue #86CAFA. Solid, not an alpha tint, so they
+     look identical wherever they sit.
+     Selected = the fill lifts a little and the text brightens. Nothing else — no ring. The
+     earlier ring was too loud for "not much". */
+  /* ⚠ 12.5px on BOTH — the owner, 2026-09-18: "check the size of the text in Song Database,
+     New Songs, a Singer. Is it the same as YouTube and Link? YouTube and Link look a lot
+     nicer." The lists were 14px against the modes' 12.5px; same family, same weight, only the
+     size was out. Keep these two selectors on one line so they cannot drift apart again.
+     The size is set HERE and not in the shared pill rule, so Queue and Guest QR keep theirs. */
+  .kar-chip, .kar-smode         { background:#2A384C; border-color:#86CAFA; color:#86CAFA;
+                                  font-weight:700; font-size:12.5px; }
+  .kar-chip:hover, .kar-smode:hover { background:#35465E; color:#B3DEFF; }
+  /* YouTube wears YouTube's red — the one flash of another colour in a blue row, and it means
+     something: this is the button that leaves your library and goes out to the internet. */
+  #kar-sm-yt         { background:#4A2226; border-color:#FF7B7B; color:#FF7B7B; }
+  #kar-sm-yt:hover   { background:#5C2A2F; color:#FFA3A3; }
+  #kar-sm-yt.kar-on  { background:#6B3036; border-color:#FFA0A0; color:#FFC4C4; }
+  .kar-chip.kar-on, .kar-smode.kar-on { background:#3D536F; color:#CDE8FF; border-color:#A9D9FF; }
+  /* the three modes sit inside the field, so they run one size smaller — colour is shared above */
+  /* All three the same width — the owner, 2026-09-18: "song database, YouTube, a link, they
+     need to be the same size." Sized to the longest label; justify-content centres the short
+     ones inside it. Change the labels and this number has to be re-measured in a browser. */
+  .kar-smode        { height:28px; padding:0 6px; border-radius:7px; font-size:12.5px;
+                      width:104px; justify-content:center; }
+  /* the party tools — amber at rest, so the eye finds the queue and the QR code in one move */
+  .kar-tool         { background:rgba(251,191,36,.13); border-color:rgba(251,191,36,.42);
+                      color:#fcd34d; font-weight:700; }
+  .kar-tool:hover   { background:rgba(251,191,36,.22); color:#fde68a; }
+  /* Guide takes the Play button's exact green: a 10% emerald tint, a neutral border, light
+     emerald text. Same recipe, so it belongs to the same family as the green on every row. */
+  .kar-simple #kar-guide-btn       { background:rgba(16,185,129,.12) !important; border-color:rgba(16,185,129,.42) !important;
+                                     color:#6ee7b7 !important; }
+  .kar-simple #kar-guide-btn:hover { background:rgba(16,185,129,.22) !important; color:#a7f3d0 !important; }
+  /* the count that rides inside a pill */
+  /* was 11.5px/800 — the boldest text anywhere in the header. the owner: "especially the number
+     2068, it's too bold, too spread out." Now the same weight as the word beside it, tighter. */
+  .kar-cnt { font-size:11px; font-weight:700; padding:0 5px; min-width:18px; height:18px;
+             line-height:18px; text-align:center; border-radius:999px; letter-spacing:0;
+             background:rgba(148,163,184,.18); color:#cbd5e1; }
+  .kar-chip .kar-cnt        { background:rgba(134,202,250,.22); color:#CDE8FF; }
+  .kar-chip.kar-on .kar-cnt { background:rgba(134,202,250,.34); color:#EAF6FF; }
+  .kar-tool .kar-cnt        { background:rgba(251,191,36,.26); color:#fde68a; }
   .kar-grp { display: inline-flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
   .kar-grplbl { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
     color: #bfdbfe; background: rgba(96,165,250,.13); border: 1px solid rgba(96,165,250,.30);
     border-radius: 7px; padding: 3px 9px; text-align: center; line-height: 1.3;
     align-self: center; width: calc(100% - 20px); }
-  .kar-tile { transition: background .12s, border-color .12s, box-shadow .12s, transform .12s, opacity .12s; }
-  .kar-tile-on { transform: translateY(-2px); }
-  .kar-tile-on::after { content: ''; position: absolute; left: 50%; bottom: -20px; width: 0; height: 0;
-    transform: translateX(-50%); border: 7px solid transparent; border-top-color: var(--kt, #fff);
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
-  .kar-tile-off { opacity: .5; }
-  .kar-tile-off:hover { opacity: .8; }
+  /* The button of whichever panel is open. ONE lit class for both families, toggled by
+     karBtnLight; the little pointer arrow went with the solid tiles it was drawn for. */
+  .kar-tile { transition: background .12s, border-color .12s, box-shadow .12s, opacity .12s; }
+  .kar-tool.kar-tile-on { background:rgba(251,191,36,.30); border-color:#fbbf24; color:#fde68a;
+                          box-shadow:0 0 0 3px #0f1522, 0 0 0 5px rgba(251,191,36,.55); }
+  .kar-ref.kar-tile-on  { background:rgba(148,163,184,.26); border-color:#94a3b8; color:#e2e8f0;
+                          box-shadow:0 0 0 3px #0f1522, 0 0 0 5px rgba(148,163,184,.45); }
+  .kar-tile-off { opacity: .55; }
+  .kar-tile-off:hover { opacity: .85; }
 
   /* ── SIMPLE MODE (2026-09-17) ──────────────────────────────────────────────────────────
      the owner: some of his friends sing well and cannot manage a computer. Simple mode is for
@@ -228,8 +290,8 @@ if (!$KAR_LOCAL) {
      !important is deliberate - the column widths are written inline on each element and an
      inline style beats a stylesheet rule without it. Contained to this block, and completely
      inert whenever the class is absent. */
-  .kar-simple .kar-grplbl,
-  .kar-simple #kar-grp-special,
+  /* The "Special features" group and its label are GONE (2026-09-18) — the singing queue and
+     the guest QR are ordinary pills in the one header row now, visible in both modes. */
   /* 🆕 New Songs is NOT hidden any more (the owner, 2026-09-18). Simple mode hid it, while the
      download messages kept telling him the song was "under 🆕 New Songs" - pointing at a chip
      he could not see. It is also the review bench: the Duplicate column, renaming, and where
@@ -240,15 +302,10 @@ if (!$KAR_LOCAL) {
   .kar-simple #kar-lbl-playback,
   .kar-simple #kar-lyrics-btn,
   .kar-simple #kar-bands,
-  /* Delete is NOT hidden any more (the owner, 2026-09-18: "let's bring the delete button back").
-     It is how a duplicate gets removed, which is the other half of reviewing a download in
-     🆕 New Songs. The file is MOVED to the Deleted folder, never destroyed. The header and the
-     ✕ cells below must be unhidden together. */
-  .kar-simple #kar-h-add,
-  /* Seq Number is NOT hidden any more (the owner, 2026-09-18: "let's bring the numbers back").
-     A freshly downloaded song is row 1 of 🆕 New Songs, and the number is what makes that
-     readable at a glance. The header and the cells below must be unhidden together. */
-  .kar-simple .kar-q-add,
+  /* Delete, Seq Number and Queue are NOT hidden any more (the owner, 2026-09-18). Queue was the
+     last of them: "we should put another column in there with the queue — if you click on the
+     queue, it puts it on the queue." Each column's HEADER and its CELLS must be unhidden
+     together, or a header sits over nothing. */
   .kar-simple .kar-sectgap { display: none !important; }
   /* The Guide is NOT trimmed any more (the owner, 2026-09-18: "let's bring all chapters of the
      guide back"). Simple mode used to show 2 of the 9 cards and hide the group headings, which
@@ -264,7 +321,9 @@ if (!$KAR_LOCAL) {
   /* Guide stops being green in simple mode. Green means GO on this page (Play, Start); a manual
      has no business wearing it, and in simple mode it was the loudest thing in the corner and the
      least important. Complete mode keeps its coloured tiles - this is scoped to simple only. */
-  .kar-simple #kar-guide-btn,
+  /* ⚠ Guide came OUT of this slate rule on 2026-09-18 — the owner: "the guide, maybe we can
+     make it that green like the play, the same colour as the play." That reverses the note
+     below, which argued a manual should not wear the GO colour. His call; it is his product. */
   .kar-simple #kar-start-btn,
   .kar-simple #kar-stop-btn { background: #334155 !important; border-color: #475569 !important; color: #e2e8f0 !important; }
   /* ⚠ Start and Stop go slate too - the owner's choice, 2026-09-17, after seeing both rendered. I argued
@@ -274,13 +333,31 @@ if (!$KAR_LOCAL) {
      colour, so the paused state still reads correctly with no colour at all. Verified before building.
      The row Play buttons stay green: they are the main action of the page and were never in question. */
 
-  /* Bigger, because some of these singers are reading a television from across the room. */
-  .kar-simple .kar-row     { padding: 10px 6px !important; }
-  .kar-simple .kar-name    { width: 560px !important; font-size: 17px !important; }
-  .kar-simple #kar-h-song  { width: 560px !important; font-size: 12px !important; }
-  .kar-simple .kar-play    { width: 90px !important; font-size: 15px !important; padding: 7px 0 !important; }
-  .kar-simple #kar-h-casai { width: 90px !important; font-size: 12px !important; }
-  .kar-simple .kar-star    { font-size: 16px !important; }   /* NOT enlarged with the rest: the star is a
+  /* ── ROW DENSITY (2026-09-18) ──────────────────────────────────────────────────────
+     the owner: "each song takes too much space... the text is too large... the space between
+     one song and the other is too much. We can only fit a few on one page. We need to be
+     able to compress this much more and be able to fit more songs on the screen."
+     Measured before and after, at 1512x982: 63px a row / 10 rows visible -> see below.
+     ⚠ These were deliberately ENLARGED on 2026-09-17 for singers reading a television from
+     across the room, so there is a floor here — go much under 13px on the song name and the
+     reason simple mode exists starts to disappear. Re-measure in a browser if you change any
+     of it; the row height is set by the TALLEST cell, which is the pitch stepper, not the text. */
+  /* ⚠ This row's own gap (12px, set inline where the row is built) MUST match the gap on the
+     COLUMN HEADER row, or every column from Queue rightwards slides. Dropping the row to 10px
+     moved them all 2px and the headers no longer sat on their columns. The gap is horizontal —
+     it buys no height — so there is nothing to gain by touching it. */
+  .kar-simple .kar-row     { padding: 2px 6px !important; }
+  /* The name FILLS whatever is left instead of stopping at a fixed 560px and leaving ~380px
+     of empty bar to its right — the owner, 2026-09-18: "the bar is too wide". It also means
+     fewer long filenames wrap onto a second line, which shortens rows again. The header must
+     flex with it or the two stop lining up. */
+  .kar-simple .kar-name    { flex: 1 1 auto !important; width: auto !important; min-width: 0 !important;
+                             font-size: 13.5px !important; }
+  .kar-simple #kar-h-song  { flex: 1 1 auto !important; width: auto !important; min-width: 0 !important;
+                             font-size: 11px !important; }
+  .kar-simple .kar-play    { width: 78px !important; font-size: 12.5px !important; padding: 3px 0 !important; }
+  .kar-simple #kar-h-casai { width: 78px !important; font-size: 11px !important; }
+  .kar-simple .kar-star    { font-size: 14px !important; }   /* NOT enlarged with the rest: the star is a
      secondary action (put this on someone's list) and at 22px it competed with Play, which is the whole
      point of the page. the owner, 2026-09-17: "too big for what we're doing here." */
 
@@ -291,8 +368,8 @@ if (!$KAR_LOCAL) {
      a new hue at all, just more light, so it cannot fight anything else on screen. */
   /* The dark-theme chip overrides that lived here are GONE: the chips sit on a white bar in
      every mode now, so one style serves both. */
-  .kar-simple .kar-pitch   { font-size: 16px !important; }
-  .kar-simple .kar-pstep   { font-size: 17px !important; }
+  .kar-simple .kar-pitch   { font-size: 13px !important; }
+  .kar-simple .kar-pstep   { font-size: 14px !important; }
 
   /* The three searches, in the order you use them: your own songs, then YouTube, then a
      link somebody handed you. One box; the mode decides what the box DOES. the owner,
@@ -308,7 +385,6 @@ if (!$KAR_LOCAL) {
      2026-09-18: "not colours, but just barely visible". */
   /* .kar-smode is styled WITH .kar-chip in one rule above - the two bars must look
      identical, and two copies of the same declarations is how they stop being. */
-  .kar-sdiv { color:#d4dbe4; font-size:16px; user-select:none; }
   .kar-arrow { display:flex; align-items:center; gap:12px; padding:9px 12px; border-radius:10px;
                margin-bottom:6px; font-size:14px; }
   /* The "? How it works" cards FLOAT — they used to sit inside their panel and make it
@@ -393,67 +469,65 @@ if (!$KAR_LOCAL) {
     <?php if ($_kj === null): ?>
     <p style="color:#94a3b8;font-size:13px">The karaoke song list hasn't been published to the server yet — ask Claude to run <code>karaoke_sync.py</code> and it will appear here.</p>
     <?php else: ?>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-      <!-- The three lists in a bar that matches the search bar - the owner, 2026-09-18:
-           "can those three things be inside of a field that looks like the search field?"
-           Both bars are flex:1 1 0 so they are exactly the same width. The colours come from
-           CSS on .kar-chip now, NOT inline from karSwitch, or they would fight the white bar. -->
-      <div id="kar-listbar" style="flex:0 0 auto;display:flex;align-items:center">
-        <div id="kar-lbar" style="flex:1;min-width:0;display:flex;align-items:center;height:60px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:13px;padding:0 10px;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
-          <button type="button" id="kar-chip-db" class="kar-chip kar-on" onclick="karSwitch('db',this)">🗂 Song Database <span id="kar-db-count"><?= count($_kjDb) ?></span></button>
-          <span class="kar-sdiv">|</span>
-          <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away">🆕 New Songs <span id="kar-new-count"><?= count($_kjNew) ?></span></button>
-          <span class="kar-sdiv">|</span>
-          <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Which singer&#39;s songs to show — the ones they know. Pick a name, or add a new person.">
+    <!-- ONE row of pills, every control the same height. the owner, 2026-09-18, looking at the two
+         white bars and the 56px tiles: "I don't really like them... hopefully the smaller sizes,
+         but more fun... colors that are lively, but they all match. Not all these different
+         colors. If there's no reason, they don't have to be different."
+         Reading order: what you are looking at · what you are looking for · | · the party · reference. -->
+    <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+      <!-- The three lists. Emerald when chosen — the same green as Play, because these are the
+           songs you play. Colours come from CSS on .kar-chip, NEVER inline from karSwitch. -->
+      <div id="kar-listbar" style="flex:0 0 auto;display:flex;align-items:center;gap:7px">
+        <button type="button" id="kar-chip-db" class="kar-chip kar-on" onclick="karSwitch('db',this)" title="Every song in the library"><span style="font-size:15px">&#x1F5C2;</span>Song Database <span id="kar-db-count" class="kar-cnt"><?= count($_kjDb) ?></span></button>
+        <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away"><span style="font-size:15px">&#x1F195;</span>New Songs <span id="kar-new-count" class="kar-cnt"><?= count($_kjNew) ?></span></button>
+        <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Which singer&#39;s songs to show — the ones they know. Pick a name, or add a new person.">
           <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
           <option value="<?= h($_kbp) ?>">Singer: <?= h($_kbp) ?> - <?= count($_kjBestBy[$_kbp]) ?></option>
           <?php endforeach; ?>
           <option value="__add__">＋ Add a person…</option>
           <option value="__remove__">− Remove a person…</option>
           </select>
-        </div>
+        </select>
       </div>
-      <!-- The three searches live INSIDE the bar, not above it. the owner, 2026-09-18:
-           "can you put those three buttons inside of the search bar... not colours, but just
-           barely visible? You click on one and then that whole bar becomes that." So the bar
-           IS the mode: pick one and its placeholder, its icon and its button follow. -->
-      <!-- Capped on purpose. the owner, 2026-09-18: "leave space on the right side for two more
-           buttons" - the Guest QR and one more still to come. -->
-      <div id="kar-searchbar" style="flex:0 1 660px;min-width:400px;display:flex;align-items:center">
-        <div id="kar-bar" style="flex:1;min-width:0;display:flex;align-items:center;height:60px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:13px;padding:0 8px 0 14px;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
-          <span id="kar-sicon" style="flex:0 0 auto;font-size:20px;line-height:1;pointer-events:none;margin-right:10px">🔍</span>
-          <input id="kar-search" type="text" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type here. Esc clears it." style="font-family:inherit;flex:1;min-width:60px;background:none;border:none;outline:none;color:#0f172a;font-size:19px;font-weight:600;padding:0">
-          <span style="flex:0 0 auto;display:flex;align-items:center;gap:1px;margin-left:8px">
+      <!-- ⚠ flex-basis, NOT min-width, decides where a flex row breaks a line. With a 320px
+           basis the row wrapped at 1440px even though the field could legally shrink to 255 —
+           the browser compares BASES first and wraps before it shrinks anything. Basis and
+           min-width are deliberately the same number here; raise the basis and it wraps sooner.
+           The field then GROWS into whatever the other two groups leave over.
+           The three searches live INSIDE the field, not above it. the owner, 2026-09-18: "can you
+           put those three buttons inside of the search bar... not colours, but just barely
+           visible?" So the field IS the mode: pick one and its placeholder, icon and button follow. -->
+      <div id="kar-searchbar" style="flex:1 1 255px;min-width:255px;display:flex;align-items:center">
+        <div id="kar-bar" style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:36px;background:rgba(148,163,184,.07);border:1px solid rgba(148,163,184,.18);border-radius:9px;padding:0 5px 0 12px">
+          <span id="kar-sicon" style="flex:0 0 auto;font-size:14px;line-height:1;pointer-events:none;opacity:.65">&#x1F50D;</span>
+          <input id="kar-search" type="text" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type here. Esc clears it." style="flex:1;min-width:50px;background:none;border:none;outline:none;color:#e2e8f0;font-size:14px;font-weight:600;padding:0">
+          <span style="flex:0 0 auto;display:flex;align-items:center;gap:3px">
             <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the song database — the songs you already have">Song Database</button>
-            <span class="kar-sdiv">|</span>
             <button type="button" class="kar-smode" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">YouTube</button>
-            <span class="kar-sdiv">|</span>
             <button type="button" class="kar-smode" id="kar-sm-link" onclick="karSetMode('link')" title="Paste a link somebody gave you and download it">Link</button>
           </span>
-          <button type="button" id="kar-go" onclick="karSearchGo()" style="display:none;flex:0 0 auto;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;height:34px;padding:0 15px;margin-left:7px;border-radius:8px;font-size:13px;font-weight:800;background:#334155;border:1px solid #64748b;color:#f1f5f9">Search</button>
         </div>
       </div>
-      <div class="kar-grp" id="kar-grp-special">
-        <div class="kar-grplbl">Special features</div>
-        <div style="display:flex;gap:8px;align-items:center">
-      <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The singing queue — who sings next, in order" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#D2AD6C;border:1px solid #D2AD6C;color:#1a1305;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span id="kar-q-count" style="position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#0f1522;border:2px solid #D2AD6C;color:#f3d9a4;font-size:11px;font-weight:800;line-height:16px;text-align:center">0</span><span style="font-size:23px;line-height:1">🎤</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Singing Queue</span></button>
-      <button type="button" onclick="karDlToggle()" id="kar-dl-btn" title="Search YouTube from here and download songs into the library" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">▶</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">YouTube Downloads</span></button>
-      <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#a855f7;border:1px solid #a855f7;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">📱</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Guest QR</span></button>
-        </div>
-      </div>
-      <!-- Simple / Complete. Placed to the LEFT of Guide and Refresh and sized to match them
-           (78x56, the same tile as Guide) so the row reads as four even buttons rather than a
-           small control tacked on at the end - the owner, 2026-09-17, looking at the first cut.
-           Still grey: it is a setting, not a feature, and on a simple-mode page a coloured tile
-           would be the most interesting thing on screen. It can live in the open rather than
-           hidden in the Guide because it is symmetric and instantly reversible - press it,
-           press it again, you are back. The row's own gap:8px spaces it; no margin needed. -->
-      <span id="kar-mode-sw" title="Simple shows only what you need to sing. Complete shows everything." style="display:inline-flex;align-items:stretch;border:1px solid #475569;border-radius:11px;overflow:hidden">
-        <button type="button" id="kar-mode-s" onclick="karSetSimple(true)" title="Just what you need to sing - search, key, play, stop" style="appearance:none;-webkit-appearance:none;font-family:inherit;border:none;border-right:1px solid #475569;cursor:pointer;width:78px;height:54px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase">Simple</button>
-        <button type="button" id="kar-mode-c" onclick="karSetSimple(false)" title="Everything - the singing queue, downloads and guest requests" style="appearance:none;-webkit-appearance:none;font-family:inherit;border:none;cursor:pointer;width:78px;height:54px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase">Complete</button>
+      <!-- The party tools, pushed right by margin-left:auto on the first of them.
+           ⚠ The YouTube Downloads button was RETIRED here on 2026-09-18 — the owner: "we don't need
+           the download button... downloads are being done with the buttons in the middle bar."
+           Its panel, karDlToggle() and every handler are untouched and still work; only the way in
+           is gone. This does NOT hide a failed download: the arrival strip below the header
+           reports one in red with yt-dlp's own reason. -->
+      <!-- The right-hand group travels as ONE block. With margin-left:auto on the first button
+           instead, Guide and Refresh wrapped onto a second row by themselves the moment the
+           window narrowed — and on a wrapped line margin-left:auto applies per line, so they
+           landed hard left. Keeping them in one flex child means the whole group drops together. -->
+      <div style="flex:0 0 auto;margin-left:auto;display:flex;align-items:center;gap:7px">
+      <button type="button" onclick="karQToggle()" id="kar-q-btn" class="kar-tool kar-tile" title="The singing queue — who sings next, in order"><span style="font-size:15px">&#x1F3A4;</span>Queue <span id="kar-q-count" class="kar-cnt">0</span></button>
+      <button type="button" onclick="karQrToggle()" id="kar-qr-btn" class="kar-tool kar-tile" title="The code guests scan to request or bring songs from their own phones"><span style="font-size:15px">&#x1F4F1;</span>Guest QR</button>
+      <!-- Simple / Complete. Hidden by KAR_MODE_SWITCH=false, and sized to the pills so that it
+           fits the row on the day it is switched back on. -->
+      <span id="kar-mode-sw" title="Simple shows only what you need to sing. Complete shows everything." style="display:inline-flex;align-items:stretch;border:1px solid #475569;border-radius:9px;overflow:hidden">
+        <button type="button" id="kar-mode-s" onclick="karSetSimple(true)" title="Just what you need to sing - search, key, play, stop" style="appearance:none;-webkit-appearance:none;font-family:inherit;border:none;border-right:1px solid #475569;cursor:pointer;width:72px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase">Simple</button>
+        <button type="button" id="kar-mode-c" onclick="karSetSimple(false)" title="Everything - the singing queue, downloads and guest requests" style="appearance:none;-webkit-appearance:none;font-family:inherit;border:none;cursor:pointer;width:72px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase">Complete</button>
       </span>
-      <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">📖</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Guide</span></button>
-      <button type="button" onclick="location.reload()" title="Refresh — reload the song lists from the server" style="appearance:none;-webkit-appearance:none;font-family:inherit;margin-left:auto;background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.08) 47%,rgba(255,255,255,0) 48%),linear-gradient(180deg,#5b6676 0%,#232c3a 100%);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 6px rgba(0,0,0,.28),0 5px 12px rgba(0,0,0,.45),0 2px 3px rgba(0,0,0,.35);color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;padding:0;flex-direction:column;gap:0"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))"><path d="M20.5 12a8.5 8.5 0 1 1-2.49-6.01"/><path d="M20.5 4v5.5h-5.5"/></svg><span style="font-size:8.5px;font-weight:800;letter-spacing:.01em;line-height:1;text-shadow:0 1px 1px rgba(0,0,0,.45)">REFRESH</span></button>
+      </div>
     </div>
     <div id="kar-now-bar" style="position:sticky;top:8px;z-index:40;margin-top:10px;background:#28241a;border:1px solid rgba(210,173,108,.45);border-radius:10px;padding:9px 6px 9px 16px;box-shadow:0 4px 16px rgba(0,0,0,.45)">
       <!-- Four labelled sections, divided by a rule, so the eye can find "the key" or "the
@@ -504,6 +578,16 @@ if (!$KAR_LOCAL) {
             <button type="button" id="kar-start-btn" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">▶ Start</button>
             <button type="button" onclick="karPauseToggle(this)" id="kar-stop-btn" title="Stop the song where it is. Press again to resume. To end a song, close the lyrics screen (Q)." style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏹ Stop</button>
           </span>
+        </span>
+        <!-- Guide and Refresh live DOWN HERE, not in the top row. the owner, 2026-09-18: "we
+             don't have enough space on the top bar... the song database, the YouTube, a link
+             buttons go smaller and smaller. Take the guide and the refresh and move them below."
+             That hands ~180px back to the search field. Reading right to left, as he put it:
+             "Refresh will be the last one. Then it will be guide. And then it will be start and
+             stop." No label above them — they say what they are. -->
+        <span style="display:flex;align-items:center;gap:7px;padding:0 0 0 16px;border-left:1px solid rgba(210,173,108,.28)">
+          <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" class="kar-ref kar-tile" title="How everything on this page works — all the rules in one readable place"><span style="font-size:15px">&#x1F4D6;</span>Guide</button>
+          <button type="button" onclick="location.reload()" class="kar-ref" title="Refresh — reload the song lists from the server"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 12a8.5 8.5 0 1 1-2.49-6.01"/><path d="M20.5 4v5.5h-5.5"/></svg>Refresh</button>
         </span>
       </div>
     </div>
@@ -1038,7 +1122,7 @@ if (!$KAR_LOCAL) {
       </span>
       <span class="kar-sectgap"></span>
       <span class="kar-sect kar-sect-b">
-      <span id="kar-h-add" style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
+      <span id="kar-h-add" style="flex:0 0 auto;width:58px;text-align:center" title="Adds the song to the singing queue, for the singer picked in the dropdown, at the pitch shown">Queue</span>
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
       <span id="kar-h-seq" style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Seq<br>Number</span>
@@ -1358,7 +1442,7 @@ if (!$KAR_LOCAL) {
           // so they are built to the same shape — only the colour tells them apart.
           + '<button type="button" class="kar-q-add" data-i="' + i + '" title="Add to the singing queue for ' + karEsc(karWho) + ', at the pitch shown" '
           + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
-          + 'background:rgba(96,165,250,.12);border:1px solid #334155;color:#93c5fd">＋ Add</button>'
+          + 'background:rgba(251,191,36,.12);border:1px solid #334155;color:#fcd34d">＋ Queue</button>'
           + (karShowQmidi
             ? '<button type="button" class="kar-play" data-player="qmidi" data-i="' + i + '" title="' + (pQm ? 'This song is playing now in QMidi — click to start it again' : 'Play this song in QMidi on the Mac, at the pitch shown in the Pitch box') + '" '
               + 'style="font-family:inherit;flex:0 0 auto;width:58px;cursor:pointer;font-size:11px;padding:3px 0;border-radius:6px;'
@@ -2105,22 +2189,21 @@ if (!$KAR_LOCAL) {
     // closes the others; clicking the open one's button just closes it.
     // btn = its header button · col/bd = how it looks at rest · rgb = its own accent,
     // used for the lit fill, border and halo · lit = the bright text colour when open.
+    // Which button belongs to which panel. The lit LOOK lives in CSS (.kar-tile-on).
+    // ⚠ karBtnLight used to write inline background/border/color here. An inline style beats
+    // any stylesheet rule, so the moment the palette changed those colours fought it and stale
+    // ones stayed behind. Class only now — do not put the inline painting back.
     var KAR_PANELS = {
-      'kar-guide-panel': { btn:'kar-guide-btn', col:'#fff',    bd:'#16a34a', rest:'#16a34a', rgb:'22,163,74',   bg:'#4ade80', lit:'#052e16' },
-      'kar-dl-panel':    { btn:'kar-dl-btn',    col:'#fff',    bd:'#EF4444', rest:'#EF4444', rgb:'239,68,68',   bg:'#f87171', lit:'#fff' },
-      'kar-q-panel':     { btn:'kar-q-btn',     col:'#1a1305', bd:'#D2AD6C', rest:'#D2AD6C', rgb:'210,173,108', bg:'#f3d9a4', lit:'#1a1305' },
-      'kar-qr-panel':    { btn:'kar-qr-btn',    col:'#fff',    bd:'#a855f7', rest:'#a855f7', rgb:'168,85,247',  bg:'#c084fc', lit:'#fff' }
+      'kar-guide-panel': { btn:'kar-guide-btn' },
+      // The YouTube Downloads BUTTON was retired 2026-09-18; the panel and every handler still
+      // work, so this entry stays. karBtnLight and karTilesDim both no-op on a missing button.
+      'kar-dl-panel':    { btn:'kar-dl-btn'    },
+      'kar-q-panel':     { btn:'kar-q-btn'     },
+      'kar-qr-panel':    { btn:'kar-qr-btn'    }
     };
     function karBtnLight(pid, on){
       var p = KAR_PANELS[pid], b = p && document.getElementById(p.btn);
       if (!b) return;
-      b.style.background  = on ? p.bg : (p.rest || '#1e293b');
-      b.style.borderColor = on ? 'rgb(' + p.rgb + ')'      : p.bd;
-      b.style.color       = on ? p.lit                     : p.col;
-      // A dark gap then a solid ring in the tile's own colour: strong enough to read against
-      // a tile that is already a solid colour at rest. The plain lighter fill was not.
-      b.style.boxShadow   = on ? '0 0 0 3px #1A1F2C, 0 0 0 6px rgb(' + p.rgb + '), 0 6px 14px rgba(0,0,0,.45)' : 'none';
-      b.style.setProperty('--kt', p.bg);
       b.classList.toggle('kar-tile-on', !!on);
       karTilesDim();
     }
@@ -2655,26 +2738,32 @@ function karPickFolder(){
         if (b) b.classList.toggle('kar-on', k === m);
       });
       var inp = document.getElementById('kar-search'),
-          go  = document.getElementById('kar-go'),
           ic  = document.getElementById('kar-sicon');
       if (!inp) return;
-      // The bar keeps ONE look in every mode - the owner, 2026-09-18, on a header with three more
-      // colours than it needed: "not colours, but just barely visible". Only the placeholder,
-      // the icon and the button change, so the bar reads as one thing that is doing one job.
+      // ⚠ NOTHING appears or disappears in this bar, and nothing moves. There used to be a
+      // separate Search / Download button that showed up only in the YouTube and Link modes,
+      // and it shoved the three buttons sideways every time the mode changed — the owner,
+      // 2026-09-18: "I would like those three buttons... to stay where they are and not be
+      // moved around... why do I have to hit it twice?"
+      // So THE MODE BUTTON IS THE BUTTON: pressing it switches the mode AND runs it on
+      // whatever is already typed. Only the placeholder and the icon change. Do not put a
+      // separate action button back.
       if (m === 'list'){
         inp.placeholder = 'Search a song or an artist\u2026';
         if (ic) ic.textContent = '\uD83D\uDD0D';
-        if (go) go.style.display = 'none';
         // Coming back from YouTube results, the list area is showing hits, not songs.
         if (was !== 'list') { inp.value = ''; if (!skipRender) karRender(); }
       } else if (m === 'yt'){
         inp.placeholder = 'What song are you looking for?';
         if (ic) ic.textContent = '\u25B6';
-        if (go){ go.style.display = ''; go.textContent = 'Search'; }
+        // Already typed something? Search it now — do not make him press a second button.
+        if ((inp.value || '').trim()) { inp.focus(); karSimpleYt(); return; }
       } else {
         inp.placeholder = 'Paste the link here\u2026';
         if (ic) ic.textContent = '\uD83D\uDD17';
-        if (go){ go.style.display = ''; go.textContent = 'Download'; }
+        // Only act on something that actually IS a link. Switching modes with a song name
+        // still in the box must not throw an error at him — it just waits for the link.
+        if (/^https?:\/\//i.test((inp.value || '').trim())) { inp.focus(); karLinkAdd(); return; }
       }
       inp.focus();
     }
@@ -2695,16 +2784,18 @@ function karPickFolder(){
       var url = (inp.value || '').trim();
       if (!url) return;
       if (!/^https?:\/\//i.test(url)) { alert('That does not look like a link. It should start with http.'); return; }
-      var go = document.getElementById('kar-go');
-      go.disabled = true; go.textContent = '…';
+      // The Link button itself shows that it is working — there is no separate Download
+      // button any more. Its width is fixed in CSS, so swapping the text cannot shift the row.
+      var go = document.getElementById('kar-sm-link'), lbl = go ? go.textContent : 'Link';
+      if (go) { go.disabled = true; go.textContent = '…'; }
       var fd = new FormData(); fd.append('form_type', 'karaoke_dl_add'); fd.append('url', url);
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
-        go.disabled = false; go.textContent = 'Download';
+        if (go) { go.disabled = false; go.textContent = lbl; }
         if (!d.ok) { alert('That link was not accepted' + (d.error ? ': ' + d.error : '') + '.'); return; }
         inp.value = '';
         karArrAdd(url, 'your link');
         karDlGo().then(karArrPoll);
-      }).catch(function(){ go.disabled = false; go.textContent = 'Download'; alert('Network error — the link was not sent.'); });
+      }).catch(function(){ if (go) { go.disabled = false; go.textContent = lbl; } alert('Network error — the link was not sent.'); });
     }
 
     // ------------------------------------------------------- SONGS THAT HAVE JUST ARRIVED
