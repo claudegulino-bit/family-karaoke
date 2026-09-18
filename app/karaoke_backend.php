@@ -1039,8 +1039,14 @@ function kar_first_name(string $raw): string {
  */
 function kar_name_busy(PDO $db, string $n): bool {
     if ($n === '') return false;
+    // The 12-hour bound matters (2026-09-17): without it a queue nobody cleared after the last
+    // party keeps every name in it "taken" for ever, and the next person to walk in under their
+    // own name is quietly renamed. That is how Ella became Ella G six minutes into her own
+    // evening - and, because scheduling fairness counts by name, how she started getting two
+    // turns a round while everyone else got one.
     $st = $db->prepare("SELECT COUNT(*) FROM karaoke_sing_queue
-                        WHERE LOWER(singer) = LOWER(?) AND status IN ('Waiting','Singing')");
+                        WHERE LOWER(singer) = LOWER(?) AND status IN ('Waiting','Singing')
+                          AND created_at > " . kar_ago(12, 'hours'));
     $st->execute([$n]);
     if ((int)$st->fetchColumn() > 0) return true;
     $st = $db->prepare("SELECT COUNT(*) FROM karaoke_downloads

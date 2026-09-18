@@ -190,6 +190,78 @@ if (!$KAR_LOCAL) {
     filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
   .kar-tile-off { opacity: .5; }
   .kar-tile-off:hover { opacity: .8; }
+
+  /* ── SIMPLE MODE (2026-09-17) ──────────────────────────────────────────────────────────
+     the owner: some of his friends sing well and cannot manage a computer. Simple mode is for
+     them - search, pick a key, play, stop, and nothing else on screen.
+     It is a MODE, not a second page: one class on #karaoke-page and everything below follows.
+     The song rows are rebuilt constantly by karRender(), so styling them from here means the
+     row builder is never touched at all.
+     !important is deliberate - the column widths are written inline on each element and an
+     inline style beats a stylesheet rule without it. Contained to this block, and completely
+     inert whenever the class is absent. */
+  .kar-simple .kar-grplbl,
+  .kar-simple #kar-grp-special,
+  .kar-simple #kar-chip-new,
+  .kar-simple #kar-sec-key,
+  .kar-simple #kar-sec-tempo,
+  .kar-simple #kar-lbl-playback,
+  .kar-simple #kar-lyrics-btn,
+  .kar-simple #kar-bands,
+  .kar-simple #kar-h-del,
+  .kar-simple #kar-h-add,
+  .kar-simple #kar-h-seq,
+  .kar-simple .kar-del,
+  .kar-simple .kar-q-add,
+  .kar-simple .kar-num,
+  .kar-simple .kar-sectgap,
+  .kar-simple .kar-ghdr,
+  .kar-simple #kar-guide-cards > button { display: none !important; }
+  /* ⚠ These two must out-rank the hide rule above. "#kar-guide-cards > button" carries an id,
+     a class AND a type, so a bare "#kar-gc-sing" (id + class) LOSES to it even with !important
+     - specificity is compared before !important among equally-important rules. Repeating the
+     parent id here makes it two ids and it wins. Measured: without this, simple mode showed an
+     EMPTY Guide. */
+  .kar-simple #kar-guide-cards > #kar-gc-sing,
+  .kar-simple #kar-guide-cards > #kar-gc-while { display: block !important; }
+
+  /* Guide stops being green in simple mode. Green means GO on this page (Play, Start); a manual
+     has no business wearing it, and in simple mode it was the loudest thing in the corner and the
+     least important. Complete mode keeps its coloured tiles - this is scoped to simple only. */
+  .kar-simple #kar-guide-btn,
+  .kar-simple #kar-start-btn,
+  .kar-simple #kar-stop-btn { background: #334155 !important; border-color: #475569 !important; color: #e2e8f0 !important; }
+  /* ⚠ Start and Stop go slate too - the owner's choice, 2026-09-17, after seeing both rendered. I argued
+     to keep them coloured (once the chrome is quiet they are the only colour left, so a singer finds
+     Stop without reading). He chose full uniformity; it is his product and his singers.
+     SAFE because karPauseToggle only swaps the TEXT - "⏹ Stop" becomes "▶ Resume" - and never the
+     colour, so the paused state still reads correctly with no colour at all. Verified before building.
+     The row Play buttons stay green: they are the main action of the page and were never in question. */
+
+  /* Bigger, because some of these singers are reading a television from across the room. */
+  .kar-simple .kar-row     { padding: 10px 6px !important; }
+  .kar-simple .kar-name    { width: 560px !important; font-size: 17px !important; }
+  .kar-simple #kar-h-song  { width: 560px !important; font-size: 12px !important; }
+  .kar-simple .kar-play    { width: 90px !important; font-size: 15px !important; padding: 7px 0 !important; }
+  .kar-simple #kar-h-casai { width: 90px !important; font-size: 12px !important; }
+  .kar-simple .kar-star    { font-size: 16px !important; }   /* NOT enlarged with the rest: the star is a
+     secondary action (put this on someone's list) and at 22px it competed with Play, which is the whole
+     point of the page. the owner, 2026-09-17: "too big for what we're doing here." */
+
+  /* The two list chips join the grey too, and selection is shown the way the Simple|Complete switch
+     already shows it - BRIGHTER means selected - with a near-white ring instead of the gold one.
+     Gold is a warm colour and this page is now cool slate, which is exactly why it clashed
+     (the owner: "maybe a different color than orange, something that matches with gray"). White is not
+     a new hue at all, just more light, so it cannot fight anything else on screen. */
+  .kar-simple .kar-chip        { background: #1a2230 !important; border-color: #475569 !important; color: #94a3b8 !important; }
+  /* ⚠ The gold ring you SEE is the box-shadow, not the border - `.kar-chip.kar-on` draws
+     `inset 0 0 0 1.5px #fbbf24` plus a gold glow. Overriding border-color alone changes nothing
+     visible, and checking border-color alone will tell you the gold is gone when it is still on
+     screen. Override the SHADOW. */
+  .kar-simple .kar-chip.kar-on { background: #334155 !important; border-color: #e2e8f0 !important; color: #fff !important;
+    box-shadow: inset 0 0 0 1.5px #e2e8f0, 0 0 10px rgba(226,232,240,.28) !important; }
+  .kar-simple .kar-pitch   { font-size: 16px !important; }
+  .kar-simple .kar-pstep   { font-size: 17px !important; }
   /* The "? How it works" cards FLOAT — they used to sit inside their panel and make it
      twice as tall, which is what made the panels feel heavy. Now they stand beside the
      work instead of on top of it, and stay put until closed.
@@ -277,7 +349,7 @@ if (!$KAR_LOCAL) {
         <div class="kar-grplbl">Songs and singers</div>
         <div style="display:flex;gap:8px;align-items:center">
       <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🗂 Song Database <span id="kar-db-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjDb) ?></span></button>
-      <button type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🆕 New Songs <span id="kar-new-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjNew) ?></span></button>
+      <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🆕 New Songs <span id="kar-new-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjNew) ?></span></button>
       <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Whose Best list this is. Pick a name to see their songs, or add a new person." style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">
         <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
         <option value="<?= h($_kbp) ?>">⭐ Best of <?= h($_kbp) ?> <?= count($_kjBestBy[$_kbp]) ?></option>
@@ -288,7 +360,7 @@ if (!$KAR_LOCAL) {
         </div>
       </div>
       <span style="position:relative;flex:1;min-width:260px;display:flex;align-items:center"><span style="position:absolute;left:13px;font-size:19px;line-height:1;pointer-events:none">🔍</span><input id="kar-search" type="text" placeholder="Search a song, an artist, a singer…" oninput="karRender()" onkeydown="if(event.key==='Escape'){karClearSearch(true);}" title="Type to filter the list. Esc clears it — switching views clears it too." style="font-family:inherit;width:100%;height:46px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:12px;color:#0f172a;font-size:15px;font-weight:600;padding:8px 14px 8px 42px;outline:none;box-shadow:0 0 0 3px rgba(210,173,108,.15)"></span>
-      <div class="kar-grp">
+      <div class="kar-grp" id="kar-grp-special">
         <div class="kar-grplbl">Special features</div>
         <div style="display:flex;gap:8px;align-items:center">
       <button type="button" onclick="karQToggle()" id="kar-q-btn" title="The singing queue — who sings next, in order" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#D2AD6C;border:1px solid #D2AD6C;color:#1a1305;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span id="kar-q-count" style="position:absolute;top:-7px;right:-7px;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#0f1522;border:2px solid #D2AD6C;color:#f3d9a4;font-size:11px;font-weight:800;line-height:16px;text-align:center">0</span><span style="font-size:23px;line-height:1">🎤</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Singing Queue</span></button>
@@ -296,6 +368,17 @@ if (!$KAR_LOCAL) {
       <button type="button" onclick="karQrToggle()" id="kar-qr-btn" title="The code guests scan to request or bring songs from their own phones" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#a855f7;border:1px solid #a855f7;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">📱</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Guest QR</span></button>
         </div>
       </div>
+      <!-- Simple / Complete. Placed to the LEFT of Guide and Refresh and sized to match them
+           (78x56, the same tile as Guide) so the row reads as four even buttons rather than a
+           small control tacked on at the end - the owner, 2026-09-17, looking at the first cut.
+           Still grey: it is a setting, not a feature, and on a simple-mode page a coloured tile
+           would be the most interesting thing on screen. It can live in the open rather than
+           hidden in the Guide because it is symmetric and instantly reversible - press it,
+           press it again, you are back. The row's own gap:8px spaces it; no margin needed. -->
+      <span id="kar-mode-sw" title="Simple shows only what you need to sing. Complete shows everything." style="display:inline-flex;align-items:stretch;border:1px solid #475569;border-radius:11px;overflow:hidden">
+        <button type="button" id="kar-mode-s" onclick="karSetSimple(true)" title="Just what you need to sing - search, key, play, stop" style="appearance:none;-webkit-appearance:none;font-family:inherit;border:none;border-right:1px solid #475569;cursor:pointer;width:78px;height:54px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase">Simple</button>
+        <button type="button" id="kar-mode-c" onclick="karSetSimple(false)" title="Everything - the singing queue, downloads and guest requests" style="appearance:none;-webkit-appearance:none;font-family:inherit;border:none;cursor:pointer;width:78px;height:54px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase">Complete</button>
+      </span>
       <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" title="How everything on this page works — all the rules in one readable place" class="kar-tile" style="appearance:none;-webkit-appearance:none;font-family:inherit;position:relative;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:78px;height:56px;padding:4px 5px;border-radius:11px;transition:background .12s,border-color .12s,box-shadow .12s"><span style="font-size:23px;line-height:1">📖</span><span style="font-size:10.5px;font-weight:800;line-height:1.15;text-align:center">Guide</span></button>
       <button type="button" onclick="location.reload()" title="Refresh — reload the song lists from the server" style="appearance:none;-webkit-appearance:none;font-family:inherit;margin-left:auto;background:linear-gradient(180deg,rgba(255,255,255,.28) 0%,rgba(255,255,255,.08) 47%,rgba(255,255,255,0) 48%),linear-gradient(180deg,#5b6676 0%,#232c3a 100%);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 6px rgba(0,0,0,.28),0 5px 12px rgba(0,0,0,.45),0 2px 3px rgba(0,0,0,.35);color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;padding:0;flex-direction:column;gap:0"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))"><path d="M20.5 12a8.5 8.5 0 1 1-2.49-6.01"/><path d="M20.5 4v5.5h-5.5"/></svg><span style="font-size:8.5px;font-weight:800;letter-spacing:.01em;line-height:1;text-shadow:0 1px 1px rgba(0,0,0,.45)">REFRESH</span></button>
     </div>
@@ -325,7 +408,7 @@ if (!$KAR_LOCAL) {
             <span id="kar-time-dur" style="color:#8a8070;font-size:11px;font-variant-numeric:tabular-nums;width:34px">0:00</span>
           </span>
         </span>
-        <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+        <span id="kar-sec-key" style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Key</span>
           <span style="display:flex;align-items:center;gap:6px">
             <button type="button" onclick="karLiveAdj(-1)" title="Lower the key one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
@@ -333,7 +416,7 @@ if (!$KAR_LOCAL) {
             <button type="button" onclick="karLiveAdj(1)" title="Raise the key one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
           </span>
         </span>
-        <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+        <span id="kar-sec-tempo" style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Tempo</span>
           <span style="display:flex;align-items:center;gap:6px">
             <button type="button" onclick="karTempoAdj(-5)" title="Slow the song 5%; the key stays true. Takes a few seconds; not saved. casAI player only." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
@@ -342,10 +425,10 @@ if (!$KAR_LOCAL) {
           </span>
         </span>
         <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
-          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Playback</span>
+          <span id="kar-lbl-playback" style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Playback</span>
           <span style="display:flex;align-items:center;gap:8px">
-            <button type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics screen, or bring it back in front of everything" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:11px;font-weight:800;line-height:1.1;padding:0 10px;height:36px;border-radius:8px;white-space:nowrap">🎬 Lyrics<br>Screen</button>
-            <button type="button" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">▶ Start</button>
+            <button id="kar-lyrics-btn" type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics screen, or bring it back in front of everything" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:11px;font-weight:800;line-height:1.1;padding:0 10px;height:36px;border-radius:8px;white-space:nowrap">🎬 Lyrics<br>Screen</button>
+            <button type="button" id="kar-start-btn" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">▶ Start</button>
             <button type="button" onclick="karPauseToggle(this)" id="kar-stop-btn" title="Stop the song where it is. Press again to resume. To end a song, close the lyrics screen (Q)." style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏹ Stop</button>
           </span>
         </span>
@@ -397,7 +480,7 @@ if (!$KAR_LOCAL) {
         $_grp = '';
         foreach ($_karCards as [$_k, $_t, $_d, $_g]):
           if ($_g !== $_grp): $_grp = $_g; ?>
-        <div style="grid-column:1/-1;color:#8ea2bd;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-top:1px solid rgba(148,163,184,.22);padding-top:9px;margin:<?= $_grp === 'Setting up' ? '2px' : '14px' ?> 0 0"><?= h($_grp) ?></div>
+        <div class="kar-ghdr" style="grid-column:1/-1;color:#8ea2bd;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-top:1px solid rgba(148,163,184,.22);padding-top:9px;margin:<?= $_grp === 'Setting up' ? '2px' : '14px' ?> 0 0"><?= h($_grp) ?></div>
         <?php endif; ?>
         <button type="button" id="kar-gc-<?= $_k ?>" onclick="karGuideOpen('<?= $_k ?>')" style="font-family:inherit;text-align:left;background:#1a2130;border:1px solid #334155;border-radius:9px;padding:11px 13px;cursor:pointer">
           <span style="display:block;color:#D2AD6C;font-size:13.5px;font-weight:800"><?= h($_t) ?></span>
@@ -570,7 +653,7 @@ if (!$KAR_LOCAL) {
         <?php if (!$KAR_LOCAL): ?>
         <div class="kar-gs" id="kar-gs-config" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Configuration and workflow</h3>
-          <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">Each box is a computer. Changes are made once, at the top, and released downward.</p>
+          <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">Every box is a computer. The first two are the <b style="color:#cbd5e1">same laptop</b>, running two different Cantorias: the master, inside casAI, where all development is done — and a standalone copy, independent of casAI, where each release is tested before anyone else receives it.</p>
           <?php
           // The machines live in the database (karaoke_settings.rollout_chain), NOT in this
           // file. The card is shown on casAI only — but this file is published to a public
@@ -586,13 +669,18 @@ if (!$KAR_LOCAL) {
           foreach (array_filter(explode(';', $_rcRaw)) as $_row) {
               $_f = array_map('trim', explode('|', $_row));
               if (count($_f) >= 2 && $_f[1] !== '') {
-                  $_cap = []; $_leg = '';
+                  $_cap = []; $_leg = ''; $_shared = false;
                   foreach (array_slice($_f, 2) as $_x) {
                       if ($_x === '') continue;
-                      if ($_x[0] === '>') { if ($_leg === '') $_leg = trim(substr($_x, 1)); } else { $_cap[] = $_x; }
+                      if ($_x === '+songs') { $_shared = true; }
+                      elseif ($_x[0] === '>') { if ($_leg === '') $_leg = trim(substr($_x, 1)); } else { $_cap[] = $_x; }
                   }
                   $_rc[] = ['t' => (int)$_f[0], 'n' => $_f[1], 'c' => $_cap, 'l' => $_leg,
-                            'p' => (stripos(implode(' ', $_cap), 'planned') !== false)];
+                            'p' => (stripos(implode(' ', $_cap), 'planned') !== false),
+                            // "+songs" = this Mac reads the shared Google Drive folder. Only
+                            // the owner's own machines do; everybody else keeps their own copy,
+                            // and kar_sync() refuses to reach into somebody else's folder.
+                            'g' => $_shared];
               }
           }
           $_spine = array_values(array_filter($_rc, function ($r) { return $r['t'] < 3; }));
@@ -607,6 +695,15 @@ if (!$KAR_LOCAL) {
               $_W = 760; $_x0 = 100; $_cw = $_W - $_x0 - 8; $_mid = (int)($_x0 + $_cw / 2);
               // The master is deliberately the biggest box on the chart.
               $_dim = function ($t) { return $t === 1 ? [360, 96] : ($t === 2 ? [300, 82] : [208, 84]); };
+              // Shrink a name that will not fit its box. Boxes narrow as houses are added
+              // (208px at one, ~116px at five), so a long name must be made to fit, not assumed
+              // to. 0.57 em per character is measured from a real render of "a family member Laptop"
+              // in this bold serif - re-measure if the font ever changes.
+              $_fit = function (string $t, float $box, float $size) {
+                  $w = mb_strlen($t) * $size * 0.57;
+                  $room = $box - 16;
+                  return $w > $room ? max(11.0, round($size * $room / $w, 1)) : $size;
+              };
               $_hn  = count($_house);
               [$_hw0, $_hh] = $_dim(3);
               $_hw  = (int)min($_hw0, ($_cw - ($_hn - 1) * 18) / $_hn);
@@ -615,7 +712,11 @@ if (!$KAR_LOCAL) {
               $_cx  = function ($i) use ($_hx0, $_hsp, $_hw) { return (int)($_hx0 + $i * $_hsp + $_hw / 2); };
               // Walk the spine downward, remembering where each box sits. The gap between
               // boxes holds the arrow AND its label, so it is wider than before.
-              $_y = []; $_cursor = 8;
+              // The title lives INSIDE the svg so it centres on $_mid - the middle of the boxes -
+              // and not on the drawing's own middle. They are 46px apart, because the left 100px
+              // is reserved for the tier badges. An html title above the chart sits visibly left.
+              $_titleH = 28;
+              $_y = []; $_cursor = 8 + $_titleH;
               foreach ($_spine as $_i => $_s) { [$_w, $_hgt] = $_dim($_s['t']); $_y[$_i] = $_cursor; $_cursor += $_hgt + 56; }
               $_botY  = $_cursor - 56;
               $_railY = $_botY + 30;
@@ -635,6 +736,7 @@ if (!$KAR_LOCAL) {
               <marker id="karArrB" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#60A5FA"/></marker>
               <marker id="karArrG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6ee7b7"/></marker>
             </defs>
+            <text x="<?= $_mid ?>" y="20" text-anchor="middle" fill="#D2AD6C" font-family="inherit" font-size="15" font-weight="800" letter-spacing="0.3">Cantoria Development and Update Process</text>
             <?php foreach ($_spine as $_i => $_s):
                   [$_w, $_hgt] = $_dim($_s['t']);
                   $_c  = $_tc[$_s['t']] ?? $_tc[2];
@@ -643,7 +745,7 @@ if (!$KAR_LOCAL) {
                   $_r  = $_rows(count($_s['c'])); ?>
             <?= $_badge($_y[$_i] + $_hgt / 2, $_c['st'], $_c['lb']) ?>
             <rect x="<?= $_x ?>" y="<?= $_y[$_i] ?>" width="<?= $_w ?>" height="<?= $_hgt ?>" rx="12" fill="<?= $_c['fi'] ?>" stroke="<?= $_c['st'] ?>" stroke-width="<?= $_ms ? 2.2 : 1.6 ?>"/>
-            <text x="<?= $_mid ?>" y="<?= (int)($_y[$_i] + $_hgt * $_r[0]) ?>" text-anchor="middle" fill="<?= $_c['nm'] ?>" font-family="inherit" font-size="<?= $_ms ? 19 : 16 ?>" font-weight="800"><?= h($_s['n']) ?></text>
+            <text x="<?= $_mid ?>" y="<?= (int)($_y[$_i] + $_hgt * $_r[0]) ?>" text-anchor="middle" fill="<?= $_c['nm'] ?>" font-family="inherit" font-size="<?= $_fit($_s['n'], $_w, $_ms ? 19 : 16) ?>" font-weight="800"><?= h($_s['n']) ?></text>
             <?php foreach ($_s['c'] as $_li => $_ln): ?><text x="<?= $_mid ?>" y="<?= (int)($_y[$_i] + $_hgt * $_r[$_li + 1]) ?>" text-anchor="middle" fill="<?= $_c['cp'] ?>" font-family="inherit" font-size="13"><?= h($_ln) ?></text><?php endforeach; ?>
             <?php if ($_i < count($_spine) - 1): $_ny = $_y[$_i + 1]; ?>
             <line x1="<?= $_mid ?>" y1="<?= $_y[$_i] + $_hgt ?>" x2="<?= $_mid ?>" y2="<?= $_ny - 6 ?>" stroke="#60A5FA" stroke-width="2" marker-end="url(#karArrB)"/>
@@ -661,17 +763,22 @@ if (!$KAR_LOCAL) {
                   $_r  = $_rows(count($_hb['c'])); ?>
             <line x1="<?= $_cx($_i) ?>" y1="<?= $_railY ?>" x2="<?= $_cx($_i) ?>" y2="<?= $_hy - 6 ?>" stroke="#6ee7b7" stroke-width="2" marker-end="url(#karArrG)"<?= $_pl ? ' stroke-dasharray="5 4"' : '' ?>/>
             <rect x="<?= (int)($_hx0 + $_i * $_hsp) ?>" y="<?= $_hy ?>" width="<?= $_hw ?>" height="<?= $_hh ?>" rx="12" fill="<?= $_pl ? 'none' : $_c['fi'] ?>" stroke="<?= $_c['st'] ?>" stroke-width="1.6"<?= $_pl ? ' stroke-dasharray="5 4" stroke-opacity="0.7"' : '' ?>/>
-            <text x="<?= $_cx($_i) ?>" y="<?= (int)($_hy + $_hh * $_r[0]) ?>" text-anchor="middle" fill="<?= $_pl ? '#94a3b8' : $_c['nm'] ?>" font-family="inherit" font-size="16" font-weight="800"><?= h($_hb['n']) ?></text>
+            <text x="<?= $_cx($_i) ?>" y="<?= (int)($_hy + $_hh * $_r[0]) ?>" text-anchor="middle" fill="<?= $_pl ? '#94a3b8' : $_c['nm'] ?>" font-family="inherit" font-size="<?= $_fit($_hb['n'], $_hw, 16) ?>" font-weight="800"><?= h($_hb['n']) ?></text>
             <?php foreach ($_hb['c'] as $_li => $_ln): ?><text x="<?= $_cx($_i) ?>" y="<?= (int)($_hy + $_hh * $_r[$_li + 1]) ?>" text-anchor="middle" fill="<?= $_c['cp'] ?>" font-family="inherit" font-size="12.5"><?= h($_ln) ?></text><?php endforeach; ?>
+            <?php if ($_hb['g']): ?>
             <line x1="<?= $_cx($_i) ?>" y1="<?= $_hy + $_hh ?>" x2="<?= $_cx($_i) ?>" y2="<?= $_sy ?>" stroke="#c084fc" stroke-width="1.6" stroke-dasharray="3 4"/>
+            <?php else: ?>
+            <text x="<?= $_cx($_i) ?>" y="<?= (int)($_hy + $_hh + 20) ?>" text-anchor="middle" fill="#94a3b8" font-family="inherit" font-size="11.5" font-style="italic">its own copy of the songs</text>
+            <?php endif; ?>
             <?php endforeach; ?>
 
             <?= $_badge($_sy + $_sh / 2, $_sc['st'], 'Songs') ?>
             <rect x="<?= $_x0 ?>" y="<?= $_sy ?>" width="<?= $_cw ?>" height="<?= $_sh ?>" rx="12" fill="<?= $_sc['fi'] ?>" stroke="<?= $_sc['st'] ?>" stroke-width="1.6"/>
-            <text x="<?= $_mid ?>" y="<?= $_sy + 21 ?>" text-anchor="middle" fill="<?= $_sc['nm'] ?>" font-family="inherit" font-size="14" font-weight="800">🎵 One songs folder in Google Drive, shared by every Mac</text>
-            <text x="<?= $_mid ?>" y="<?= $_sy + 39 ?>" text-anchor="middle" fill="<?= $_sc['cp'] ?>" font-family="inherit" font-size="12">a song added on any Mac is available on all of them · dotted lines indicate the shared folder, not a connection</text>
+            <text x="<?= $_mid ?>" y="<?= $_sy + 21 ?>" text-anchor="middle" fill="<?= $_sc['nm'] ?>" font-family="inherit" font-size="14" font-weight="800">🎵 One songs folder in Google Drive — shared by my own Macs only</text>
+            <?php /* ⚠ the band is $_cw (652px) wide: a sub-line past ~110 characters at 12px is clipped at the right edge, silently. */ ?>
+            <text x="<?= $_mid ?>" y="<?= $_sy + 39 ?>" text-anchor="middle" fill="<?= $_sc['cp'] ?>" font-family="inherit" font-size="12">the laptop and my two minis see the same songs · everyone else keeps their own copy</text>
           </svg>
-          <p style="margin:-2px 0 14px;color:#94a3b8;font-size:12px;text-align:center">Arrows show the order in which a release reaches each computer, not a network connection. Each Mac installs its own update; nothing is pushed from here.</p>
+          <p style="margin:-2px 0 14px;color:#94a3b8;font-size:12px;text-align:center">Arrows show the order in which a release reaches each computer, not a network connection, and the dotted lines indicate the shared songs folder rather than a connection. Each Mac installs its own update; nothing is pushed from here.</p>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 14px">
             <div style="background:#0d1117;border:1px solid #334155;border-radius:10px;padding:11px 14px">
@@ -685,10 +792,10 @@ if (!$KAR_LOCAL) {
             <div style="background:#0d1117;border:1px solid #334155;border-radius:10px;padding:11px 14px">
               <div style="font-size:12px;font-weight:800;color:#f3f4f6;margin-bottom:8px;letter-spacing:.02em">RELEASE PROCESS</div>
               <div style="display:grid;gap:7px;font-size:12.5px;line-height:1.5">
-                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#D2AD6C">1</b><span><b style="color:#f3d9a4">Development</b> — all changes are made on the master.</span></div>
-                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#60A5FA">2</b><span><b style="color:#bfdbfe">Testing</b> — each release is used on the testing Mac before distribution.</span></div>
+                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#D2AD6C">1</b><span><b style="color:#f3d9a4">Development</b> — all changes are made in casAI, on the master Cantoria.</span></div>
+                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#60A5FA">2</b><span><b style="color:#bfdbfe">Testing</b> — each release is then installed on the standalone copy, on the same laptop, and used before distribution.</span></div>
                 <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#6ee7b7">3</b><span><b style="color:#d1fae5">Installation</b> — each user retrieves the release on their own Mac, from the 📖 Guide button. Songs, lists and saved keys are unaffected.</span></div>
-                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#c084fc">♪</b><span><b style="color:#e9d5ff">Songs</b> — not part of any release; they reside in a shared Google Drive folder.</span></div>
+                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#c084fc">♪</b><span><b style="color:#e9d5ff">Songs</b> — not part of any release. My own Macs read one shared Google Drive folder; every other Mac keeps its own copy.</span></div>
               </div>
             </div>
           </div>
@@ -698,7 +805,7 @@ if (!$KAR_LOCAL) {
 
           <div style="display:grid;gap:9px">
             <div><b style="color:#D2AD6C">This page contains no audio</b> — it lists the contents of the shared folder and sends playback requests to a Mac.</div>
-            <div><b style="color:#D2AD6C">⭐ Best lists</b> — the Macs synchronize their lists with each other. This page maintains its own, so a person's list here may differ from the list on the Macs.</div>
+            <div><b style="color:#D2AD6C">⭐ Best lists</b> — my own Macs synchronize their lists with each other; a Mac belonging to somebody else shares nothing. This page maintains its own, so a person's list here may differ from the list on the Macs.</div>
             <div><b style="color:#D2AD6C">If a song does not play</b> — the Mac is asleep, the wrong Mac is selected under <b>Play on</b>, or that Mac points to a different songs folder.</div>
           </div>
         </div>
@@ -845,7 +952,7 @@ if (!$KAR_LOCAL) {
          to sit over the row. The SET UP label then spans its three controls — pitch 114 + star 48 +
          delete 48 with 12px gaps = 234, inset 9px (the section band's 8px padding + 1px border) —
          and the spacer runs to where the ＋ Add button starts. -->
-    <div style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px 0 23px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
+    <div id="kar-bands" style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px 0 23px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
       <span style="flex:0 0 auto;width:234px;margin-left:9px;text-align:center;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
       <span style="flex:0 0 auto;width:70px"></span>
       <span style="flex:1;min-width:0;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Play and sing</span>
@@ -854,14 +961,14 @@ if (!$KAR_LOCAL) {
       <span class="kar-sect kar-sect-a">
       <span style="flex:0 0 auto;width:114px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number — it saves by itself (gold = your saved pitch). ⟲ drops it to 0 for one play only, for a guest singer, then your pitch comes back.">Pitch</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
-      <span style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
+      <span id="kar-h-del" style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
       </span>
       <span class="kar-sectgap"></span>
       <span class="kar-sect kar-sect-b">
-      <span style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
+      <span id="kar-h-add" style="flex:0 0 auto;width:58px;text-align:center" title="➕ adds the song to the singing queue, for the person picked in the dropdown, at the pitch shown">Add to<br>Queue</span>
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
-      <span style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Seq<br>Number</span>
+      <span id="kar-h-seq" style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Seq<br>Number</span>
       <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
       </span>
@@ -1219,12 +1326,96 @@ if (!$KAR_LOCAL) {
         cntEl.style.cssText = 'margin-top:10px;color:#64748b;font-size:11.5px';
         cntEl.textContent = out.length + ' of ' + src.length + ' songs in the ' + lbl;
       }
-      listEl.innerHTML = out.length ? out.join('')
+      listEl.innerHTML = out.length ? (out.join('') + karSimpleYtFoot(q))
         : (karView === 'best' && !src.length
            ? '<p style="color:#94a3b8;font-size:13px">' + karEsc(karWho) + '’s list is empty — open 🗂 Song Database and click the ☆ on their songs to build it.</p>'
            : (karView === 'new' && !src.length
               ? '<p style="color:#94a3b8;font-size:13px">Nothing downloaded in the last 30 days — new songs land here automatically when they arrive.</p>'
-              : '<p style="color:#94a3b8;font-size:13px">No songs match that search.</p>'));
+              : (karSimple && q
+                 // SIMPLE MODE ONLY. The Downloads panel is hidden here, so without this a singer
+                 // whose song is missing is simply stuck (the owner, 2026-09-17). The offer appears
+                 // where they already are - they have just typed the song name - and only once the
+                 // library has failed them, so nothing is added to the page at rest.
+                 ? '<div style="padding:22px 6px;text-align:center">'
+                   + '<p style="color:#cbd5e1;font-size:16px;margin:0 0 4px">No song called <b>&ldquo;' + karEsc(q) + '&rdquo;</b> in your library.</p>'
+                   + karDidYouMeanHtml(q)
+                   + '<p style="color:#94a3b8;font-size:13.5px;margin:0 0 16px">Or fetch it from YouTube - it will be added to your songs.</p>'
+                   + '<button type="button" onclick="karSimpleYt()" style="font-family:inherit;cursor:pointer;font-size:15px;'
+                   + 'font-weight:800;padding:12px 22px;border-radius:10px;background:#334155;border:1px solid #475569;color:#e2e8f0">'
+                   + 'Search YouTube for it</button></div>'
+                 : '<p style="color:#94a3b8;font-size:13px">No songs match that search.</p>')));
+    }
+    // SIMPLE MODE: a way out at the BOTTOM of the results, not only when there are none.
+    // the owner, 2026-09-17: searching his band "883" returns six songs he owns and not the one he
+    // wants - and the empty-state offer never fires, because the search DID find things. Searching
+    // by artist will nearly always land here, so the offer belongs after the last row, which is
+    // where you are standing once you have looked and not found it. Nothing shows without a search.
+    // ── DID YOU MEAN ─────────────────────────────────────────────────────────────────────────
+    // the owner, 2026-09-17: "I put a song name and I don't find it because I misspelled part of the
+    // name. What do I do then?" Without this he would conclude he does not own it and fetch a
+    // SECOND COPY of a song already on the shelf. Runs only when the strict search found nothing,
+    // so it costs nothing on a normal search.
+    function karNorm(s){
+      return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // strip accents
+              .replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+    function karLev(a, b){                      // ordinary edit distance, short strings only
+      if (a === b) return 0;
+      if (Math.abs(a.length - b.length) > 2) return 9;
+      var prev = [], cur = [], i, j;
+      for (j = 0; j <= b.length; j++) prev[j] = j;
+      for (i = 1; i <= a.length; i++) {
+        cur[0] = i;
+        for (j = 1; j <= b.length; j++) {
+          cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+        }
+        for (j = 0; j <= b.length; j++) prev[j] = cur[j];
+      }
+      return prev[b.length];
+    }
+    function karDidYouMean(q){
+      var qt = karNorm(q).split(' ').filter(function(w){ return w.length >= 3; });
+      if (!qt.length) return [];
+      var src = KAR_DATA[karRenderedView] || [];
+      var scored = [];
+      for (var i = 0; i < src.length; i++) {
+        var words = karNorm(src[i]).split(' '), hit = 0;
+        for (var k = 0; k < qt.length; k++) {
+          for (var w = 0; w < words.length; w++) {
+            var tol = qt[k].length <= 5 ? 1 : 2;            // longer words tolerate more slips
+            if (words[w].indexOf(qt[k]) === 0 || karLev(qt[k], words[w]) <= tol) { hit++; break; }
+          }
+        }
+        if (hit === qt.length) scored.push([src[i].length, src[i]]);   // every word accounted for
+      }
+      scored.sort(function(a, b){ return a[0] - b[0]; });
+      return scored.slice(0, 4).map(function(x){ return x[1]; });
+    }
+    function karTrySpelling(name){
+      var el = document.getElementById('kar-search');
+      el.value = name.replace(/\.[^.]+$/, '');    // the page searches on the visible name
+      karRender();
+    }
+    function karDidYouMeanHtml(q){
+      var m = karDidYouMean(q);
+      if (!m.length) return '';
+      return '<div style="margin:0 0 20px">'
+        + '<p style="color:#cbd5e1;font-size:15px;margin:0 0 10px">Did you mean one of these?</p>'
+        + m.map(function(n){
+            return '<button type="button" onclick="karTrySpelling(' + JSON.stringify(n).replace(/"/g, '&quot;') + ')" '
+              + 'style="font-family:inherit;display:block;margin:0 auto 7px;cursor:pointer;font-size:15px;'
+              + 'padding:9px 16px;border-radius:8px;background:#334155;border:1px solid #475569;color:#e2e8f0">'
+              + karEsc(n.replace(/\.[^.]+$/, '')) + '</button>';
+          }).join('')
+        + '</div>';
+    }
+    function karSimpleYtFoot(q){
+      if (!karSimple || !q) return '';
+      return '<div style="margin-top:10px;border-top:1px solid #1e293b;padding:16px 6px;text-align:center">'
+        + '<span style="color:#94a3b8;font-size:14px;margin-right:12px">Not the one you want?</span>'
+        + '<button type="button" onclick="karSimpleYt()" style="font-family:inherit;cursor:pointer;font-size:14px;'
+        + 'font-weight:800;padding:10px 18px;border-radius:9px;background:#334155;border:1px solid #475569;color:#e2e8f0">'
+        + 'Search YouTube for &ldquo;' + karEsc(q) + '&rdquo;</button></div>';
     }
     function karEsc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     // ---- Now Playing bar with live pitch (adjust the key WHILE the song plays) ----
@@ -1536,7 +1727,7 @@ if (!$KAR_LOCAL) {
         fdS.append('person', karWho);
         fdS.append('want', wantS ? '1' : '0');
         fetch(KAR_API, {method:'POST', body: fdS}).then(function(r){ return r.json(); }).then(function(d){
-          if (!d.ok) { alert('Not saved' + (d.error ? ': ' + d.error : '') + '. Your session may have expired — reload and sign in again.'); return; }
+          if (!d.ok) { alert('Not saved. ' + karWhyFail(d.error)); return; }
           var aS = KAR_BEST_BY[karWho] || (KAR_BEST_BY[karWho] = []);
           var ixS = aS.indexOf(songS);
           if (wantS && ixS === -1) aS.push(songS);
@@ -1666,13 +1857,24 @@ if (!$KAR_LOCAL) {
           listEl.scrollTop = st;
         } else {
           b.textContent = lbl; b.style.color = '#EF4444'; b.disabled = false;
-          alert('Could not queue the song' + (d.error ? ': ' + d.error : '') + '. Your session may have expired — reload and sign in again.');
+          alert('Could not play that song. ' + karWhyFail(d.error));
         }
       }).catch(function(){
         b.textContent = lbl; b.style.color = '#EF4444'; b.disabled = false;
         alert('Network error — the play request was not sent. Reload the page and try again.');
       });
     });
+    // ⚠ "unknown song" is NOT a session problem. It means the name the page sent is not in the
+    // song catalogue - the file was deleted or renamed and something still points at the old name
+    // (2026-09-17: two stale Best-list entries did exactly this). Blaming the session sent the owner
+    // hunting a login fault that did not exist, so say what actually happened.
+    function karWhyFail(err){
+      if (err === 'unknown song')
+        return 'That song is no longer in the library - it was renamed or removed, and this list still '
+             + 'points at the old name. Press Refresh; if it is still here, tell Claude.';
+      return (err ? err + '. ' : '') + 'Your session may have expired - reload and sign in again.';
+    }
+
     // − / + pitch steppers: nudge one semitone, then save through the exact same
     // path as typing (a dispatched change event) so behavior can never drift.
     document.getElementById('kar-list').addEventListener('click', function(ev){
@@ -1712,7 +1914,7 @@ if (!$KAR_LOCAL) {
       inp.disabled = true;
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         inp.disabled = false;
-        if (!d.ok) { alert('The pitch was NOT saved' + (d.error ? ': ' + d.error : '') + '. Your session may have expired — reload and sign in again.'); return; }
+        if (!d.ok) { alert('The pitch was NOT saved. ' + karWhyFail(d.error)); return; }
         if (val === '' || !d.stored) {
           // cleared, or the typed value equals the song's own default — no override kept, box stays grey
           delete KAR_PITCH[song];
@@ -1755,6 +1957,30 @@ if (!$KAR_LOCAL) {
     // the choice is remembered per browser (localStorage kar_show_qmidi).
     var karShowQmidi = false;
     try { karShowQmidi = localStorage.getItem('kar_show_qmidi') === '1'; } catch(e){}
+    // ── SIMPLE / COMPLETE ────────────────────────────────────────────────────────────
+    // Remembered per browser, exactly like the QMidi switch. Default is COMPLETE, so
+    // nothing changes for anyone until it is deliberately turned on.
+    var karSimple = false;
+    try { karSimple = localStorage.getItem('kar_simple') === '1'; } catch (e) {}
+    function karApplySimple(){
+      var p = document.getElementById('karaoke-page');
+      if (p) p.classList.toggle('kar-simple', karSimple);
+      var s = document.getElementById('kar-mode-s'), c = document.getElementById('kar-mode-c');
+      // Chrome palette (2026-09-17). the owner: "there's no special reason why guide is more
+      // important than stop" - right, and Guide was green, which on this page means GO. In
+      // simple mode every page control goes quiet slate so the only colour left belongs to the
+      // music: Play on each row, and Start / Stop. Those two then carry the whole signal, which
+      // is what a singer at a microphone actually needs to find without reading.
+      if (s){ s.style.background = karSimple ? '#334155' : '#1a2230'; s.style.color = karSimple ? '#fff' : '#94a3b8'; }
+      if (c){ c.style.background = karSimple ? '#1a2230' : '#334155'; c.style.color = karSimple ? '#94a3b8' : '#fff'; }
+      // the list box is sized from whatever is above it, and that just changed
+      if (typeof karFitList === 'function') karFitList();
+    }
+    function karSetSimple(v){
+      karSimple = !!v;
+      try { localStorage.setItem('kar_simple', karSimple ? '1' : '0'); } catch (e) {}
+      karApplySimple();
+    }
     function karApplyQmidiVis(){
       var h = document.getElementById('kar-h-qmidi');
       if (h) h.style.display = karShowQmidi ? '' : 'none';
@@ -2231,6 +2457,121 @@ function karPickFolder(){
         }, 1200);
       }).catch(function(){ karYtDone(); res.innerHTML = '<div style="color:#f87171;font-size:12.5px;padding:6px 2px">Network hiccup — try again.</div>'; });
     }
+    // ── SIMPLE MODE: the search box falls through to YouTube ────────────────────────────────
+    // One search implementation, not two: these call the SAME server endpoints the Downloads
+    // panel uses (karaoke_yt_search / _yt_poll / _dl_add / _dl_state). Only the rendering here is
+    // smaller - no duplicate warnings, no download list, no panel. Four taps: type, search, tap
+    // the one you want, it arrives.
+    var karSimpleYtPoll = null;
+    function karSimpleYt(){
+      var q = (document.getElementById('kar-search').value || '').trim();
+      if (!q) return;
+      var list = document.getElementById('kar-list');
+      var say = function(colour, msg){ list.innerHTML = '<p style="color:' + colour + ';font-size:16px;padding:22px 6px;text-align:center">' + msg + '</p>'; };
+      say('#D2AD6C', 'Looking on YouTube for &ldquo;' + karEsc(q) + '&rdquo;&hellip;');
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_yt_search'); fd.append('q', q); fd.append('only', '1');
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { say('#f87171', karEsc(d.error || 'The search did not start.')); return; }
+        var tries = 0;
+        if (karSimpleYtPoll) clearInterval(karSimpleYtPoll);
+        karSimpleYtPoll = setInterval(function(){
+          tries++;
+          if (tries > 40) { clearInterval(karSimpleYtPoll); karSimpleYtPoll = null;
+            say('#f87171', 'That took too long. Is the Mac awake?'); return; }
+          var fp = new FormData(); fp.append('form_type', 'karaoke_yt_poll'); fp.append('sid', d.sid);
+          fetch(KAR_API, {method:'POST', body: fp}).then(function(r){ return r.json(); }).then(function(r){
+            if (!r.ok || r.status === 'Pending') return;
+            clearInterval(karSimpleYtPoll); karSimpleYtPoll = null;
+            if (r.status === 'Error' || !(r.results || []).length) {
+              say('#94a3b8', 'Nothing found on YouTube for &ldquo;' + karEsc(q) + '&rdquo;.'); return;
+            }
+            KAR_YT_HITS = r.results;
+            karSimpleYtRender();
+          }).catch(function(){});
+        }, 1200);
+      }).catch(function(){ say('#f87171', 'Network hiccup - try again.'); });
+    }
+    function karSimpleYtRender(){
+      var out = KAR_YT_HITS.slice(0, 8).map(function(h, i){
+        return '<div class="kar-row" style="display:flex;align-items:center;gap:14px;padding:10px 6px;border-top:1px solid #1e293b">'
+          + '<button type="button" onclick="karSimpleGet(' + i + ',this)" style="font-family:inherit;flex:0 0 auto;width:130px;cursor:pointer;'
+          + 'font-size:15px;font-weight:800;padding:10px 0;border-radius:8px;background:rgba(22,163,74,.18);border:1px solid #16a34a;color:#6ee7b7">Get this one</button>'
+          + '<img src="' + karEscA(h.thumb) + '" alt="" style="flex:0 0 auto;width:96px;height:54px;object-fit:cover;border-radius:5px;background:#1e293b">'
+          + '<span style="font-size:17px;color:#e2e8f0;line-height:1.35">' + karEsc(h.title)
+          // ⚠ KEEP THIS. The server already tells us which songs he owns that look like this one
+          // (h.have), and the first cut of this renderer dropped it. That warning is exactly what
+          // catches a typo-driven duplicate - he searches a misspelt name, the library "has
+          // nothing", and he fetches a second copy of a song already on the shelf.
+          + ((h.have && h.have.length)
+             ? '<div style="color:#D2AD6C;font-size:13px;margin-top:4px">&#9888; you may already have this &mdash; ' + karEsc(h.have[0].label) + '</div>'
+             : '')
+          + '</span></div>';
+      }).join('');
+      document.getElementById('kar-list').innerHTML =
+        '<p style="color:#94a3b8;font-size:14px;padding:12px 6px 2px">Tap the one you want. It downloads and joins your songs.</p>' + out;
+    }
+    function karSimpleGet(i, btn){
+      var h = KAR_YT_HITS[i]; if (!h) return;
+      btn.disabled = true; btn.textContent = 'Getting...';
+      var fd = new FormData(); fd.append('form_type', 'karaoke_dl_add'); fd.append('url', h.url);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { btn.disabled = false; btn.textContent = 'Get this one';
+          alert('Could not fetch that song' + (d.error ? ': ' + d.error : '') + '.'); return; }
+        karDlGo();                        // start it at once - no second button to find
+        btn.textContent = 'Downloading...';
+        var tries = 0;
+        var iv = setInterval(function(){
+          tries++;
+          if (tries > 120) { clearInterval(iv); btn.textContent = 'Still going...'; return; }
+          var fp = new FormData(); fp.append('form_type', 'karaoke_dl_state');
+          fetch(KAR_API, {method:'POST', body: fp}).then(function(r){ return r.json(); }).then(function(st){
+            (st.rows || []).forEach(function(row){
+              if (row.url !== h.url) return;
+              if (row.status === 'Done') {
+                clearInterval(iv);
+                btn.textContent = 'Got it';
+                // Put THE SONG in front of him, not the whole library. the owner, 2026-09-17:
+                // "the song went to the new songs, which doesn't exist in this simple mode" - and
+                // clearing the search dropped him into all 2,060 with only a message to go on.
+                // Searching its OWN filename always finds it; searching the words he originally
+                // typed often would not, because YouTube's title is rarely what was typed.
+                // Chained off karNewRefresh so the render happens AFTER the song is in KAR_DATA.
+                // PUT THE REAL NAME IN THE SEARCH BAR. the owner, 2026-09-17, refining his own
+                // earlier idea after seeing it fail: keeping HIS words does not lock the song in
+                // when the download arrives under a different name - which is most of the time,
+                // and always after a misspelling, since he searched one thing and YouTube called
+                // it another. The filename is the one string guaranteed to match itself, so the
+                // song is alone on screen with its Play button: "press play, that would be great".
+                //
+                // ⚠ It has to happen HERE, on completion - not when he taps Get. At tap time the
+                // real name does not exist yet (yt-dlp creates it, and sanitises it: his own song
+                // turned "/" into "⧸"), and touching the search box then would re-render the list
+                // and wipe out the YouTube results he is still looking at.
+                //
+                // Chained off karNewRefresh so the render happens AFTER the song is in KAR_DATA.
+                karNewRefresh().then(function(){
+                  var el = document.getElementById('kar-search');
+                  var nm = (row.filename || '').replace(/\.[^.]+$/, '');
+                  if (el && nm) el.value = nm;
+                  karRender();
+                  var c = document.getElementById('kar-count');
+                  if (c) {
+                    c.style.cssText = 'margin-top:10px;background:rgba(22,163,74,.14);border:1px solid #16a34a;'
+                      + 'border-radius:8px;padding:8px 12px;color:#6ee7b7;font-size:14px;font-weight:700';
+                    c.textContent = 'Downloaded - press Play. Clear the search to see all your songs.';
+                  }
+                });
+              } else if (row.status === 'Error') {
+                clearInterval(iv); btn.disabled = false; btn.textContent = 'Get this one';
+                alert('That one would not download' + (row.note ? ': ' + row.note : '') + '. Try a different version.');
+              }
+            });
+          }).catch(function(){});
+        }, 3000);
+      }).catch(function(){ btn.disabled = false; btn.textContent = 'Get this one';
+        alert('Network error - nothing was downloaded.'); });
+    }
     function karYtDone(){ var b = document.getElementById('kar-yt-btn'); b.disabled = false; b.textContent = '▶ Search YouTube'; }
 
     // Coming back from YouTube, six near-identical results look the same and he cannot tell
@@ -2663,7 +3004,9 @@ function karPickFolder(){
     }
     function karNewRefresh(){
       var fd = new FormData(); fd.append('form_type', 'karaoke_new_list');
-      fetch(location.pathname, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+      // RETURNS the promise: a caller that wants to show the song it just fetched has to wait
+      // until it is actually in KAR_DATA, otherwise it renders a list that does not contain it yet.
+      return fetch(location.pathname, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) return;
         KAR_DATA.new = d.new || [];
         if (d.db && d.db.length) KAR_DATA.db = d.db;
@@ -2715,6 +3058,7 @@ function karPickFolder(){
     // chip is already marked active in the HTML, and karView starts as 'db' to match.
     karRebuildBest();
     karApplyQmidiVis();  // hide/show the QMidi column per the remembered Guide setting
+    karApplySimple();     // Simple / Complete — hide or show everything but singing
     karHelpApply('dl');  // the "? How it works" blocks, per this computer's remembered choice
     karHelpApply('q');
     karHelpApply('qr');
