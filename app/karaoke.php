@@ -176,8 +176,10 @@ if (!$KAR_LOCAL) {
      The edge is drawn as an INSET shadow, not a thicker border, so the box stays exactly the
      same size selected or not - measured both ways. Gold is the page's own accent (the search
      box and the Now Playing bar). !important beats the inline colour karSwitch writes. */
-  .kar-chip.kar-on { border-color: #fbbf24 !important;
-    box-shadow: inset 0 0 0 1.5px #fbbf24, 0 0 13px rgba(251,191,36,.50); }
+  /* the owner, 2026-09-18: "too many colours" - the chips were vivid blue with a gold ring.
+     One grey for all three; the active one is simply lighter, with a soft neutral ring. */
+  .kar-chip.kar-on { border-color: #cbd5e1 !important;
+    box-shadow: inset 0 0 0 1.5px #cbd5e1, 0 0 10px rgba(203,213,225,.22); }
   .kar-grp { display: inline-flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
   .kar-grplbl { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
     color: #bfdbfe; background: rgba(96,165,250,.13); border: 1px solid rgba(96,165,250,.30);
@@ -267,15 +269,21 @@ if (!$KAR_LOCAL) {
      link somebody handed you. One box; the mode decides what the box DOES. the owner,
      2026-09-18: "there are three types of search ... it would be nice to have those three
      in the sequence, somewhere in the header". */
+  /* The three searches. the owner, 2026-09-18: "maybe we can put the names without the boxes
+     up there... and the one that is clicked on has a little shadow behind that identifies
+     which one we're doing, but not the boxes with the borders and all that."
+     So: plain text, no border, no colour coding. The active one is brighter and sits on a
+     soft shadow. */
+  /* The three searches, INSIDE the white bar. Barely there until you look: grey on white,
+     no border, no colour coding. The one in use goes dark on a soft backdrop. the owner,
+     2026-09-18: "not colours, but just barely visible". */
   .kar-smode { appearance:none; -webkit-appearance:none; font-family:inherit; cursor:pointer;
-               font-size:11.5px; font-weight:800; letter-spacing:.01em; padding:6px 11px; white-space:nowrap;
-               border-radius:8px; background:#1a2230; border:1.5px solid #60A5FA; color:#93c5fd;
-               transition:background .12s, color .12s, border-color .12s; }
-  .kar-smode.kar-on { background:#2563eb; border-color:#93c5fd; color:#fff; }
-  .kar-smode.kar-yt.kar-on   { background:#dc2626; border-color:#fca5a5; }
-  .kar-smode.kar-yt          { border-color:#EF4444; color:#fca5a5; }
-  .kar-smode.kar-lk.kar-on   { background:#7c3aed; border-color:#c4b5fd; }
-  .kar-smode.kar-lk          { border-color:#a78bfa; color:#c4b5fd; }
+               background:none; border:none; padding:4px 9px; border-radius:7px;
+               font-size:11.5px; font-weight:700; color:#94a3b8; white-space:nowrap;
+               transition:color .12s, background .12s; }
+  .kar-smode:hover  { color:#475569; }
+  .kar-smode.kar-on { color:#0f172a; background:rgba(15,23,42,.075); }
+  .kar-sdiv { color:#cbd5e1; font-size:11px; user-select:none; }
   .kar-arrow { display:flex; align-items:center; gap:12px; padding:9px 12px; border-radius:10px;
                margin-bottom:6px; font-size:14px; }
   /* The "? How it works" cards FLOAT — they used to sit inside their panel and make it
@@ -364,9 +372,9 @@ if (!$KAR_LOCAL) {
       <div class="kar-grp">
         <div class="kar-grplbl">Songs and singers</div>
         <div style="display:flex;gap:8px;align-items:center">
-      <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🗂 Song Database <span id="kar-db-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjDb) ?></span></button>
-      <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🆕 New Songs <span id="kar-new-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjNew) ?></span></button>
-      <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Whose Best list this is. Pick a name to see their songs, or add a new person." style="font-family:inherit;background:#1d4ed8;border:1.5px solid #2563eb;color:#fff;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">
+      <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1a2230;border:1.5px solid #334155;color:#94a3b8;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🗂 Song Database <span id="kar-db-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjDb) ?></span></button>
+      <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1a2230;border:1.5px solid #334155;color:#94a3b8;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🆕 New Songs <span id="kar-new-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjNew) ?></span></button>
+      <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Whose Best list this is. Pick a name to see their songs, or add a new person." style="font-family:inherit;background:#1a2230;border:1.5px solid #334155;color:#94a3b8;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">
         <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
         <option value="<?= h($_kbp) ?>">⭐ Best of <?= h($_kbp) ?> <?= count($_kjBestBy[$_kbp]) ?></option>
         <?php endforeach; ?>
@@ -375,17 +383,23 @@ if (!$KAR_LOCAL) {
       </select>
         </div>
       </div>
-      <div id="kar-searchbar" style="flex:1;min-width:440px;display:flex;flex-direction:column;gap:6px">
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the songs you already have">Search Karaoke List</button>
-          <button type="button" class="kar-smode kar-yt" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">Search YouTube</button>
-          <button type="button" class="kar-smode kar-lk" id="kar-sm-link" onclick="karSetMode('link')" title="Paste a link somebody gave you and download it">Download link</button>
+      <!-- The three searches live INSIDE the bar, not above it. the owner, 2026-09-18:
+           "can you put those three buttons inside of the search bar... not colours, but just
+           barely visible? You click on one and then that whole bar becomes that." So the bar
+           IS the mode: pick one and its placeholder, its icon and its button follow. -->
+      <div id="kar-searchbar" style="flex:1;min-width:430px;display:flex;align-items:center">
+        <div id="kar-bar" style="flex:1;min-width:0;display:flex;align-items:center;height:46px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:12px;padding:0 7px 0 13px;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
+          <span id="kar-sicon" style="flex:0 0 auto;font-size:18px;line-height:1;pointer-events:none;margin-right:9px">🔍</span>
+          <input id="kar-search" type="text" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type here. Esc clears it." style="font-family:inherit;flex:1;min-width:60px;background:none;border:none;outline:none;color:#0f172a;font-size:15px;font-weight:600;padding:0">
+          <span style="flex:0 0 auto;display:flex;align-items:center;gap:1px;margin-left:8px">
+            <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the karaoke list — the songs you already have">Karaoke List</button>
+            <span class="kar-sdiv">|</span>
+            <button type="button" class="kar-smode" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">YouTube</button>
+            <span class="kar-sdiv">|</span>
+            <button type="button" class="kar-smode" id="kar-sm-link" onclick="karSetMode('link')" title="Paste a link somebody gave you and download it">Link</button>
+          </span>
+          <button type="button" id="kar-go" onclick="karSearchGo()" style="display:none;flex:0 0 auto;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;height:34px;padding:0 15px;margin-left:7px;border-radius:8px;font-size:13px;font-weight:800;background:#334155;border:1px solid #64748b;color:#f1f5f9">Search</button>
         </div>
-        <span style="position:relative;display:flex;align-items:center;gap:8px">
-          <span id="kar-sicon" style="position:absolute;left:13px;font-size:19px;line-height:1;pointer-events:none;z-index:1">🔍</span>
-          <input id="kar-search" type="text" placeholder="Search a song, an artist, a singer…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type to filter the list. Esc clears it — switching views clears it too." style="font-family:inherit;flex:1;min-width:0;height:46px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:12px;color:#0f172a;font-size:15px;font-weight:600;padding:8px 14px 8px 42px;outline:none;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
-          <button type="button" id="kar-go" onclick="karSearchGo()" style="display:none;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;height:46px;padding:0 18px;border-radius:10px;font-size:14px;font-weight:800;background:#dc2626;border:1.5px solid #fca5a5;color:#fff">Search</button>
-        </span>
       </div>
       <div class="kar-grp" id="kar-grp-special">
         <div class="kar-grplbl">Special features</div>
@@ -1130,10 +1144,10 @@ if (!$KAR_LOCAL) {
       karView = view;
       document.querySelectorAll('.kar-chip').forEach(function(b){
         b.classList.remove('kar-on');
-        b.style.background='#1d4ed8'; b.style.borderColor='#2563eb'; b.style.color='#fff';   // every chip the same blue; the ring on .kar-on says which is active
+        b.style.background='#1a2230'; b.style.borderColor='#334155'; b.style.color='#94a3b8';   // one quiet grey for all of them; the active one is lifted below is active
       });
       btn.classList.add('kar-on');
-      btn.style.background='#1d4ed8'; btn.style.borderColor='#2563eb'; btn.style.color='#fff';
+      btn.style.background='#334155'; btn.style.borderColor='#94a3b8'; btn.style.color='#f1f5f9';
       // Switching views starts fresh. the owner, 2026-09-10: a search left in the box quietly
       // filtered the next view too, so 🆕 New would come up empty and the reason was invisible.
       karClearSearch(false);
@@ -2585,23 +2599,23 @@ function karPickFolder(){
           go  = document.getElementById('kar-go'),
           ic  = document.getElementById('kar-sicon');
       if (!inp) return;
+      // The bar keeps ONE look in every mode - the owner, 2026-09-18, on a header with three more
+      // colours than it needed: "not colours, but just barely visible". Only the placeholder,
+      // the icon and the button change, so the bar reads as one thing that is doing one job.
       if (m === 'list'){
-        inp.placeholder = 'Search a song, an artist, a singer…';
-        inp.style.borderColor = '#D2AD6C'; inp.style.boxShadow = '0 0 0 3px rgba(210,173,108,.15)';
-        if (ic) ic.textContent = '🔍';
+        inp.placeholder = 'Search a song or an artist\u2026';
+        if (ic) ic.textContent = '\uD83D\uDD0D';
         if (go) go.style.display = 'none';
         // Coming back from YouTube results, the list area is showing hits, not songs.
         if (was !== 'list') { inp.value = ''; karRender(); }
       } else if (m === 'yt'){
         inp.placeholder = 'What song are you looking for?';
-        inp.style.borderColor = '#EF4444'; inp.style.boxShadow = '0 0 0 3px rgba(239,68,68,.15)';
-        if (ic) ic.textContent = '▶';
-        if (go){ go.style.display = ''; go.textContent = 'Search'; go.style.background = '#dc2626'; go.style.borderColor = '#fca5a5'; }
+        if (ic) ic.textContent = '\u25B6';
+        if (go){ go.style.display = ''; go.textContent = 'Search'; }
       } else {
-        inp.placeholder = 'Paste the link here…';
-        inp.style.borderColor = '#a78bfa'; inp.style.boxShadow = '0 0 0 3px rgba(167,139,250,.15)';
-        if (ic) ic.textContent = '🔗';
-        if (go){ go.style.display = ''; go.textContent = 'Download'; go.style.background = '#7c3aed'; go.style.borderColor = '#c4b5fd'; }
+        inp.placeholder = 'Paste the link here\u2026';
+        if (ic) ic.textContent = '\uD83D\uDD17';
+        if (go){ go.style.display = ''; go.textContent = 'Download'; }
       }
       inp.focus();
     }
