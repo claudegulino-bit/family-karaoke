@@ -633,7 +633,7 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">YouTube Downloads</h3>
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#fca5a5">1 · Search</b> — enter an artist or a title and press <b style="color:#fca5a5">▶ Search YouTube</b>. Each result carries its duration, its channel, and a warning where the song already exists in your library.</div>
         <div><b style="color:#fca5a5">Karaoke &amp; lyrics only</b> — the checkbox beside the search box, normally ticked. YouTube is asked for the karaoke version, and of the thirty results returned, those shown are the ones naming <b>karaoke</b>, <b>lyrics</b> or <b>testo</b> in the title or the channel — all of them, however many that is. The rest are counted beside the heading and <b>Show them</b> displays them. Untick it to search for the ordinary record instead: your words go to YouTube exactly as typed and every result is shown. The setting is remembered on this computer.</div>
-        <div><b style="color:#fca5a5">2 · Download it</b> — <b style="color:#fca5a5">⬇ Download</b> starts it immediately. <b>▶ Watch</b> opens the video on YouTube in a new tab first. Every row you open stays marked — the most recent in red, the earlier ones as <b>✓ watched</b> — so after trying several you can see which they were and download whichever you chose. A row already downloading is marked in green. To send a link to somebody, open it with <b>▶ Watch</b> and copy it from the address bar.</div>
+        <div><b style="color:#fca5a5">2 · Download it</b> — <b style="color:#fca5a5">⬇ Download</b> starts it immediately. <b>▶ Watch</b> opens the video on YouTube in a new tab first. Every row you open stays marked — the most recent in red, the earlier ones as <b>✓ watched</b> — so after trying several you can see which they were and download whichever you chose. A row you have sent to the list is marked in green. To send a link to somebody, open it with <b>▶ Watch</b> and copy it from the address bar.</div>
         <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b>⬇ Download this link</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
         <div><b style="color:#fca5a5">3 · It downloads straight away</b> — no second button. Songs are fetched one at a time, typically a minute or two each, and the panel may be closed while this runs. Tap several and they queue up behind one another. <b>Clear the list</b> tidies away anything finished or failed.</div>
         <div><b style="color:#fca5a5">4 · Result</b> — a completed row reads <b style="color:#10B981">✓ Completed</b> and tells you the song is now under <b style="color:#c084fc">🆕 New Songs</b>, which is where songs are renamed, given a key or removed, and where they stay for 30 days. Completed rows remain here while anything else is still downloading — so you can see a whole batch arrive — and clear themselves a couple of minutes after the last one lands. A <b style="color:#f87171">failed</b> download does not clear: it stays here in red with the reason, because a song that never arrived cannot appear under 🆕 New Songs and this is the only place you would ever find out.</div>
@@ -2577,7 +2577,10 @@ function karPickFolder(){
     // Coming back from YouTube, six near-identical results look the same and he cannot tell
     // which one he just watched (the owner, 2026-09-12: "if I don't remember which one I
     // watched, it'll be a problem"). So the row he opened or copied stays marked, and a row
-    // already in the download list keeps a stronger, permanent mark of its own.
+    // sent to the download list keeps a stronger, permanent mark of its own. It must NOT say
+    // "already" (the owner, 2026-09-18): the mark is painted the instant Download is pressed, so
+    // "already in the list" sat beside a button reading "Downloading..." and read as though the
+    // click had done nothing.
     // Three marks, strongest first: a row already downloading (green, permanent) · the one
     // just opened (red, moves) · every earlier one you opened (grey, permanent). The trail
     // is the point — watching three songs used to leave only the third marked, so coming
@@ -2605,7 +2608,7 @@ function karPickFolder(){
       if (state === 'added'){
         row.style.background = 'rgba(22,163,74,.13)';
         row.style.borderLeftColor = '#16a34a';
-        if (tag){ tag.textContent = '✓ already in the download list'; tag.style.color = '#6ee7b7'; tag.style.display = ''; }
+        if (tag){ tag.textContent = '✓ sent to the download list'; tag.style.color = '#6ee7b7'; tag.style.display = ''; }
       } else if (state === 'open'){
         row.style.background = 'rgba(239,68,68,.12)';
         row.style.borderLeftColor = '#EF4444';
