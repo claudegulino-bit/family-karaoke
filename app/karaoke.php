@@ -389,9 +389,9 @@ if (!$KAR_LOCAL) {
           <span class="kar-sdiv">|</span>
           <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away">🆕 New Songs <span id="kar-new-count"><?= count($_kjNew) ?></span></button>
           <span class="kar-sdiv">|</span>
-          <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Whose Best list this is. Pick a name to see their songs, or add a new person.">
+          <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Which singer&#39;s songs to show — the ones they know. Pick a name, or add a new person.">
           <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
-          <option value="<?= h($_kbp) ?>">⭐ Best of <?= h($_kbp) ?> <?= count($_kjBestBy[$_kbp]) ?></option>
+          <option value="<?= h($_kbp) ?>">Singer: <?= h($_kbp) ?> - <?= count($_kjBestBy[$_kbp]) ?></option>
           <?php endforeach; ?>
           <option value="__add__">＋ Add a person…</option>
           <option value="__remove__">− Remove a person…</option>
@@ -631,7 +631,7 @@ if (!$KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-sing" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Play a song</h3>
           <ul style="margin:0;padding-left:20px">
-            <li><b>Choose a list.</b> The three boxes under <b>Songs and singers</b> select what the page shows: <b>🗂 Song Database</b> (everything), <b>🆕 New Songs</b> (added in the last 30 days) and <b>⭐ Best of</b> (one person's list — the dropdown chooses the person). The box outlined in gold is the list currently on screen.</li>
+            <li><b>Choose a list.</b> The three boxes under <b>Songs and singers</b> select what the page shows: <b>Song Database</b> (everything), <b>New Songs</b> (added in the last 30 days) and <b>Singer:</b> (one person's songs — the dropdown chooses who). The one on a shaded background is the list currently on screen.</li>
             <li><b>Search</b> — filters the list on screen by title, artist or singer's name. Esc clears it.</li>
             <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Best list renumbers it from 1.</li>
             <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> or a <b>double-click</b> switches full screen on and off; <b>Q</b> or the window's red <b>✕</b> closes the player.</li>
@@ -680,7 +680,7 @@ if (!$KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-upnext" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Singing Queue</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — select the singer's name in the <b>⭐ Best of</b> dropdown at the top of the page, then click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on the song. The entry is queued at the pitch shown on that row.</div>
+          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">Add a singer to the queue</b> — select the singer's name in the <b>Singer:</b> dropdown at the top of the page, then click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on the song. The entry is queued at the pitch shown on that row.</div>
         <div><b style="color:#D2AD6C">Start the next singer</b> — press <b style="color:#6ee7b7">▶ Next singer</b>. The song at the top of the queue plays and the queue advances automatically.</div>
         <div><b style="color:#D2AD6C">Scheduling fairness</b> (the <span style="display:inline-block;width:11px;height:11px;border:2px solid #6ee7b7;border-radius:3px;vertical-align:-1px;margin:0 3px"></span> beside that button) — when enabled, every singer performs once before anyone performs twice, twice before anyone performs a third time, and so on. The order is managed automatically.</div>
         <div><b style="color:#D2AD6C">Overriding the schedule</b> — <b>↑ ↓</b> move a person up or down, and the <span style="display:inline-block;border:1px solid #7f1d1d;color:#f87171;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">✕</span> beside a name removes that entry. <b>Clear the queue</b>, at the right, removes every entry — intended for the end of the night.</div>
@@ -1069,7 +1069,7 @@ if (!$KAR_LOCAL) {
       var sel = document.getElementById('kar-who');
       if (sel) {
         var o = sel.querySelector('option[value="' + (karWho || '').replace(/"/g, '\\"') + '"]');
-        if (o) o.textContent = '⭐ Best of ' + karWho + ' ' + KAR_DATA.best.length;
+        if (o) o.textContent = 'Singer: ' + karWho + ' - ' + KAR_DATA.best.length;
         if (sel.value !== karWho) sel.value = karWho;
       }
     }
@@ -1089,7 +1089,7 @@ if (!$KAR_LOCAL) {
         if (!KAR_BEST_BY[nn]) {
           KAR_BEST_BY[nn] = [];
           var opt = document.createElement('option');
-          opt.value = nn; opt.textContent = '⭐ Best of ' + nn + ' 0';
+          opt.value = nn; opt.textContent = 'Singer: ' + nn + ' - 0';
           // Keep the list alphabetical: insert before the first name that sorts after it.
           var before = sel.querySelector('option[value="__add__"]');
           for (var oi = 0; oi < sel.options.length; oi++) {
