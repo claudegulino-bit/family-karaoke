@@ -176,10 +176,17 @@ if (!$KAR_LOCAL) {
      The edge is drawn as an INSET shadow, not a thicker border, so the box stays exactly the
      same size selected or not - measured both ways. Gold is the page's own accent (the search
      box and the Now Playing bar). !important beats the inline colour karSwitch writes. */
-  /* the owner, 2026-09-18: "too many colours" - the chips were vivid blue with a gold ring.
-     One grey for all three; the active one is simply lighter, with a soft neutral ring. */
-  .kar-chip.kar-on { border-color: #cbd5e1 !important;
-    box-shadow: inset 0 0 0 1.5px #cbd5e1, 0 0 10px rgba(203,213,225,.22); }
+  /* The three lists, INSIDE the white bar, styled exactly like the three searches beside them.
+     the owner, 2026-09-18. Colours live HERE, never inline: karSwitch used to paint each chip, and
+     an inline dark background fights the white bar they now sit on. */
+  .kar-chip { appearance:none; -webkit-appearance:none; font-family:inherit; cursor:pointer;
+              background:none; border:none; padding:4px 9px; border-radius:7px;
+              font-size:11.5px; font-weight:700; color:#94a3b8; white-space:nowrap;
+              max-width:200px; text-overflow:ellipsis; overflow:hidden;
+              transition:color .12s, background .12s; }
+  .kar-chip:hover  { color:#475569; }
+  .kar-chip.kar-on { color:#0f172a; background:rgba(15,23,42,.075); }
+  .kar-chip option { color:#0f172a; background:#f8fafc; }
   .kar-grp { display: inline-flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
   .kar-grplbl { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
     color: #bfdbfe; background: rgba(96,165,250,.13); border: 1px solid rgba(96,165,250,.30);
@@ -263,13 +270,8 @@ if (!$KAR_LOCAL) {
      Gold is a warm colour and this page is now cool slate, which is exactly why it clashed
      (the owner: "maybe a different color than orange, something that matches with gray"). White is not
      a new hue at all, just more light, so it cannot fight anything else on screen. */
-  .kar-simple .kar-chip        { background: #1a2230 !important; border-color: #475569 !important; color: #94a3b8 !important; }
-  /* ⚠ The gold ring you SEE is the box-shadow, not the border - `.kar-chip.kar-on` draws
-     `inset 0 0 0 1.5px #fbbf24` plus a gold glow. Overriding border-color alone changes nothing
-     visible, and checking border-color alone will tell you the gold is gone when it is still on
-     screen. Override the SHADOW. */
-  .kar-simple .kar-chip.kar-on { background: #334155 !important; border-color: #e2e8f0 !important; color: #fff !important;
-    box-shadow: inset 0 0 0 1.5px #e2e8f0, 0 0 10px rgba(226,232,240,.28) !important; }
+  /* The dark-theme chip overrides that lived here are GONE: the chips sit on a white bar in
+     every mode now, so one style serves both. */
   .kar-simple .kar-pitch   { font-size: 16px !important; }
   .kar-simple .kar-pstep   { font-size: 17px !important; }
 
@@ -377,25 +379,31 @@ if (!$KAR_LOCAL) {
     <p style="color:#94a3b8;font-size:13px">The karaoke song list hasn't been published to the server yet — ask Claude to run <code>karaoke_sync.py</code> and it will appear here.</p>
     <?php else: ?>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-      <div class="kar-grp">
-        <div class="kar-grplbl">Songs and singers</div>
-        <div style="display:flex;gap:8px;align-items:center">
-      <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)" style="font-family:inherit;background:#1a2230;border:1.5px solid #334155;color:#94a3b8;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🗂 Song Database <span id="kar-db-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjDb) ?></span></button>
-      <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away" style="font-family:inherit;background:#1a2230;border:1.5px solid #334155;color:#94a3b8;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">🆕 New Songs <span id="kar-new-count" style="font-weight:600;opacity:.8;font-size:10.5px"><?= count($_kjNew) ?></span></button>
-      <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Whose Best list this is. Pick a name to see their songs, or add a new person." style="font-family:inherit;background:#1a2230;border:1.5px solid #334155;color:#94a3b8;cursor:pointer;font-size:11.5px;font-weight:700;padding:6px 6px;border-radius:999px">
-        <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
-        <option value="<?= h($_kbp) ?>">⭐ Best of <?= h($_kbp) ?> <?= count($_kjBestBy[$_kbp]) ?></option>
-        <?php endforeach; ?>
-        <option value="__add__">＋ Add a person…</option>
-        <option value="__remove__">− Remove a person…</option>
-      </select>
+      <!-- The three lists in a bar that matches the search bar - the owner, 2026-09-18:
+           "can those three things be inside of a field that looks like the search field?"
+           Both bars are flex:1 1 0 so they are exactly the same width. The colours come from
+           CSS on .kar-chip now, NOT inline from karSwitch, or they would fight the white bar. -->
+      <div id="kar-listbar" style="flex:1 1 0;min-width:340px;display:flex;align-items:center">
+        <div id="kar-lbar" style="flex:1;min-width:0;display:flex;align-items:center;height:46px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:12px;padding:0 9px;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
+          <span style="flex:0 0 auto;font-size:17px;line-height:1;margin-right:8px;pointer-events:none">🗂</span>
+          <button type="button" class="kar-chip kar-on" onclick="karSwitch('db',this)">🗂 Song Database <span id="kar-db-count"><?= count($_kjDb) ?></span></button>
+          <span class="kar-sdiv">|</span>
+          <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away">🆕 New Songs <span id="kar-new-count"><?= count($_kjNew) ?></span></button>
+          <span class="kar-sdiv">|</span>
+          <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Whose Best list this is. Pick a name to see their songs, or add a new person.">
+          <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
+          <option value="<?= h($_kbp) ?>">⭐ Best of <?= h($_kbp) ?> <?= count($_kjBestBy[$_kbp]) ?></option>
+          <?php endforeach; ?>
+          <option value="__add__">＋ Add a person…</option>
+          <option value="__remove__">− Remove a person…</option>
+          </select>
         </div>
       </div>
       <!-- The three searches live INSIDE the bar, not above it. the owner, 2026-09-18:
            "can you put those three buttons inside of the search bar... not colours, but just
            barely visible? You click on one and then that whole bar becomes that." So the bar
            IS the mode: pick one and its placeholder, its icon and its button follow. -->
-      <div id="kar-searchbar" style="flex:1;min-width:430px;display:flex;align-items:center">
+      <div id="kar-searchbar" style="flex:1 1 0;min-width:340px;display:flex;align-items:center">
         <div id="kar-bar" style="flex:1;min-width:0;display:flex;align-items:center;height:46px;background:#f8fafc;border:2px solid #D2AD6C;border-radius:12px;padding:0 7px 0 13px;box-shadow:0 0 0 3px rgba(210,173,108,.15)">
           <span id="kar-sicon" style="flex:0 0 auto;font-size:18px;line-height:1;pointer-events:none;margin-right:9px">🔍</span>
           <input id="kar-search" type="text" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type here. Esc clears it." style="font-family:inherit;flex:1;min-width:60px;background:none;border:none;outline:none;color:#0f172a;font-size:15px;font-weight:600;padding:0">
@@ -1150,12 +1158,10 @@ if (!$KAR_LOCAL) {
       // (the owner, 2026-09-13). The panel is one click away again whenever you want it.
       karPanelClose();
       karView = view;
-      document.querySelectorAll('.kar-chip').forEach(function(b){
-        b.classList.remove('kar-on');
-        b.style.background='#1a2230'; b.style.borderColor='#334155'; b.style.color='#94a3b8';   // one quiet grey for all of them; the active one is lifted below is active
-      });
+      // Only the CLASS changes. karSwitch used to paint each chip inline, which made them
+      // unstyleable from CSS - and on a white bar an inline dark background is simply wrong.
+      document.querySelectorAll('.kar-chip').forEach(function(b){ b.classList.remove('kar-on'); });
       btn.classList.add('kar-on');
-      btn.style.background='#334155'; btn.style.borderColor='#94a3b8'; btn.style.color='#f1f5f9';
       // Picking a list means "show me my songs", so the SEARCH MODE follows the view. Without
       // this the list came back but the bar still said YouTube, and typing in it did nothing -
       // which is indistinguishable from a frozen page. the owner, 2026-09-18: "I clicked on the
