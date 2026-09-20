@@ -1289,22 +1289,34 @@ function kar_installed_version(): string {
 }
 
 // ---------------------------------------------------------------------------
-// Keeping two Macs in step
+// LIST AND KEY SHARING BETWEEN MACHINES — OFF BY DESIGN. DO NOT REBUILD IT.
 // ---------------------------------------------------------------------------
 //
-// the owner sings in his office and with friends in the other room, and wants the same
-// singers and the same starred songs in both places. The two Macs share exactly one
-// thing — the Google Drive songs folder — so the lists travel the same way.
+// the owner's rule, 2026-09-20, in his own words:
 //
-// ⚠ NOT by sharing the database file. SQLite in a syncing folder corrupts: Drive has no
-// idea two programs are writing to it. Instead each Mac writes ONLY ITS OWN small file
-// and reads everyone else's, so there is never a second writer to collide with.
+//     "Every computer can have their own singers and their own songs for each singer.
+//      The only thing that we have to sync is the master database... A key changed in
+//      Cantoria becomes the official key for that song IN THAT COMPUTER, and if anyone
+//      wants to nullify it to sing it at 0, he can click on the little icon."
 //
-// Merging is by (person, song), newest wins, and a removal beats an older add — which is
-// why removals are recorded rather than just done.
+// So the ONLY thing shared is the song library — one Google Drive folder that his three
+// Macs point at. That needs no code at all. Singer lists and song keys belong to the
+// machine they were set on and never travel.
 //
-// It is OFF unless "sync_folder" is set in the config. A brother's install shares nothing
-// and must never start reaching into somebody else's folder.
+// ⚠ WHY THIS MUST NOT COME BACK. kar_sync() used to merge Best lists and pitch overrides
+// through a shared folder: newest wins, with removal tombstones so a delete beat an older
+// add. On 2026-09-19 the laptop's file carried 439 removal notes left by the rename and
+// de-duplication work. Measured against the Kitchen Mac's own file, a single successful sync
+// would have deleted 439 of its 461 list entries. It survived only because the sync
+// happened to be broken at the time. That is the whole argument, and it is not theoretical.
+//
+// A backup is a different thing and is fine: written out, never read back, restored only
+// by a person. See ~/casai_backups/cantoria_lists_2026-09-20/ and the copy in Drive under
+// "@ Cantoria". Each machine is now the only live copy of its own lists, so take one
+// whenever the lists are touched.
+//
+// The functions below are kept so every caller keeps working, and inert so none of them
+// can do anything. Do not "fix" the early return.
 
 function kar_sync_dir(): ?string {
     // ⚠ 2026-09-19: this used to trust config['sync_folder'] blindly and @mkdir it. On the Kitchen Mac
@@ -1320,7 +1332,11 @@ function kar_sync_dir(): ?string {
         $cands[] = $cfgd;                                              // as configured
         $cands[] = dirname(kar_songs_dir()) . '/' . basename($cfgd);   // same name, THIS Mac's Drive
     }
-    $cands[] = dirname(kar_songs_dir()) . '/@ Karaoke Sync';
+    // ⚠ 2026-09-20: this fallback used to be added UNCONDITIONALLY — a regression I introduced
+    // on 2026-09-19 which broke the documented off switch, so removing "sync_folder" from a
+    // config no longer turned sharing off. It is now only reached when sync_folder is set.
+    if (!empty($c['sync_folder'])) $cands[] = dirname(kar_songs_dir()) . '/@ Karaoke Sync';
+    if (!$cands) return null;                      // not configured -> sharing is OFF
     foreach ($cands as $d) { if ($d !== '' && is_dir($d)) return $d; }
     $d = end($cands);                 // create only the sibling beside the songs, never someone else's path
     @mkdir($d, 0755, true);
@@ -1362,77 +1378,19 @@ function kar_sync_record_removal(PDO $db, string $kind, string $k1, string $k2 =
     } catch (Throwable $e) { /* a failed note must never block the click */ }
 }
 
-/** Read every Mac's file, work out what the shared truth is, and make this Mac match. */
+/**
+ * INERT SINCE 2026-09-20. Lists and keys never leave the machine they were set on —
+ * see the rule at the top of this section. The old merging implementation is in git
+ * history and in karaoke_backend.php.bak-2026-09-20-syncoff if it is ever needed as a
+ * reference; it must not be called.
+ *
+ * Kept as a function, rather than deleted, because karaoke_api.php calls it from nine
+ * places and a missing function would be a fatal error on a machine that updates the
+ * backend without the API. Returning false is exactly what every caller already expects
+ * when sharing is off.
+ */
 function kar_sync(PDO $db, bool $force = false): bool {
-    $dir = kar_sync_dir();
-    if (!$dir) return false;
-    // Once a minute is plenty — Drive takes longer than that to carry a file across anyway.
-    $stamp = kar_data_dir() . '/last_sync';
-    if (!$force && is_file($stamp) && (time() - (int)@filemtime($stamp)) < 60) return false;
-    @touch($stamp);
-
-    $mine = kar_sync_snapshot($db);
-    @file_put_contents($dir . '/' . kar_machine() . '.json',
-        json_encode($mine, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-
-    $bestAt = []; $pitchAt = []; $goneAt = [];
-    foreach (glob($dir . '/*.json') ?: [] as $f) {
-        $j = json_decode((string)@file_get_contents($f), true);
-        if (!is_array($j)) continue;                       // a half-written file is skipped, not fatal
-        foreach ($j['removals'] ?? [] as [$kind, $k1, $k2, $at]) {
-            $key = $kind . "\x00" . $k1 . "\x00" . $k2;
-            if (!isset($goneAt[$key]) || $at > $goneAt[$key]) $goneAt[$key] = $at;
-        }
-        foreach ($j['best'] ?? [] as [$person, $file, $at]) {
-            $key = $person . "\x00" . $file;
-            if (!isset($bestAt[$key]) || $at > $bestAt[$key]) $bestAt[$key] = $at;
-        }
-        foreach ($j['pitches'] ?? [] as [$file, $p, $at]) {
-            if (!isset($pitchAt[$file]) || $at > $pitchAt[$file][1]) $pitchAt[$file] = [(int)$p, $at];
-        }
-    }
-
-    $db->beginTransaction();
-    try {
-        foreach ($bestAt as $key => $at) {
-            [$person, $file] = explode("\x00", $key, 2);
-            $removed = max($goneAt['best' . "\x00" . $person . "\x00" . $file] ?? '',
-                           $goneAt['person' . "\x00" . $person . "\x00"] ?? '');
-            if ($removed !== '' && $removed > $at) {
-                $db->prepare('DELETE FROM karaoke_best WHERE person=? AND filename=?')->execute([$person, $file]);
-            } else {
-                $db->prepare('INSERT OR IGNORE INTO karaoke_best (person, filename, created_at) VALUES (?,?,?)')
-                   ->execute([$person, $file, $at]);
-            }
-        }
-        foreach ($pitchAt as $file => [$p, $at]) {
-            $removed = $goneAt['pitch' . "\x00" . $file . "\x00"] ?? '';
-            if ($removed !== '' && $removed > $at) {
-                $db->prepare('DELETE FROM karaoke_pitches WHERE filename=?')->execute([$file]);
-            } else {
-                $db->prepare("INSERT INTO karaoke_pitches (filename, pitch, updated_at) VALUES (?,?,?)
-                              ON CONFLICT(filename) DO UPDATE SET pitch=excluded.pitch, updated_at=excluded.updated_at
-                              WHERE excluded.updated_at > karaoke_pitches.updated_at")->execute([$file, $p, $at]);
-            }
-        }
-        // Everyone's removals become everyone's removals, or a third Mac would keep
-        // handing a deleted song back.
-        foreach ($goneAt as $key => $at) {
-            [$kind, $k1, $k2] = array_pad(explode("\x00", $key, 3), 3, '');
-            $db->prepare("INSERT INTO karaoke_removals (kind,k1,k2,at) VALUES (?,?,?,?)
-                          ON CONFLICT(kind,k1,k2) DO UPDATE SET at=excluded.at WHERE excluded.at > karaoke_removals.at")
-               ->execute([$kind, $k1, $k2, $at]);
-        }
-        $db->commit();
-    } catch (Throwable $e) {
-        $db->rollBack();
-        kar_log('sync', 'merge failed: ' . $e->getMessage());
-        return false;
-    }
-    // Write again, so this Mac's file now carries what everyone agreed.
-    @file_put_contents($dir . '/' . kar_machine() . '.json',
-        json_encode(kar_sync_snapshot($db), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
-    return true;
+    return false;
 }
 
 // ---------------------------------------------------------------------------

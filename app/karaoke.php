@@ -835,8 +835,9 @@ if (!$KAR_LOCAL) {
                   $_rc[] = ['t' => (int)$_f[0], 'n' => $_f[1], 'c' => $_cap, 'l' => $_leg,
                             'p' => (stripos(implode(' ', $_cap), 'planned') !== false),
                             // "+songs" = this Mac reads the shared Google Drive folder. Only
-                            // the owner's own machines do; everybody else keeps their own copy,
-                            // and kar_sync() refuses to reach into somebody else's folder.
+                            // the owner's own machines do; everybody else keeps their own copy.
+                            // The songs folder is the ONLY thing shared — see the note on
+                            // kar_sync() in karaoke_backend.php. Lists and keys never travel.
                             'g' => $_shared];
               }
           }
@@ -962,7 +963,7 @@ if (!$KAR_LOCAL) {
 
           <div style="display:grid;gap:9px">
             <div><b style="color:#D2AD6C">This page contains no audio</b> — it lists the contents of the shared folder and sends playback requests to a Mac.</div>
-            <div><b style="color:#D2AD6C">⭐ Best lists</b> — my own Macs synchronize their lists with each other; a Mac belonging to somebody else shares nothing. This page maintains its own, so a person's list here may differ from the list on the Macs.</div>
+            <div><b style="color:#D2AD6C">⭐ Singers and their lists</b> — each computer keeps its own, and they are never shared. The same is true of a song's key: changing it here sets that song's key <b>on this computer only</b>. Only the song library travels between machines.</div>
             <div><b style="color:#D2AD6C">If a song does not play</b> — the Mac is asleep, the wrong Mac is selected under <b>Play on</b>, or that Mac points to a different songs folder.</div>
           </div>
         </div>
