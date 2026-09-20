@@ -257,6 +257,8 @@ const KAR_SCHEMA = [
  *  see the note in kar_db(). Append here; never edit a line already released. */
 const KAR_ADD_COLUMNS = [
     "ALTER TABLE karaoke_searches ADD COLUMN want_karaoke INTEGER NOT NULL DEFAULT 1",
+    // Which duplicate rule wrote a row's dup_note - see kar_new_downloads().
+    "ALTER TABLE karaoke_downloads ADD COLUMN dup_rule TEXT DEFAULT NULL",
 ];
 
 function kar_db(): PDO {
@@ -1018,6 +1020,9 @@ function kar_worker_spawn(): void {
 //            hand was genuinely the same song ("Baila Morena"/"Balla Morena",
 //            "Take Me Home, Country Road"/"Roads")
 
+// Bump this whenever kar_dup_same() changes: every machine then recomputes its stored
+// Duplicate column on its next page load, including the ones nobody can log into.
+const KAR_DUP_RULE = '2026-09-20';
 const KAR_TYPE_MARK = '/\((?:karaoke|lyrics?|original|testo|live|acoustic|instrumental|audio|video)\b/i';
 const KAR_NOISE_WORDS = ['karaoke','lyrics','lyric','video','official','testo','testi','audio',
     'cover','version','versione','instrumental','strumentale','base','musicale','feat','featuring',
@@ -1131,11 +1136,17 @@ function kar_dup_same(string $incoming, string $filename): bool {
     return false;
 }
 
-/** Every library file that is the same song, closest name first. */
-function kar_dup_scan(string $title, int $limit): array {
+/**
+ * Every library file that is the same song, closest name first.
+ * $files lets a caller pass a catalog instead of reading the folder - casAI has the
+ * catalog but no songs folder, and both editions share this function.
+ * $skip excludes the file being examined, or every song would flag itself.
+ */
+function kar_dup_scan(string $title, int $limit, ?array $files = null, string $skip = ''): array {
     $want = count(kar_dup_toks(kar_dup_core($title)));
     $out = [];
-    foreach (kar_songs_fresh() as $f) {
+    foreach ($files ?? kar_songs_fresh() as $f) {
+        if ($skip !== '' && $f === $skip) continue;
         if (strcasecmp(pathinfo($f, PATHINFO_FILENAME), 'applause') === 0) continue;
         if (kar_dup_same($title, $f)) {
             $out[] = [abs(count(kar_dup_toks(kar_dup_core($f, true))) - $want), $f];
@@ -1573,22 +1584,58 @@ function kar_pitch_map(PDO $db): array {
     return $out;
 }
 
-/** 🆕 New: downloads of the last 30 days, newest first, intersected with the live
- *  catalog so a renamed-out or removed file never shows as a ghost. */
+/**
+ * 🆕 New: downloads of the last 30 days, newest first, intersected with the live
+ * catalog so a renamed-out or removed file never shows as a ghost.
+ *
+ * THE DUPLICATE COLUMN HEALS ITSELF (the owner, 2026-09-20).  dup_note is written once at
+ * download time, which is right — the finding has to survive until he sits down to review
+ * days later.  But when the RULE changes, every stored note is suddenly wrong, and on
+ * 2026-09-20 they were: "Un albero di trenta piani" was flagged against "Per averti",
+ * "Torna A Surriento" against Richard Marx.  They also named files from before the 18 Sep
+ * library rename, so they were stale twice over.
+ * So each row records WHICH rule wrote it.  A row written under an older rule is
+ * recomputed here, once, and stored — which also reaches the Macs that nobody can log
+ * into.  Bump KAR_DUP_RULE whenever kar_dup_same() changes and every machine repairs
+ * itself on its next page load.
+ * It compares the FILE against the rest of the catalog, not the old YouTube title: by now
+ * the song has his own name, and the question he is actually asking at review time is
+ * "do I already have this one under a different name?"
+ */
 function kar_new_downloads(PDO $db, array $catalog): array {
     $new = []; $dup = [];
     $cut = kar_ago(30, 'days');
     $set = array_flip($catalog);
+    $redo = [];
     try {
-        $q = $db->query("SELECT filename, dup_note FROM karaoke_downloads
+        $q = $db->query("SELECT filename, dup_note, dup_rule FROM karaoke_downloads
                          WHERE status='Done' AND filename IS NOT NULL AND done_at > $cut
                          ORDER BY done_at DESC");
         foreach ($q as $r) {
             if (isset($set[$r['filename']]) && !in_array($r['filename'], $new, true)) {
                 $new[] = $r['filename'];
-                if (!empty($r['dup_note'])) $dup[$r['filename']] = $r['dup_note'];
+                if (($r['dup_rule'] ?? '') !== KAR_DUP_RULE) {
+                    $redo[] = $r['filename'];
+                } elseif (!empty($r['dup_note'])) {
+                    $dup[$r['filename']] = $r['dup_note'];
+                }
             }
         }
-    } catch (Throwable $e) { $new = []; $dup = []; }
+    } catch (Throwable $e) { return [[], []]; }
+
+    // Repair at most a handful per load, so a long backlog can never stall the page —
+    // whatever is left heals on the next one.
+    foreach (array_slice($redo, 0, 12) as $f) {
+        try {
+            $hits = kar_dup_scan($f, 3, $catalog, $f);
+            $note = $hits ? implode(' · ', array_map(
+                static fn($h) => pathinfo($h, PATHINFO_FILENAME), $hits)) : null;
+            if ($note !== null) $note = mb_substr($note, 0, 390);
+            $st = $db->prepare("UPDATE karaoke_downloads SET dup_note = ?, dup_rule = ?
+                                WHERE filename = ?");
+            $st->execute([$note, KAR_DUP_RULE, $f]);
+            if ($note !== null) $dup[$f] = $note;
+        } catch (Throwable $e) { /* a repair that fails just waits for the next load */ }
+    }
     return [$new, $dup];
 }
