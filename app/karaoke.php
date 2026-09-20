@@ -297,8 +297,14 @@ if (!$KAR_LOCAL) {
      he could not see. It is also the review bench: the Duplicate column, renaming, and where
      a song goes to be tidied. "That's one of the things we're gonna need for the whole
      project." Do not hide it again. */
+  /* ⚠ TEMPO IS NOT HIDDEN ANY MORE (the owner, 2026-09-20). It was hidden in Simple mode, and
+     the Simple/Complete switch is hidden too — so when guests at a party said the songs were
+     playing slow, there was no way on that Mac to SEE the speed, let alone put it back. A
+     setting that changes how everything sounds, with no way to see it, is the fault you
+     cannot diagnose in a room full of people. Do not hide it again. #kar-sec-key stays
+     hidden: that was his own call — "you decide the pitch, you set it, and you sing" — and
+     the per-song Pitch box and Reset are both visible in Simple mode. */
   .kar-simple #kar-sec-key,
-  .kar-simple #kar-sec-tempo,
   .kar-simple #kar-lbl-playback,
   .kar-simple #kar-lyrics-btn,
   .kar-simple #kar-bands,
@@ -567,7 +573,7 @@ if (!$KAR_LOCAL) {
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Tempo</span>
           <span style="display:flex;align-items:center;gap:6px">
             <button type="button" onclick="karTempoAdj(-5)" title="Slow the song 5%; the key stays true. Takes a few seconds; not saved. casAI player only." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
-            <span id="kar-tempo-val" style="color:#6ee7b7;font-size:15px;font-weight:800;width:44px;text-align:center">100%</span>
+            <span id="kar-tempo-val" onclick="karTempoReset()" title="Normal speed. Use − and + to change it for tonight; it is not saved." style="color:#6ee7b7;font-size:15px;font-weight:800;width:52px;text-align:center;cursor:pointer;border-radius:6px;padding:2px 0">100%</span>
             <button type="button" onclick="karTempoAdj(5)" title="Speed the song up 5%; the key stays true. Takes a few seconds; not saved. casAI player only." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
           </span>
         </span>
@@ -1595,7 +1601,7 @@ if (!$KAR_LOCAL) {
         sng.style.color = '#64748b'; sng.style.fontStyle = 'italic';
         document.getElementById('kar-now-player').textContent = '';
         document.getElementById('kar-live-val').textContent = '0';
-        document.getElementById('kar-tempo-val').textContent = '100%';
+        karTempoPaint(100);
         return;
       }
       sng.style.color = '#e2e8f0'; sng.style.fontStyle = 'normal';
@@ -1624,25 +1630,46 @@ if (!$KAR_LOCAL) {
         karNowPlayingPlayer = st.p || 'qmidi';
         karLivePitch = typeof st.lp === 'number' ? st.lp : 0;
         karLiveTempo = typeof st.lt === 'number' ? st.lt : 100;
-        document.getElementById('kar-tempo-val').textContent = karLiveTempo + '%';
+        karTempoPaint(karLiveTempo);
         karNowBar();
       } catch(e){}
     }
-    function karTempoAdj(d){
+    // ⚠ THE BAR MUST SHOW THE PLAYER'S REAL SPEED, NOT WHAT THE PAGE ASSUMES.
+    // the owner, 2026-09-20, after a party: guests said the songs were playing slow. In Simple
+    // mode the Tempo control was hidden, so nobody could see the speed OR put it back; and the
+    // display was hard-set to "100%" on every play, so even visible it would have read 100%
+    // while the player ran at 85%. A wrong speed must announce itself, not wait to be noticed.
+    function karTempoPaint(n){
+      var v = document.getElementById('kar-tempo-val'); if (!v) return;
+      v.textContent = n + '%';
+      if (n === 100) {
+        v.style.color = '#6ee7b7'; v.style.background = 'transparent'; v.style.boxShadow = 'none';
+        v.title = 'Normal speed. Use \u2212 and + to change it for tonight; it is not saved.';
+      } else {
+        // Amber, ringed and unmissable — this is an alarm, not a readout.
+        v.style.color = '#fbbf24'; v.style.background = 'rgba(251,191,36,.15)';
+        v.style.boxShadow = 'inset 0 0 0 1.5px #fbbf24';
+        v.title = 'NOT normal speed \u2014 this song is playing at ' + n + '%. Click here to put it back to 100%.';
+      }
+    }
+    function karTempoSet(nt){
       if (!karNowPlaying) return;
-      if (karNowPlayingPlayer !== 'mpv') { alert('Tempo control works with the casAI player — play the song with the green ▶ casAI button.'); return; }
-      var nt = Math.max(50, Math.min(150, karLiveTempo + d));
+      if (karNowPlayingPlayer !== 'mpv') { alert('Tempo control works with the casAI player \u2014 play the song with the green \u25b6 casAI button.'); return; }
+      nt = Math.max(50, Math.min(150, nt));
       if (nt === karLiveTempo) return;
       karLiveTempo = nt;
       karNowSave();
-      document.getElementById('kar-tempo-val').textContent = nt + '%';
+      karTempoPaint(nt);
       var fd = new FormData();
       fd.append('form_type', 'karaoke_live_tempo'); fd.append('mac', karMac());
       fd.append('tempo', String(nt));
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d2){
         if (!d2.ok) alert('The tempo change was not sent' + (d2.error ? ': ' + d2.error : '') + '.');
-      }).catch(function(){ alert('Network error — the tempo change was not sent.'); });
+      }).catch(function(){ alert('Network error \u2014 the tempo change was not sent.'); });
     }
+    // One tap on the number puts a wrong speed straight back to normal.
+    function karTempoReset(){ if (karLiveTempo !== 100) karTempoSet(100); }
+    function karTempoAdj(d){ karTempoSet(karLiveTempo + d); }
     function karLiveAdj(d){
       if (!karNowPlaying) return;
       var np = Math.max(-12, Math.min(12, karLivePitch + d));
@@ -1671,7 +1698,7 @@ if (!$KAR_LOCAL) {
         if (!d.ok) { alert('Could not restart the song' + (d.error ? ': ' + d.error : '') + '.'); return; }
         karLiveTempo = 100;   // a fresh start comes back at normal speed
         karNowSave();
-        document.getElementById('kar-tempo-val').textContent = '100%';
+        karTempoPaint(100);
         karNowBar();
       }).catch(function(){ alert('Network error — the restart was not sent.'); });
     }
@@ -1745,6 +1772,14 @@ if (!$KAR_LOCAL) {
           document.getElementById('kar-time-pos').textContent = karFmt(st.pos);
         }
         karPauseLabel(!!st.paused);
+        // The Mac reports its player's ACTUAL speed. Believe it over anything this page
+        // thinks, so a speed that is wrong for any reason shows itself within a second
+        // instead of hiding behind a hard-coded "100%" (the owner, 2026-09-20).
+        if (typeof st.speed === 'number' && isFinite(st.speed)) {
+          var sp = Math.round(st.speed * 100);
+          if (sp !== karLiveTempo) { karLiveTempo = sp; karNowSave(); }
+          karTempoPaint(sp);
+        }
       }).catch(function(){});
     }
     function karNowPollSoon(){ setTimeout(karNowPoll, 1200); }
@@ -2015,7 +2050,7 @@ if (!$KAR_LOCAL) {
           karLivePitch = pitch;
           karLiveTempo = 100;
           karNowSave();
-          document.getElementById('kar-tempo-val').textContent = '100%';
+          karTempoPaint(100);
           karNowBar();
           var listEl = document.getElementById('kar-list');
           var st = listEl.scrollTop;
@@ -2850,7 +2885,7 @@ function karPickFolder(){
         karNowPlaying = a.file; karNowStarted(); karNowPlayingPlayer = 'mpv';
         karLivePitch = karSavedPitch(a.file); karLiveTempo = 100;
         karNowSave();
-        var t = document.getElementById('kar-tempo-val'); if (t) t.textContent = '100%';
+        karTempoPaint(100);
         karNowBar();
         if (KAR_SMODE === 'list') karRender();
       }).catch(function(){ btn.disabled = false; btn.innerHTML = '▶ Play'; alert('Network error — the play request was not sent.'); });
@@ -3134,7 +3169,7 @@ function karPickFolder(){
         karLivePitch = pick.pitch;
         karLiveTempo = 100;
         karNowSave();
-        var tv = document.getElementById('kar-tempo-val'); if (tv) tv.textContent = '100%';
+        karTempoPaint(100);
         karNowBar();
         var listEl = document.getElementById('kar-list');
         var st = listEl.scrollTop;
