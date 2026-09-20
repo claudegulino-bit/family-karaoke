@@ -1189,6 +1189,182 @@ function kar_dedup_matches(string $title): array {
  * so a guest who types their full name still becomes just the first word and the
  * dropdown stays tidy. Everything unsafe for a filename is stripped on the way.
  */
+/* ─── NAMING A DOWNLOAD TO THE HOUSE CONVENTION ────────────────────────────────
+ * Artist - Title (Karaoke|Lyrics) Singers (-0)        the owner, 2026-09-20:
+ *   "the artist name, the song name, the singers … either karaoke or lyrics. Not
+ *    karaoke session, karaoke version, just karaoke … and then at the end, in
+ *    parentheses, minus zero. If there's no pitch, default to minus zero."
+ * The minus is there on purpose: changing -0 to -1 is then one keystroke, not two.
+ *
+ * ⚠ THIS RULE LIVES TWICE — convention_name() in scripts/karaoke_watch.py is casAI's
+ * copy. Change BOTH or they drift; parity is proven on his real corpus.
+ *
+ * ⚠ ONLY unambiguous channel branding may be trimmed from the ends of a name.
+ * "with", "in", "on", "by", "the", "live", "song" are real title words — an earlier,
+ * greedier list turned "With Or Without You" into "Or Without You". */
+const KAR_EDGE_JUNK = ['karaoke','lyrics','lyric','version','versione','official','video',
+    'audio','hd','hq','4k','karafun','instrumental','strumentale','testo','testi',
+    'subtitles','sottotitoli','remastered','academy','originale'];
+const KAR_BRAND_EXTRA = ['cover','base','musicale','live','full','music','song','songs',
+    'canzone','letra','letras','mp3','zoom','sing','backing','track','italia','italiano',
+    'fair','use','onscreen','screen','key','with','on','by','in','di','del','della','con',
+    'senza','voce','style','stile','english','spanish','napoletano'];
+const KAR_BRANDING = [
+    '/karaoke\s+songs\s+with\s+lyrics\s*-\s*original\s+key/iu',
+    '/versione\s+karaoke\s+academy\s+italia/iu', '/karaoke\s+academy\s+italia/iu',
+    '/base\s+karaoke\s+italiano/iu', '/karaoke\s+version(?:\s+from\s+[\w\s]+)?/iu',
+    '/official\s+lyric\s+video/iu', '/official\s+music\s+video/iu', '/official\s+video/iu',
+    '/video\s+ufficiale/iu', '/with\s+lyrics\s+on\s+screen/iu', '/onscreen\s+lyrics/iu',
+    '/lyrics?\s+video/iu', '/fair\s+use/iu', '/karafun/iu', '/sing\s+king/iu',
+    '/zoom\s+karaoke/iu', '/original\s+key/iu', '/in\s+the\s+style\s+of[\w\s]*/iu',
+    '/karaoke\s+con\s+testo/iu',
+];
+/* Channels that write "Title - Artist". Their own branding identifies them exactly. */
+const KAR_REVERSED = '/karaoke\s+songs\s+with\s+lyrics|original\s+key/iu';
+const KAR_CAP_RE   = '/^[A-Z0-9ÀÁÂÄÈÉÊËÌÍÎÏÒÓÔÖÙÚÛÜÑÇ"\'(]/u';
+
+/** Same key as the Python side: fold (which is itself generated from Python's own
+ *  unicodedata) and then keep only letters and digits. */
+function kar_name_key(string $s): string {
+    return preg_replace('/[^a-z0-9]+/u', '', kar_dup_fold($s));
+}
+
+/** The artist half of every already-conventional filename — the only authority we
+ *  have on which side of the dash is the artist. One scandir, cached per request. */
+function kar_library_artists(?string $dir = null): array {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $cache = [];
+    $dir = $dir ?: kar_songs_dir();
+    foreach (@scandir($dir) ?: [] as $f) {
+        if ($f[0] === '.' || strncmp($f, 'Party', 5) === 0) continue;
+        $stem = preg_replace('/\.[^.]+$/', '', $f);
+        if (strpos($stem, ' - ') === false) continue;
+        if (!preg_match('/\((?:Karaoke|Lyrics|Original)\)/u', $stem)) continue;
+        $a = kar_name_key(explode(' - ', $stem)[0]);
+        if (strlen($a) > 2) $cache[$a] = true;
+    }
+    return $cache;
+}
+
+function kar_name_clean(string $s): string {
+    $s = preg_replace('/[\x{1F000}-\x{1FAFF}\x{2190}-\x{27BF}\x{FE0F}]/u', ' ', $s);
+    $s = str_replace(['｜', '：'], ['|', ':'], $s);
+    return trim(preg_replace('/\s+/u', ' ', $s));
+}
+
+function kar_name_tidy(string $p): string {
+    $p = preg_replace('/[\s\-–—_·•|｜\/\\\\⧸]+$/u', '', $p);
+    $p = preg_replace('/^[\s\-–—_·•|｜\/\\\\⧸]+/u', '', $p);
+    $p = preg_replace('/\s*[,;]\s*$/u', '', trim($p));
+    return trim(preg_replace('/\s+/u', ' ', $p));
+}
+
+function kar_name_edge_strip(string $part): string {
+    $ws = preg_split('/\s+/u', $part, -1, PREG_SPLIT_NO_EMPTY);
+    if (!$ws) return $part;
+    $j = array_flip(KAR_EDGE_JUNK);
+    while (count($ws) > 1 && isset($j[preg_replace('/[^a-z]/u', '', mb_strtolower(end($ws)))])) array_pop($ws);
+    while (count($ws) > 1 && isset($j[preg_replace('/[^a-z]/u', '', mb_strtolower($ws[0]))]))   array_shift($ws);
+    return $ws ? implode(' ', $ws) : $part;
+}
+
+function kar_name_strip_branding(string $s): string {
+    foreach (KAR_BRANDING as $b) $s = preg_replace($b, ' ', $s);
+    $noise = array_flip(array_merge(KAR_EDGE_JUNK, KAR_BRAND_EXTRA));
+    $drop = function ($m) use ($noise) {
+        preg_match_all('/[a-zA-Z]+/u', mb_strtolower($m[1]), $w);
+        if (!$w[0]) return $m[0];
+        foreach ($w[0] as $x) if (!isset($noise[$x])) return $m[0];
+        return ' ';
+    };
+    for ($i = 0; $i < 3; $i++) {
+        $s = preg_replace_callback('/\(([^()]*)\)/u', $drop, $s);
+        $s = preg_replace_callback('/\[([^\[\]]*)\]/u', $drop, $s);
+    }
+    $s = preg_replace('/\(\s*\)|\[\s*\]|\{\s*\}/u', ' ', $s);
+    /* Stripping a phrase from INSIDE a group leaves an orphan bracket behind:
+     * "(Karaoke Version - Sanremo)" -> "( - Sanremo)". Drop a bracket with no partner. */
+    if (substr_count($s, '(') !== substr_count($s, ')')) $s = str_replace(['(', ')'], ' ', $s);
+    if (substr_count($s, '[') !== substr_count($s, ']')) $s = str_replace(['[', ']'], ' ', $s);
+    return trim(preg_replace('/\s+/u', ' ', $s));
+}
+
+/** TWO types only, by his instruction. Karaoke wins when both words appear: a backing
+ *  track is a karaoke whether or not the words are on screen. */
+function kar_detect_type(string $raw): string {
+    if (preg_match('/karaoke|strumental|instrumental|\bbase\b|backing track/iu', $raw)) return 'Karaoke';
+    if (preg_match('/\blyric|\btesto\b|\btesti\b/iu', $raw)) return 'Lyrics';
+    return 'Karaoke';
+}
+
+/** A YouTube title -> "Artist - Title (Type) Singers (-0)", or '' when the artist
+ *  cannot be determined. NEVER guesses an artist: no artist means the file keeps the
+ *  name it arrived with, which is honest rather than wrong. */
+function kar_convention_name(string $title, ?array $artists = null, string $singers = '', ?string $pitch = null): string {
+    $raw = kar_name_clean($title);
+    if ($raw === '') return '';
+    /* A singer block already sits after the type marker in the library's convention
+     * ("… (Karaoke) CSG"). Lift it out, or the branding strip leaves it stuck to the
+     * end of the TITLE — which is how "Ave (Karaoke) Maria" came about. */
+    if (preg_match('/\((?:Karaoke|Lyrics|Original)\)\s+([A-Za-z][\w\'’ ]{0,40})$/u', $raw, $ms, PREG_OFFSET_CAPTURE)) {
+        if ($singers === '') $singers = trim($ms[1][0]);
+        $raw = trim(mb_substr($raw, 0, mb_strlen(substr($raw, 0, $ms[1][1]))));
+    }
+    if (preg_match('/\s*\(([-+]?\d{1,2})\)\s*([^()]{0,24})?\s*$/u', $raw, $m, PREG_OFFSET_CAPTURE)) {
+        if ($pitch === null) $pitch = $m[1][0];
+        if ($singers === '' && trim($m[2][0] ?? '') !== '') $singers = trim($m[2][0]);
+        $raw = trim(mb_substr($raw, 0, mb_strlen(substr($raw, 0, $m[0][1]))));
+    }
+    $typ = kar_detect_type($raw);
+    $s   = kar_name_strip_branding($raw);
+    $segs = [];
+    foreach (preg_split('/\s*\|\s*/u', $s) as $p) {
+        $p = kar_name_tidy($p);
+        if ($p !== '' && preg_match('/[A-Za-z0-9]/u', $p)) $segs[] = $p;
+    }
+    if (count($segs) >= 2) $s = (strpos($segs[0], ' - ') !== false) ? $segs[0] : $segs[0] . ' - ' . $segs[1];
+    $parts = [];
+    foreach (preg_split('/\s+[-–—]\s+/u', $s) as $p) { $p = kar_name_tidy($p); if ($p !== '') $parts[] = $p; }
+    if (count($parts) < 2) return '';            // no artist to be had — leave it alone
+    $a = kar_name_tidy(kar_name_edge_strip($parts[0]));
+    $t = kar_name_tidy(kar_name_edge_strip($parts[1]));
+    $kn = $artists === null ? [] : $artists;
+    $flip = (isset($kn[kar_name_key($t)]) && !isset($kn[kar_name_key($a)])) || preg_match(KAR_REVERSED, $raw);
+    if ($flip) { $x = $a; $a = $t; $t = $x; }
+    if ($a === '' || $t === '' || mb_strlen($a) > 60 || mb_strlen($t) > 90) return '';
+    /* A dash can separate a title from a DESCRIPTION rather than from an artist —
+     * "Torna A Surriento - with full orchestra, no lead instrument". A name is
+     * capitalised; a description is not. Refuse rather than invent an artist. */
+    if (!isset($kn[kar_name_key($a)]) && (!preg_match(KAR_CAP_RE, $a) || !preg_match(KAR_CAP_RE, $t))) return '';
+    $out = $a . ' - ' . $t . ' (' . $typ . ')';
+    if ($singers !== '') $out .= ' ' . trim(preg_replace('/\s+/u', ' ', $singers));
+    return $out . ' (' . ($pitch === null ? '-0' : $pitch) . ')';
+}
+
+/** Rename a just-downloaded file to the convention. Returns the final basename — the
+ *  ORIGINAL one on any doubt, because a download must never be lost to a tidy-up. */
+function kar_apply_convention(string $path, string $singers = ''): string {
+    try {
+        $dir  = dirname($path);
+        $base = basename($path);
+        $ext  = preg_match('/(\.[^.\/]+)$/', $base, $e) ? $e[1] : '';
+        $stem = $ext !== '' ? substr($base, 0, -strlen($ext)) : $base;
+        $want = kar_convention_name($stem, kar_library_artists($dir), $singers);
+        if ($want === '' || $want === $stem) return $base;
+        $want = mb_substr(preg_replace('#[/\\\\:]#u', '-', $want), 0, 180);
+        $target = $dir . '/' . $want . $ext;
+        $n = 2;
+        while (file_exists($target) && realpath($target) !== realpath($path)) {
+            $target = $dir . '/' . $want . ' ' . $n . $ext;
+            if (++$n > 30) return $base;
+        }
+        return @rename($path, $target) ? basename($target) : $base;
+    } catch (Throwable $e) {
+        return basename($path);
+    }
+}
+
 function kar_first_name(string $raw): string {
     $n = trim(preg_replace('/\s+/u', ' ', $raw));
     $n = preg_replace('#[/\\:*?"<>|%]#u', '', $n);   // % too: it breaks a yt-dlp -o template

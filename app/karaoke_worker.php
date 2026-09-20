@@ -287,14 +287,14 @@ while ($row = $db->query("SELECT id, url, title, requested_by, auto_sing FROM ka
     // sound with NO PICTURE — the one failure that looks like a broken song file.
     $fmt = 'bv*[vcodec^=avc1][ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b';
     // The person who asked for it goes into the file name, in the house convention
-    // (the owner, 2026-09-08) — "(0)" because a guest's song always starts at the original
+    // (the owner, 2026-09-08) — "(-0)" because a guest's song always starts at the original
     // key. It lands as "Title (0) Josie.mp4", so the end-of-night tidy-up is a tidy-up
     // rather than a rename from scratch.
     $nameTag = '';
     if (!empty($row['requested_by'])) {
         $who = preg_replace('#[/\\\\:*?"<>|%]#u', '', (string)$row['requested_by']);
         $who = trim(preg_replace('/\s+/u', ' ', $who));
-        if ($who !== '') $nameTag = ' (0) ' . mb_substr($who, 0, 24);
+        if ($who !== '') $nameTag = ' (-0) ' . mb_substr($who, 0, 24);
     }
 
     // ffmpeg is what joins the picture to the sound. Without it the merge produces
@@ -322,8 +322,8 @@ while ($row = $db->query("SELECT id, url, title, requested_by, auto_sing FROM ka
          . ' --merge-output-format mp4'
          . ' -o ' . escapeshellarg($dir . '/%(title)s' . $nameTag . '.%(ext)s')
          . ' --print after_move:filepath --no-simulate'
-         . $cookies . ' ' . escapeshellarg($row['url']) . ' 2>&1';
-    $out = (string)@shell_exec($cmd);
+         . '%COOKIES%' . ' ' . escapeshellarg($row['url']) . ' 2>&1';
+    $out = (string)@shell_exec(str_replace('%COOKIES%', $cookies, $cmd));
 
     // yt-dlp prints the name it MEANT to produce even when the merge fails, so a printed
     // path is not proof of anything — the file has to actually be there.
@@ -333,6 +333,27 @@ while ($row = $db->query("SELECT id, url, title, requested_by, auto_sing FROM ka
         if ($intended === '') $intended = $line;
         if (is_file($line)) { $path = $line; break; }
     }
+    /* ⚠ COOKIES ARE OPTIONAL, AND MUST BE. A browser rotates its YouTube cookies as a
+     * security measure, and yt-dlp then sends credentials YouTube rejects — so EVERY
+     * download dies with "HTTP Error 403: Forbidden" while search and titles, which
+     * need no cookies, keep working perfectly. That is what makes it so hard to read:
+     * everything looks healthy until a song is actually fetched. It took casAI's whole
+     * download path down on 2026-09-20; this edition escaped only because cookies stay
+     * off unless "browser_cookies" is set. Retry without them rather than give up —
+     * cookies go first because they are what gets an age-restricted video, but they
+     * must never be the reason an ordinary song cannot be fetched. */
+    if ($path === '' && $cookies !== '') {
+        kar_log('download', 'row ' . $id . ': retrying without browser cookies');
+        $out = (string)@shell_exec(str_replace('%COOKIES%', '', $cmd));
+        foreach (array_reverse(array_map('trim', explode("\n", $out))) as $line) {
+            if ($line === '' || strpos($line, $dir . '/') !== 0) continue;
+            if ($intended === '') $intended = $line;
+            if (is_file($line)) { $path = $line; break; }
+        }
+        if ($path !== '') kar_log('download', 'row ' . $id
+            . ': succeeded without cookies (the browser\'s YouTube cookies look stale)');
+    }
+
     if ($path === '') {
         // Clear the half-finished parts, or they sit in the songs folder for ever.
         if ($intended !== '') {
@@ -357,6 +378,13 @@ while ($row = $db->query("SELECT id, url, title, requested_by, auto_sing FROM ka
             $note .= ' — ⚠ it came down as ' . $codec . ', which may play with sound but no picture';
         }
     }
+    // Name it to the house convention NOW. This is the one genuinely safe moment: the
+    // file is on disk and NOTHING points at it yet — no Best-list entry, no pitch
+    // override, no queue row — so there is nothing to migrate. Renaming a song the
+    // library already points at is the hard job that cost a whole session on 2026-09-18.
+    // A guest's " (-0) Josie" tag is lifted out of the name and re-placed by the rule.
+    $file = kar_apply_convention($path, '');
+
     kar_set($db, $id, ['status'=>'Done', 'filename'=>$file, 'note'=>$note, 'done_at'=>date('Y-m-d H:i:s')]);
 
     // A guest who brought a song becomes a real singer: it joins THEIR list and they
