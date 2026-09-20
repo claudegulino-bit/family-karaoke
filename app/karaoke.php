@@ -1139,6 +1139,7 @@ if (!$KAR_LOCAL) {
       <span id="kar-h-seq" style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Seq<br>Number</span>
       <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
+      <span id="kar-h-chk" style="flex:0 0 auto;width:96px;display:none" title="Once you have checked a song, take it off this list. It stays in the song database — nothing is deleted.">Checked</span>
       </span>
     </div>
     <!-- Songs that have just come down. A download must end in something you can press, not in
@@ -1351,6 +1352,18 @@ if (!$KAR_LOCAL) {
     var karNowPlayingPlayer = 'qmidi';  // which engine it went to: 'qmidi' or 'mpv' (the casAI player)
     // The Duplicate column — 🆕 New only. Names the songs already in the library that this
     // one looked like when it came down, so the two can be compared and one removed.
+    // 🆕 New is a review BENCH, not an archive. When he has done the due diligence on a song
+    // it should leave on his word rather than waiting out the 30 days (the owner, 2026-09-20).
+    // Blue, not green: on this page green means GO — it is the Play button on every row — and a
+    // completion tick in the same colour would read as a transport control.
+    function karChkCell(i){
+      return '<span style="flex:0 0 auto;width:96px">'
+        + '<button type="button" class="kar-chk" data-i="' + i + '" '
+        + 'title="I have checked this one — take it off the New list. The song stays in your library." '
+        + 'style="font-family:inherit;background:#2A384C;border:1px solid #86CAFA;color:#86CAFA;'
+        + 'cursor:pointer;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px">✓ Checked</button>'
+        + '</span>';
+    }
     function karDupCell(full){
       var d = KAR_DUP[full];
       if (!d) return '<span style="flex:0 0 auto;width:300px;font-size:11px;color:#64748b" '
@@ -1393,6 +1406,8 @@ if (!$KAR_LOCAL) {
       karRenderedView = karView;
       var hd = document.getElementById('kar-h-dup');
       if (hd) hd.style.display = (karView === 'new') ? '' : 'none';
+      var hc = document.getElementById('kar-h-chk');
+      if (hc) hc.style.display = (karView === 'new') ? '' : 'none';
       // ⚠ Sort the ORDER, not the array. Every click handler below resolves its data-i against
       // KAR_DATA[karRenderedView], so reordering the array itself would make Play, ✎ and ✕ act on
       // the wrong song. Building an index list keeps data-i meaning what it has always meant.
@@ -1479,7 +1494,7 @@ if (!$KAR_LOCAL) {
           + 'style="flex:0 0 auto;width:460px;word-break:break-word;font-size:13px;cursor:text;color:' + (playing ? '#D2AD6C;font-weight:700' : '#e2e8f0') + '">' + karEsc(name) + '</span>'
           // 🆕 New is the review bench, so it gets its own Duplicate column — what this
           // song looked like when it came down, side by side with the name.
-          + (karView === 'new' ? karDupCell(full) : '')
+          + (karView === 'new' ? karDupCell(full) + karChkCell(i) : '')
           + '</span>'                                   // end SING
           + '</div>');
       }
@@ -1499,8 +1514,16 @@ if (!$KAR_LOCAL) {
           + 'background:#3b3324;border:1px solid #D2AD6C;color:#f3d9a4;cursor:pointer;font-size:12px;'
           + 'font-weight:700;padding:4px 12px;border-radius:999px">✕ Show all</button>';
       } else {
-        cntEl.style.cssText = 'margin-top:10px;color:#64748b;font-size:11.5px';
-        cntEl.textContent = out.length + ' of ' + src.length + ' songs in the ' + lbl;
+        cntEl.style.cssText = 'margin-top:10px;color:#64748b;font-size:11.5px;'
+          + 'display:flex;align-items:center;gap:12px;flex-wrap:wrap';
+        cntEl.innerHTML = '<span>' + out.length + ' of ' + src.length + ' songs in the ' + karEsc(lbl) + '</span>'
+          + (karView === 'new' && src.length
+             ? '<button type="button" id="kar-chk-all" onclick="karCheckedAll()" '
+               + 'title="Take every song off this list at once. They all stay in the song database — nothing is deleted." '
+               + 'style="font-family:inherit;background:#2A384C;border:1px solid #86CAFA;color:#86CAFA;'
+               + 'cursor:pointer;font-size:11.5px;font-weight:700;padding:4px 12px;border-radius:999px">'
+               + '✓ All checked — clear this list</button>'
+             : '');
       }
       listEl.innerHTML = out.length ? (out.join('') + karSimpleYtFoot(q))
         : (karView === 'best' && !src.length
@@ -1910,6 +1933,28 @@ if (!$KAR_LOCAL) {
     // One delegated listener for Play and Reset — rows themselves carry no handlers (People-tab DOM lesson).
     document.getElementById('kar-list').addEventListener('click', function(ev){
       var src = KAR_DATA[karRenderedView] || [];
+      // ✓ Checked: this song leaves the 🆕 New review bench. Nothing is deleted — the file,
+      // its name, its key and its place on every Best list are all untouched; only a timestamp
+      // is written, so undoing it is one UPDATE.
+      var cb = ev.target.closest ? ev.target.closest('.kar-chk') : null;
+      if (cb) {
+        var songC = src[parseInt(cb.getAttribute('data-i'), 10)];
+        if (!songC) return;
+        cb.textContent = '…'; cb.disabled = true;
+        var fdC = new FormData();
+        fdC.append('form_type', 'karaoke_dl_reviewed');
+        fdC.append('song', songC);
+        fetch(KAR_API, {method:'POST', body: fdC}).then(function(r){ return r.json(); }).then(function(d){
+          if (!d.ok) { cb.textContent = '\u2713 Checked'; cb.disabled = false;
+                       alert('Could not take it off the list' + (d.error ? ': ' + d.error : '') + '.'); return; }
+          // Re-read the list from the server rather than patching it here: the server decides
+          // what is on the bench, and a local edit is how the two drift apart.
+          karNewRefresh();
+        }).catch(function(){ cb.textContent = '\u2713 Checked'; cb.disabled = false;
+                             alert('Could not reach the Mac — nothing was changed.'); });
+        return;
+      }
+
       // ➕: add this song to the singing queue for the selected person.
       var qb = ev.target.closest ? ev.target.closest('.kar-q-add') : null;
       if (qb) {
@@ -3366,6 +3411,26 @@ function karPickFolder(){
       var n = document.getElementById('kar-new-count');
       if (n) n.textContent = KAR_DATA.new.length;
     }
+    // "I have 10 songs in New Songs and I check them already, and they're all good" — so the
+    // whole bench clears in one click (the owner, 2026-09-20). It confirms first and says plainly
+    // that nothing is deleted, because "clear the list" is the kind of phrase that reads like it.
+    function karCheckedAll(){
+      var n = (KAR_DATA.new || []).length;
+      if (!n) return;
+      if (!confirm('Take all ' + n + ' song' + (n === 1 ? '' : 's') + ' off the New Songs list?\n\n'
+                 + 'They stay in your song database exactly as they are — nothing is deleted, renamed '
+                 + 'or removed from anyone\u2019s list. This only empties the review list.')) return;
+      var b = document.getElementById('kar-chk-all');
+      if (b) { b.textContent = '\u2026'; b.disabled = true; }
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_dl_reviewed');
+      fd.append('all', '1');
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert('Could not clear the list' + (d.error ? ': ' + d.error : '') + '.'); karRender(); return; }
+        karNewRefresh();
+      }).catch(function(){ alert('Could not reach the Mac — nothing was changed.'); karRender(); });
+    }
+
     function karNewRefresh(){
       var fd = new FormData(); fd.append('form_type', 'karaoke_new_list');
       // RETURNS the promise: a caller that wants to show the song it just fetched has to wait

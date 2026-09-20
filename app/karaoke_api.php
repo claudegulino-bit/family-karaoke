@@ -412,6 +412,23 @@ try {
         kj(['ok'=>$st->rowCount() > 0]);
     }
 
+    case 'karaoke_dl_reviewed': {
+        // "I have checked this one" — it leaves the 🆕 New review bench and stays exactly
+        // where it is in the song database. Nothing is deleted, nothing is renamed; only a
+        // timestamp is written, so undoing it is one UPDATE if he ever asks.
+        if (($_POST['all'] ?? '') === '1') {
+            $n = $db->exec("UPDATE karaoke_downloads SET reviewed_at = " . kar_now_sql()
+                         . " WHERE status='Done' AND filename IS NOT NULL AND reviewed_at IS NULL");
+            kj(['ok'=>true, 'marked'=>(int)$n]);
+        }
+        $song = trim((string)($_POST['song'] ?? ''));
+        if ($song === '') kj(['ok'=>false, 'error'=>'which song?']);
+        $st = $db->prepare("UPDATE karaoke_downloads SET reviewed_at = " . kar_now_sql()
+                         . " WHERE filename = ? AND reviewed_at IS NULL");
+        $st->execute([$song]);
+        kj(['ok'=>true, 'marked'=>$st->rowCount()]);
+    }
+
     case 'karaoke_dl_clear': {
         // Clearing the LIST must never erase the HISTORY — Done rows are deliberately spared.
         $n = $db->exec("DELETE FROM karaoke_downloads WHERE status IN ('Queued','Error')");

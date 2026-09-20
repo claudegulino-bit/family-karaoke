@@ -92,6 +92,14 @@ function kar_ago(int $n, string $unit): string {
     return 'NOW() - INTERVAL ' . $n . ' ' . strtoupper(rtrim($unit, 's'));
 }
 
+/**
+ * "now", in whichever dialect this edition is talking. Lives here beside kar_ago() so the
+ * SQLite/MariaDB difference has exactly ONE home.
+ */
+function kar_now_sql(): string {
+    return kar_is_local() ? "datetime('now','localtime')" : 'NOW()';
+}
+
 function kar_cfg(): array {
     global $_kar_cfg;
     if ($_kar_cfg !== null) return $_kar_cfg;
@@ -259,6 +267,8 @@ const KAR_ADD_COLUMNS = [
     "ALTER TABLE karaoke_searches ADD COLUMN want_karaoke INTEGER NOT NULL DEFAULT 1",
     // Which duplicate rule wrote a row's dup_note - see kar_new_downloads().
     "ALTER TABLE karaoke_downloads ADD COLUMN dup_rule TEXT DEFAULT NULL",
+    // When he marked the song CHECKED and took it off the 🆕 New review list.
+    "ALTER TABLE karaoke_downloads ADD COLUMN reviewed_at TEXT DEFAULT NULL",
 ];
 
 function kar_db(): PDO {
@@ -1608,8 +1618,14 @@ function kar_new_downloads(PDO $db, array $catalog): array {
     $set = array_flip($catalog);
     $redo = [];
     try {
+        // reviewed_at IS NULL: 🆕 New is a review BENCH, not an archive. Once he has done
+        // the due diligence on a song it leaves the bench on his word rather than waiting
+        // out the 30 days (the owner, 2026-09-20: "rather than waiting a month for the songs
+        // to stay there when I already did the due diligence"). The song itself is never
+        // touched - it stays in the song database exactly as it was.
         $q = $db->query("SELECT filename, dup_note, dup_rule FROM karaoke_downloads
                          WHERE status='Done' AND filename IS NOT NULL AND done_at > $cut
+                           AND reviewed_at IS NULL
                          ORDER BY done_at DESC");
         foreach ($q as $r) {
             if (isset($set[$r['filename']]) && !in_array($r['filename'], $new, true)) {
