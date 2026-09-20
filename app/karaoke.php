@@ -571,16 +571,13 @@ if (!$KAR_LOCAL) {
         </span>
         <span id="kar-sec-tempo" style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Tempo</span>
-          <span style="display:flex;align-items:center;gap:8px">
-            <!-- the owner, 2026-09-20: "I want the slider switch so I can speed it up if needed."
-                 The −/+ buttons it replaces moved 5% a press, which is fiddly when a room is
-                 already telling you the song is wrong. Drag = live number, no network; the change
-                 is sent once on release. -->
-            <input id="kar-tempo-slider" type="range" min="50" max="150" step="5" value="100"
-                   oninput="karTempoDragging(this.value)" onchange="karTempoDropped(this.value)"
-                   title="Drag to slow the song down or speed it up. The key stays true. It is for tonight only — not saved."
-                   style="width:104px;accent-color:#D2AD6C;cursor:pointer;margin:0">
-            <span id="kar-tempo-val" onclick="karTempoReset()" title="Normal speed. Drag the slider to change it for tonight; it is not saved." style="color:#6ee7b7;font-size:15px;font-weight:800;width:52px;text-align:center;cursor:pointer;border-radius:6px;padding:2px 0">100%</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <!-- −/+ buttons, not a slider. A slider went in on 2026-09-20 and the owner asked the
+                 same day to put these back: "I made a mistake. Please change back." Each press is
+                 5%; the number between them is the alarm and the one-click way back to 100%. -->
+            <button type="button" id="kar-tempo-down" onclick="karTempoAdj(-5)" title="Slow the song by 5%. The key stays true. For tonight only — not saved." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
+            <span id="kar-tempo-val" onclick="karTempoReset()" title="Normal speed. Use − and + to change it for tonight; it is not saved." style="color:#6ee7b7;font-size:15px;font-weight:800;width:52px;text-align:center;cursor:pointer;border-radius:6px;padding:2px 0">100%</span>
+            <button type="button" id="kar-tempo-up" onclick="karTempoAdj(5)" title="Speed the song up by 5%. The key stays true. For tonight only — not saved." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
           </span>
         </span>
         <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
@@ -756,7 +753,7 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">While it is playing</h3>
           <ul style="margin:0;padding-left:20px">
             <li>The <b>gold bar</b> controls the song currently playing. It stays at the top of the page as the list scrolls.</li>
-            <li><b>Speed</b> — drag the slider to slow the song down or speed it up. It takes effect immediately, mid-song, and shows what the player is actually doing. At <b>100%</b> it is quiet green; at anything else it turns <b>amber</b>, and one click on the number puts it straight back to normal. A song that sounds slow or fast is therefore visible on the bar rather than left to guesswork.</li>
+            <li><b>Speed</b> — − and + change it 5% at a time. It takes effect immediately, mid-song, and shows what the player is actually doing. At <b>100%</b> it is quiet green; at anything else it turns <b>amber</b>, and one click on the number puts it straight back to normal. A song that sounds slow or fast is therefore visible on the bar rather than left to guesswork.</li>
             <li><b>Key</b> sits beside it and also takes effect mid-song. Each song's own starting key is the <b>Pitch</b> box on its row; the key set here is for tonight only and is not saved.</li>
             <li><b>The progress line</b> under the song name shows how far through it is — drag it to move within the song.</li>
             <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> pauses it where it is and becomes <b>▶ Resume</b>.</li>
@@ -1645,9 +1642,6 @@ if (!$KAR_LOCAL) {
         karNowBar();
       } catch(e){}
     }
-    // Dragging shows the number moving but sends NOTHING — one request per drag, on release,
-    // instead of twenty on the way there.
-    var karTempoDrag = false;
     // ⚠ THE BAR MUST SHOW THE PLAYER'S REAL SPEED, NOT WHAT THE PAGE ASSUMES.
     // the owner, 2026-09-20, after a party: guests said the songs were playing slow. In Simple
     // mode the Tempo control was hidden, so nobody could see the speed OR put it back; and the
@@ -1656,11 +1650,7 @@ if (!$KAR_LOCAL) {
     function karTempoPaint(n){
       var v = document.getElementById('kar-tempo-val'); if (!v) return;
       v.textContent = n + '%';
-      // Keep the slider under the number, EXCEPT while a finger is on it — the poller runs
-      // every second and would otherwise drag the handle back out from under him.
-      var sl = document.getElementById('kar-tempo-slider');
-      if (sl && !karTempoDrag) sl.value = String(n);
-      if (sl) sl.style.accentColor = (n === 100) ? '#D2AD6C' : '#fbbf24';
+
       if (n === 100) {
         v.style.color = '#6ee7b7'; v.style.background = 'transparent'; v.style.boxShadow = 'none';
         v.title = 'Normal speed. Use \u2212 and + to change it for tonight; it is not saved.';
@@ -1689,14 +1679,16 @@ if (!$KAR_LOCAL) {
     // One tap on the number puts a wrong speed straight back to normal.
     function karTempoReset(){ if (karLiveTempo !== 100) karTempoSet(100); }
     function karTempoAdj(d){ karTempoSet(karLiveTempo + d); }
+    // With no song there is nothing to speed up or slow down, so the two buttons grey out
+    // rather than looking live and doing nothing.
     function karTempoEnable(on){
-      var sl = document.getElementById('kar-tempo-slider'); if (!sl) return;
-      sl.disabled = !on;
-      sl.style.opacity = on ? '1' : '.4';
-      sl.style.cursor  = on ? 'pointer' : 'default';
+      ['kar-tempo-down','kar-tempo-up'].forEach(function(id){
+        var b = document.getElementById(id); if (!b) return;
+        b.disabled = !on;
+        b.style.opacity = on ? '1' : '.4';
+        b.style.cursor  = on ? 'pointer' : 'default';
+      });
     }
-    function karTempoDragging(v){ if (!karNowPlaying) return; karTempoDrag = true; karTempoPaint(parseInt(v, 10)); }
-    function karTempoDropped(v){ karTempoDrag = false; if (!karNowPlaying) return; karTempoSet(parseInt(v, 10)); }
     function karLiveAdj(d){
       if (!karNowPlaying) return;
       var np = Math.max(-12, Math.min(12, karLivePitch + d));
