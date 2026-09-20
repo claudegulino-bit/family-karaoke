@@ -1084,9 +1084,9 @@ function kar_dup_split(string $cored): array {
     return count($p) === 2 ? [$p[0], $p[1]] : ['', $cored];
 }
 
-function kar_dup_toks(string $s): array {
+function kar_dup_toks(string $s, bool $dropNoise = true): array {
     preg_match_all('/[a-z0-9]+/', kar_dup_fold($s), $m);
-    $ws = array_values(array_diff($m[0] ?? [], KAR_NOISE_WORDS));
+    $ws = $dropNoise ? array_values(array_diff($m[0] ?? [], KAR_NOISE_WORDS)) : ($m[0] ?? []);
     // a trailing "2" is a disambiguator, not part of the name
     while (count($ws) > 1 && preg_match('/^\d{1,2}$/', (string)end($ws))) array_pop($ws);
     return array_values($ws);
@@ -1132,6 +1132,15 @@ function kar_dup_same(string $incoming, string $filename): bool {
     [$artist, $title] = kar_dup_split(kar_dup_core($filename, true));
     $ta = kar_dup_toks($artist);
     $tt = kar_dup_toks($title);
+    // ⚠ A TITLE CAN BE MADE ENTIRELY OF NOISE WORDS. "L'Italiano" is Toto Cutugno's most
+    // famous song and it reduced to the single letter "l", so it could never match - he had
+    // it twice and the chart check called it missing (found 2026-09-20). When stripping
+    // leaves nothing usable, compare the raw words instead - on BOTH sides, or they cannot
+    // meet.
+    if (!$tt || (count($tt) === 1 && strlen($tt[0]) < 4)) {
+        $tt  = kar_dup_toks($title, false);
+        $inc = kar_dup_toks(kar_dup_core($incoming), false);
+    }
     if (!$tt) return false;
     // THE TITLE — every word of it has to be there, in any order, one typo forgiven.
     foreach ($tt as $w) if (!kar_dup_has($w, $inc)) return false;
