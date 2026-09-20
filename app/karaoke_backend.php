@@ -991,29 +991,163 @@ function kar_worker_spawn(): void {
     @exec(escapeshellarg($php) . ' ' . escapeshellarg($worker) . ' ' . escapeshellarg($marker) . ' >/dev/null 2>&1 &');
 }
 
-const KAR_NOISE_WORDS = ['karaoke','lyrics','lyric','video','official','testo','audio','cover',
-    'version','versione','instrumental','base','musicale','the','con','feat','featuring',
-    'live','remastered','hd','4k','full'];
+// ---------------------------------------------------------------------------
+// "Do we already have this song?"  —  the owner, 2026-09-20
+// ---------------------------------------------------------------------------
+// His words, and they are the specification:
+//   "Say we already have this ONLY if it is the same song from the same singer.
+//    It needs to be minimum two words of the SONG NAME, not the singer name.
+//    Adriano Celentano is the singer name — if you match the singer name you get
+//    ALL the songs, which is not the right thing to do. The words that make up the
+//    title may be in the wrong sequence, but those words need to be there. Maybe
+//    one character is wrong, in which case you have to figure that out."
+//
+// ⚠ THE OLD RULE WAS "2 SHARED WORDS ANYWHERE" ($need = min(2, count($toks))). "Adriano
+//   Celentano" is two words, so every Celentano song matched every other Celentano song
+//   and he was shown a warning naming three unrelated songs. Do not go back to token
+//   overlap, and do not let the ARTIST alone satisfy the match — that was his correction.
+//
+// ⚠ THIS LOGIC EXISTS TWICE. dup_is_same_song() in scripts/karaoke_watch.py is the same
+//   rule for casAI. Change one and change the other, or casAI and the Macs will disagree
+//   about what a duplicate is.
+//
+// Measured on his real library (1,975 songs) before it shipped:
+//   recall   74 of 74 known duplicate pairs (the ones removed 19 Sep) still recognised
+//   noise    64 warnings -> 26 across his own 30 real searches, every one the right song
+//   false +  36 of 49,191 same-artist/different-title pairs, and every one inspected by
+//            hand was genuinely the same song ("Baila Morena"/"Balla Morena",
+//            "Take Me Home, Country Road"/"Roads")
 
-function kar_title_tokens(string $title): array {
-    preg_match_all('/[\p{L}\p{N}]{3,}/u', mb_strtolower($title), $m);
-    return array_values(array_diff($m[0] ?? [], KAR_NOISE_WORDS));
+const KAR_TYPE_MARK = '/\((?:karaoke|lyrics?|original|testo|live|acoustic|instrumental|audio|video)\b/i';
+const KAR_NOISE_WORDS = ['karaoke','lyrics','lyric','video','official','testo','testi','audio',
+    'cover','version','versione','instrumental','strumentale','base','musicale','feat','featuring',
+    'live','remastered','hd','hq','4k','full','con','subtitles','sottotitoli','music','song',
+    'canzone','letra','letras','mp3','the','academy','karafun','zoom','sing','backing','track',
+    'italia','italiano',
+    // Language markers — the library writes them as (English)/(Spanish) and sometimes as
+    // "- Spanish", so they must never decide whether two names are the same song.
+    'english','spanish','french','francese','inglese','spagnolo','napoletano','siciliano'];
+
+/** Lowercase and strip accents, so "perché" and "perche" are the same word. */
+function kar_dup_fold(string $s): string {
+    // GENERATED from Python's own unicodedata NFD-strip, so this PHP fold and the
+    // Python one in scripts/karaoke_watch.py can never disagree. iconv('ASCII//TRANSLIT')
+    // was tried first and is NOT portable - on this Mac it turned "perché" into
+    // something Python did not, and three real duplicate pairs stopped matching.
+    static $from = ['À','Á','Â','Ã','Ä','Å','Ç','È','É','Ê','Ë','Ì','Í','Î','Ï','Ñ','Ò','Ó','Ô','Õ','Ö','Ù','Ú','Û','Ü','Ý','à','á','â','ã','ä','å','ç','è','é','ê','ë','ì','í','î','ï','ñ','ò','ó','ô','õ','ö','ù','ú','û','ü','ý','ÿ','Ā','ā','Ă','ă','Ą','ą','Ć','ć','Ĉ','ĉ','Ċ','ċ','Č','č','Ď','ď','Ē','ē','Ĕ','ĕ','Ė','ė','Ę','ę','Ě','ě','Ĝ','ĝ','Ğ','ğ','Ġ','ġ','Ģ','ģ','Ĥ','ĥ','Ĩ','ĩ','Ī','ī','Ĭ','ĭ','Į','į','İ','Ĵ','ĵ','Ķ','ķ','Ĺ','ĺ','Ļ','ļ','Ľ','ľ','Ń','ń','Ņ','ņ','Ň','ň','Ō','ō','Ŏ','ŏ','Ő','ő','Ŕ','ŕ','Ŗ','ŗ','Ř','ř','Ś','ś','Ŝ','ŝ','Ş','ş','Š','š','Ţ','ţ','Ť','ť','Ũ','ũ','Ū','ū','Ŭ','ŭ','Ů','ů','Ű','ű','Ų','ų','Ŵ','ŵ','Ŷ','ŷ','Ÿ','Ź','ź','Ż','ż','Ž','ž','Ḁ','ḁ','Ḃ','ḃ','Ḅ','ḅ','Ḇ','ḇ','Ḉ','ḉ','Ḋ','ḋ','Ḍ','ḍ','Ḏ','ḏ','Ḑ','ḑ','Ḓ','ḓ','Ḕ','ḕ','Ḗ','ḗ','Ḙ','ḙ','Ḛ','ḛ','Ḝ','ḝ','Ḟ','ḟ','Ḡ','ḡ','Ḣ','ḣ','Ḥ','ḥ','Ḧ','ḧ','Ḩ','ḩ','Ḫ','ḫ','Ḭ','ḭ','Ḯ','ḯ','Ḱ','ḱ','Ḳ','ḳ','Ḵ','ḵ','Ḷ','ḷ','Ḹ','ḹ','Ḻ','ḻ','Ḽ','ḽ','Ḿ','ḿ','Ṁ','ṁ','Ṃ','ṃ','Ṅ','ṅ','Ṇ','ṇ','Ṉ','ṉ','Ṋ','ṋ','Ṍ','ṍ','Ṏ','ṏ','Ṑ','ṑ','Ṓ','ṓ','Ṕ','ṕ','Ṗ','ṗ','Ṙ','ṙ','Ṛ','ṛ','Ṝ','ṝ','Ṟ','ṟ','Ṡ','ṡ','Ṣ','ṣ','Ṥ','ṥ','Ṧ','ṧ','Ṩ','ṩ','Ṫ','ṫ','Ṭ','ṭ','Ṯ','ṯ','Ṱ','ṱ','Ṳ','ṳ','Ṵ','ṵ','Ṷ','ṷ','Ṹ','ṹ','Ṻ','ṻ','Ṽ','ṽ','Ṿ','ṿ','Ẁ','ẁ','Ẃ','ẃ','Ẅ','ẅ','Ẇ','ẇ','Ẉ','ẉ','Ẋ','ẋ','Ẍ','ẍ','Ẏ','ẏ','Ẑ','ẑ','Ẓ','ẓ','Ẕ','ẕ','ẖ','ẗ','ẘ','ẙ','Ạ','ạ','Ả','ả','Ấ','ấ','Ầ','ầ','Ẩ','ẩ','Ẫ','ẫ','Ậ','ậ','Ắ','ắ','Ằ','ằ','Ẳ','ẳ','Ẵ','ẵ','Ặ','ặ','Ẹ','ẹ','Ẻ','ẻ','Ẽ','ẽ','Ế','ế','Ề','ề','Ể','ể','Ễ','ễ','Ệ','ệ','Ỉ','ỉ','Ị','ị','Ọ','ọ','Ỏ','ỏ','Ố','ố','Ồ','ồ','Ổ','ổ','Ỗ','ỗ','Ộ','ộ','Ớ','ớ','Ờ','ờ','Ở','ở','Ỡ','ỡ','Ợ','ợ','Ụ','ụ','Ủ','ủ','Ứ','ứ','Ừ','ừ','Ử','ử','Ữ','ữ','Ự','ự','Ỳ','ỳ','Ỵ','ỵ','Ỷ','ỷ','Ỹ','ỹ'];
+    static $to   = ['A','A','A','A','A','A','C','E','E','E','E','I','I','I','I','N','O','O','O','O','O','U','U','U','U','Y','a','a','a','a','a','a','c','e','e','e','e','i','i','i','i','n','o','o','o','o','o','u','u','u','u','y','y','A','a','A','a','A','a','C','c','C','c','C','c','C','c','D','d','E','e','E','e','E','e','E','e','E','e','G','g','G','g','G','g','G','g','H','h','I','i','I','i','I','i','I','i','I','J','j','K','k','L','l','L','l','L','l','N','n','N','n','N','n','O','o','O','o','O','o','R','r','R','r','R','r','S','s','S','s','S','s','S','s','T','t','T','t','U','u','U','u','U','u','U','u','U','u','U','u','W','w','Y','y','Y','Z','z','Z','z','Z','z','A','a','B','b','B','b','B','b','C','c','D','d','D','d','D','d','D','d','D','d','E','e','E','e','E','e','E','e','E','e','F','f','G','g','H','h','H','h','H','h','H','h','H','h','I','i','I','i','K','k','K','k','K','k','L','l','L','l','L','l','L','l','M','m','M','m','M','m','N','n','N','n','N','n','N','n','O','o','O','o','O','o','O','o','P','p','P','p','R','r','R','r','R','r','R','r','S','s','S','s','S','s','S','s','S','s','T','t','T','t','T','t','T','t','U','u','U','u','U','u','U','u','U','u','V','v','V','v','W','w','W','w','W','w','W','w','W','w','X','x','X','x','Y','y','Z','z','Z','z','Z','z','h','t','w','y','A','a','A','a','A','a','A','a','A','a','A','a','A','a','A','a','A','a','A','a','A','a','A','a','E','e','E','e','E','e','E','e','E','e','E','e','E','e','E','e','I','i','I','i','O','o','O','o','O','o','O','o','O','o','O','o','O','o','O','o','O','o','O','o','O','o','O','o','U','u','U','u','U','u','U','u','U','u','U','u','U','u','Y','y','Y','y','Y','y','Y','y'];
+    return mb_strtolower(str_replace($from, $to, $s));
 }
 
-/** His step-0 rule: does the library already hold this song? Closest match first. */
-function kar_dedup_matches(string $title): array {
-    $toks = array_unique(kar_title_tokens($title));
-    if (!$toks) return [];
-    $need = min(2, count($toks));
-    $scored = [];
-    foreach (kar_songs_fresh() as $f) {
-        // Whole-word comparison, never substrings — "gli" living inside "English"
-        // produced false duplicate warnings on the very first live test.
-        $score = count(array_intersect($toks, array_unique(kar_title_tokens($f))));
-        if ($score >= $need) $scored[] = [$score, $f];
+/**
+ * What identifies the song, with the decoration stripped: the library's own trailing
+ * metadata (type, singer codes, Best marker, pitch) and YouTube's.
+ */
+function kar_dup_core(string $name, bool $isFile = false): string {
+    $s = $name;
+    if ($isFile) $s = preg_replace('/\.[A-Za-z0-9]{2,4}$/', '', $s);
+    $s = str_replace(["\u{ff5c}", "\u{2044}", "\u{29f8}"], ['|', '/', '/'], $s);
+    $s = explode('|', $s)[0];
+    if (preg_match(KAR_TYPE_MARK, $s, $m, PREG_OFFSET_CAPTURE)) {
+        $s = substr($s, 0, $m[0][1]);   // the convention: everything after (Type) is singers
     }
-    usort($scored, static fn($a, $b) => $b[0] <=> $a[0] ?: strcasecmp($a[1], $b[1]));
-    return array_map(static fn($r) => pathinfo($r[1], PATHINFO_FILENAME), array_slice($scored, 0, 3));
+    // KEEP what is inside the brackets and strip only the brackets themselves. Deleting the
+    // groups wholesale removed REAL title words and cost three known duplicates in testing:
+    // "I (Who Have Nothing)", "Alone Again (Naturally)", "Historia De Un Amor (Spanish)".
+    // Genuine metadata sits AFTER the (Type) marker and is already gone.
+    $s = preg_replace('/[()\[\]]/', ' ', $s);
+    return trim($s, " -\t");
+}
+
+/**
+ * [artist, title] from a LIBRARY filename, whose convention is "Artist - Title".
+ * ONLY the filename is ever split — a YouTube title is far too messy to parse and is
+ * only ever searched ("Mina   Amor mio karaoke", "One of Us - ABBA | KaraFun").
+ */
+function kar_dup_split(string $cored): array {
+    $p = preg_split('/\s+-\s+/', $cored, 2);
+    return count($p) === 2 ? [$p[0], $p[1]] : ['', $cored];
+}
+
+function kar_dup_toks(string $s): array {
+    preg_match_all('/[a-z0-9]+/', kar_dup_fold($s), $m);
+    $ws = array_values(array_diff($m[0] ?? [], KAR_NOISE_WORDS));
+    // a trailing "2" is a disambiguator, not part of the name
+    while (count($ws) > 1 && preg_match('/^\d{1,2}$/', (string)end($ws))) array_pop($ws);
+    return array_values($ws);
+}
+
+function kar_dup_lev(string $a, string $b, int $cap): int {
+    $la = strlen($a); $lb = strlen($b);
+    if (abs($la - $lb) > $cap) return $cap + 1;
+    $prev = range(0, $lb);
+    for ($i = 1; $i <= $la; $i++) {
+        $cur = [$i];
+        for ($j = 1; $j <= $lb; $j++) {
+            $cur[$j] = min($prev[$j] + 1, $cur[$j-1] + 1,
+                           $prev[$j-1] + ($a[$i-1] !== $b[$j-1] ? 1 : 0));
+        }
+        if (min($cur) > $cap) return $cap + 1;
+        $prev = $cur;
+    }
+    return $prev[$lb];
+}
+
+/**
+ * His "maybe one character is wrong". Short words must be exact: one edit turns "se"
+ * into "si" and "mio" into "mia", which are different words, not typos.
+ */
+function kar_dup_near(string $a, string $b): bool {
+    if ($a === $b) return true;
+    $n = min(strlen($a), strlen($b));
+    if ($n >= 7) return kar_dup_lev($a, $b, 2) <= 2;
+    if ($n >= 4) return kar_dup_lev($a, $b, 1) <= 1;
+    return false;
+}
+
+function kar_dup_has(string $w, array $pool): bool {
+    foreach ($pool as $x) if (kar_dup_near($w, $x)) return true;
+    return false;
+}
+
+/** True only when the SINGER matches AND the SONG TITLE matches. */
+function kar_dup_same(string $incoming, string $filename): bool {
+    $inc = kar_dup_toks(kar_dup_core($incoming));
+    if (!$inc) return false;
+    [$artist, $title] = kar_dup_split(kar_dup_core($filename, true));
+    $ta = kar_dup_toks($artist);
+    $tt = kar_dup_toks($title);
+    if (!$tt) return false;
+    // THE TITLE — every word of it has to be there, in any order, one typo forgiven.
+    foreach ($tt as $w) if (!kar_dup_has($w, $inc)) return false;
+    // A one-word title is only ever accepted on an EXACT match: a single fuzzy hit on a
+    // short word is how "Soli" would come to mean "Sole", and one word is not a song.
+    if (count($tt) === 1 && (strlen($tt[0]) < 4 || !in_array($tt[0], $inc, true))) return false;
+    // THE SINGER — one word of the artist is enough (people write "Morandi", not "Gianni
+    // Morandi"), but the artist can NEVER carry the match on its own: the title test above
+    // has already had to pass, which is the whole point of his correction.
+    if (!$ta) return true;
+    foreach ($ta as $w) if (kar_dup_has($w, $inc)) return true;
+    return false;
+}
+
+/** Every library file that is the same song, closest name first. */
+function kar_dup_scan(string $title, int $limit): array {
+    $want = count(kar_dup_toks(kar_dup_core($title)));
+    $out = [];
+    foreach (kar_songs_fresh() as $f) {
+        if (strcasecmp(pathinfo($f, PATHINFO_FILENAME), 'applause') === 0) continue;
+        if (kar_dup_same($title, $f)) {
+            $out[] = [abs(count(kar_dup_toks(kar_dup_core($f, true))) - $want), $f];
+        }
+    }
+    usort($out, static fn($a, $b) => $a[0] <=> $b[0] ?: strcasecmp($a[1], $b[1]));
+    return array_column(array_slice($out, 0, $limit), 1);
+}
+
+/** His step-0 rule: does the library already hold this song, BEFORE downloading? */
+function kar_dedup_matches(string $title): array {
+    return array_map(static fn($f) => pathinfo($f, PATHINFO_FILENAME), kar_dup_scan($title, 3));
 }
 
 // ---------------------------------------------------------------------------
@@ -1090,18 +1224,9 @@ function kar_claim_name(PDO $db, string $first, string $initial = ''): string {
  * and the display name has the extension stripped off.
  */
 function kar_have_matches(string $title): array {
-    $toks = array_unique(kar_title_tokens($title));
-    if (!$toks) return [];
-    $need = min(2, count($toks));
-    $scored = [];
-    foreach (kar_songs_fresh() as $f) {
-        $score = count(array_intersect($toks, array_unique(kar_title_tokens($f))));
-        if ($score >= $need) $scored[] = [$score, $f];
-    }
-    usort($scored, static fn($a, $b) => $b[0] <=> $a[0] ?: strcasecmp($a[1], $b[1]));
     return array_map(
-        static fn($r) => ['file' => $r[1], 'label' => pathinfo($r[1], PATHINFO_FILENAME)],
-        array_slice($scored, 0, 2));
+        static fn($f) => ['file' => $f, 'label' => pathinfo($f, PATHINFO_FILENAME)],
+        kar_dup_scan($title, 2));
 }
 
 /**
