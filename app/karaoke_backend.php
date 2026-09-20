@@ -1307,10 +1307,23 @@ function kar_installed_version(): string {
 // and must never start reaching into somebody else's folder.
 
 function kar_sync_dir(): ?string {
+    // ⚠ 2026-09-19: this used to trust config['sync_folder'] blindly and @mkdir it. On the Kitchen Mac
+    // that path belonged to ANOTHER Mac (/Users/<other>/My Drive/...), so is_dir() was false, the
+    // mkdir could not create a folder under someone else's home, and sync was silently OFF from
+    // 13 Sep — which is why 439 of its Best entries still named files the 18 Sep rename had
+    // renamed away. The shared folder is always a SIBLING of the songs folder, so derive it the
+    // way kar_sibling_dir() already derives the others, and never create a foreign absolute path.
     $c = kar_cfg();
-    if (empty($c['sync_folder'])) return null;
-    $d = rtrim((string)$c['sync_folder'], '/');
-    if (!is_dir($d)) @mkdir($d, 0755, true);
+    $cands = [];
+    if (!empty($c['sync_folder'])) {
+        $cfgd = rtrim((string)$c['sync_folder'], '/');
+        $cands[] = $cfgd;                                              // as configured
+        $cands[] = dirname(kar_songs_dir()) . '/' . basename($cfgd);   // same name, THIS Mac's Drive
+    }
+    $cands[] = dirname(kar_songs_dir()) . '/@ Karaoke Sync';
+    foreach ($cands as $d) { if ($d !== '' && is_dir($d)) return $d; }
+    $d = end($cands);                 // create only the sibling beside the songs, never someone else's path
+    @mkdir($d, 0755, true);
     return is_dir($d) ? $d : null;
 }
 

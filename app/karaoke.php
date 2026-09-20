@@ -418,7 +418,7 @@ if (!$KAR_LOCAL) {
     <?php if ($KAR_LOCAL): ?>
     <span style="color:#64748b;font-size:12.5px">everything runs on this Mac — nothing to sign in to</span>
     <?php else: ?>
-    <span style="color:#64748b;font-size:12.5px"><a href="/app.php?view=people" style="color:#60A5FA;text-decoration:none">← back to casAI</a></span>
+    <span style="color:#64748b;font-size:12.5px"><a href="/app.php" style="color:#60A5FA;text-decoration:none">← back to casAI</a></span>
     <?php endif; ?>
   </div>
   <?php
