@@ -750,7 +750,8 @@ if (!$KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">While it is playing</h3>
           <ul style="margin:0;padding-left:20px">
             <li>The <b>gold bar</b> controls the song currently playing. It stays at the top of the page as the list scrolls.</li>
-            <li><b>Key</b> and <b>Speed</b> take effect immediately, mid-song.</li>
+            <li><b>Speed</b> takes effect immediately, mid-song, and shows what the player is actually doing. At <b>100%</b> it is quiet green; at anything else it turns <b>amber</b>, and one click on the number puts it straight back to normal. A song that sounds slow or fast is therefore visible on the bar rather than left to guesswork.</li>
+            <li><b>Key</b> sits beside it and also takes effect mid-song. Each song's own starting key is the <b>Pitch</b> box on its row; the key set here is for tonight only and is not saved.</li>
             <li><b>The progress line</b> under the song name shows how far through it is — drag it to move within the song.</li>
             <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> pauses it where it is and becomes <b>▶ Resume</b>.</li>
             <li><b>🎬 Lyrics Screen</b> hides the lyrics window or brings it back. It otherwise stays in front of the browser while a song plays. To end a song, close that window — <b>Q</b> or its red <b>✕</b> on the Mac.</li>
