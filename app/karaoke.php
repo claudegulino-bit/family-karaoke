@@ -728,7 +728,7 @@ if (!$KAR_LOCAL) {
           </label>
           <?php endif; ?>
           <p style="margin:0 0 4px"><b>If something is missing.</b> The installer puts all three components on your Mac already, so you should not need this — only if the check below reports one of them absent. In Terminal:</p>
-          <div style="margin:0 0 4px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#cbd5e1">brew install mpv yt-dlp ffmpeg</div>
+          <div style="margin:0 0 4px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#cbd5e1">brew install php mpv yt-dlp ffmpeg</div>
           <p style="margin:0 0 8px;color:#94a3b8;font-size:12.5px">If the response is <i>command not found: brew</i>, Homebrew itself is missing — run the following first, then repeat the command above:</p>
           <div style="margin:0 0 8px;padding:9px 12px;background:#0d1117;border:1px solid #334155;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#cbd5e1;overflow-x:auto;white-space:nowrap">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</div>
           <button type="button" onclick="karCheckTools()" id="kar-tools-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">✅ Verify installation</button>

@@ -40,17 +40,41 @@ BREW="$(command -v brew || true)"
 [ -z "$BREW" ] && [ -x /usr/local/bin/brew ] && BREW=/usr/local/bin/brew
 if [ -z "$BREW" ]; then
   ok "Homebrew is not on this Mac yet — installing it."
-  ok "It will ask for your Mac password. Nothing appears as you type it; that is normal."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/tty || {
-    echo "   Homebrew would not install. Nothing else was changed."; exit 1; }
+  # ⚠ </dev/tty ONLY EXISTS IN A TERMINAL. Run from the .pkg installer — or any wrapper —
+  # there is no terminal, and that redirect fails outright. So ask for a password the
+  # normal way when a terminal is there, and go non-interactive when it is not.
+  if [ -t 0 ] || [ -e /dev/tty ]; then
+    ok "It will ask for your Mac password. Nothing appears as you type it; that is normal."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" </dev/tty || {
+      echo "   Homebrew would not install. Nothing else was changed."; exit 1; }
+  else
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
+      echo "   Homebrew would not install. Nothing else was changed."; exit 1; }
+  fi
   BREW="$( [ -x /opt/homebrew/bin/brew ] && echo /opt/homebrew/bin/brew || echo /usr/local/bin/brew )"
 fi
 eval "$("$BREW" shellenv)" 2>/dev/null || true
-for t in mpv yt-dlp; do
+# ⚠ FOUR, NOT TWO. Apple REMOVED php from macOS in Monterey (12.0) and Cantoria IS php —
+# with no php the page cannot be served at all and the Desktop icon opens nothing. This
+# installed only mpv and yt-dlp until 2026-09-21; the Macs that worked did so because
+# `brew install php` had been typed by hand. ffmpeg was the same story: without it a
+# download is never codec-checked, so an AV1 file arrives playing sound with no picture.
+FAILED=""
+for t in php mpv yt-dlp ffmpeg; do
   if command -v "$t" >/dev/null 2>&1; then ok "$t — already here"
-  else ok "installing $t…"; "$BREW" install "$t" >/dev/null 2>&1 && ok "$t — installed" || ok "$t — FAILED, the karaoke will not play until this works"
+  else
+    ok "installing $t…"
+    if "$BREW" install "$t" >/dev/null 2>&1; then ok "$t — installed"
+    else ok "$t — FAILED"; FAILED="$FAILED $t"; fi
   fi
 done
+eval "$("$BREW" shellenv)" 2>/dev/null || true
+if ! command -v php >/dev/null 2>&1 && [ ! -x /opt/homebrew/bin/php ] && [ ! -x /usr/local/bin/php ]; then
+  echo "   php would not install, and Cantoria is built on php — it cannot run without it."
+  echo "   Nothing else was changed. Try again when this Mac is online."
+  exit 1
+fi
+[ -n "$FAILED" ] && ok "still missing:$FAILED — say so and it can be finished in a minute"
 
 # ------------------------------------------------------------- 2 · the program
 say "2 of 5 · Cantoria itself"
@@ -86,7 +110,10 @@ on error number -128
 end try' 2>/dev/null | sed 's:/$::')"
 fi
 if [ -n "$SONGS" ] && [ -d "$SONGS" ]; then
-  N="$(ls -1 "$SONGS" 2>/dev/null | grep -icE '\.(mp4|mp3|m4a|mov|avi|m4v|wav|mid|kar)$' || echo 0)"
+  # ⚠ grep -c PRINTS 0 and EXITS 1 when nothing matches, so `|| echo 0` prints a second
+  # zero and N becomes the two-line "0\n0". Ignore grep's status instead.
+  N="$(ls -1 "$SONGS" 2>/dev/null | grep -icE '\.(mp4|mp3|m4a|mov|avi|m4v|wav|mid|kar)$' || :)"
+  case "$N" in ''|*[!0-9]*) N=0 ;; esac
   ok "$N songs found"
 else
   ok "No folder chosen — you can set it later in the Guide, under Setting up the Mac."
@@ -117,7 +144,12 @@ say "4 of 5 · The Desktop icon"
 # ⚠ ORDER MATTERS. osacompile SEALS the bundle, so the icon goes in BEFORE signing and the
 # signature is applied LAST — otherwise macOS refuses to open it as "damaged or incomplete".
 PORT="$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("port","8899"))' "$DEST/karaoke_standalone.json")"
-PHPBIN="$(command -v php || echo /opt/homebrew/bin/php)"
+# Look in Homebrew's own prefixes too: php may have been installed a minute ago by this
+# very script, before the shell's PATH knew about it.
+PHPBIN="$(command -v php || true)"
+[ -z "$PHPBIN" ] && [ -x /opt/homebrew/bin/php ] && PHPBIN=/opt/homebrew/bin/php
+[ -z "$PHPBIN" ] && [ -x /usr/local/bin/php ]    && PHPBIN=/usr/local/bin/php
+[ -z "$PHPBIN" ] && PHPBIN=php
 cat > "$TMP/launch.applescript" <<AS
 on run
 	set theURL to "http://localhost:$PORT/karaoke.php"
