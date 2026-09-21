@@ -1282,6 +1282,11 @@ function kar_name_strip_branding(string $s): string {
         $s = preg_replace_callback('/\(([^()]*)\)/u', $drop, $s);
         $s = preg_replace_callback('/\[([^\[\]]*)\]/u', $drop, $s);
     }
+    /* Removing a phrase from INSIDE a group leaves the separator that joined it to the
+     * rest: "(Karaoke Version - Sanremo 2026)" -> "( - Sanremo 2026)". The brackets are
+     * still balanced, so the orphan check below cannot see it — tidy within the group. */
+    $s = preg_replace('/\(\s*[-–—,;|]+\s*/u', '(', $s);
+    $s = preg_replace('/\s*[-–—,;|]+\s*\)/u', ')', $s);
     $s = preg_replace('/\(\s*\)|\[\s*\]|\{\s*\}/u', ' ', $s);
     /* Stripping a phrase from INSIDE a group leaves an orphan bracket behind:
      * "(Karaoke Version - Sanremo)" -> "( - Sanremo)". Drop a bracket with no partner. */
@@ -1304,17 +1309,21 @@ function kar_detect_type(string $raw): string {
 function kar_convention_name(string $title, ?array $artists = null, string $singers = '', ?string $pitch = null): string {
     $raw = kar_name_clean($title);
     if ($raw === '') return '';
+    /* ⚠ ORDER MATTERS AND IS NOT OBVIOUS: the PITCH comes off first. The singer block
+     * is anchored to the END of the name, so while "(-3)" is still there the singer
+     * regex can never match — "… (Karaoke) CSG (-3)" then kept CSG glued to the title.
+     * Caught 2026-09-20 sizing a bulk rename, on 613 files. Do not swap these back. */
+    if (preg_match('/\s*\(([-+]?\d{1,2})\)\s*([^()]{0,24})?\s*$/u', $raw, $m, PREG_OFFSET_CAPTURE)) {
+        if ($pitch === null) $pitch = $m[1][0];
+        if ($singers === '' && trim($m[2][0] ?? '') !== '') $singers = trim($m[2][0]);
+        $raw = trim(mb_substr($raw, 0, mb_strlen(substr($raw, 0, $m[0][1]))));
+    }
     /* A singer block already sits after the type marker in the library's convention
      * ("… (Karaoke) CSG"). Lift it out, or the branding strip leaves it stuck to the
      * end of the TITLE — which is how "Ave (Karaoke) Maria" came about. */
     if (preg_match('/\((?:Karaoke|Lyrics|Original)\)\s+([A-Za-z][\w\'’ ]{0,40})$/u', $raw, $ms, PREG_OFFSET_CAPTURE)) {
         if ($singers === '') $singers = trim($ms[1][0]);
         $raw = trim(mb_substr($raw, 0, mb_strlen(substr($raw, 0, $ms[1][1]))));
-    }
-    if (preg_match('/\s*\(([-+]?\d{1,2})\)\s*([^()]{0,24})?\s*$/u', $raw, $m, PREG_OFFSET_CAPTURE)) {
-        if ($pitch === null) $pitch = $m[1][0];
-        if ($singers === '' && trim($m[2][0] ?? '') !== '') $singers = trim($m[2][0]);
-        $raw = trim(mb_substr($raw, 0, mb_strlen(substr($raw, 0, $m[0][1]))));
     }
     $typ = kar_detect_type($raw);
     $s   = kar_name_strip_branding($raw);
