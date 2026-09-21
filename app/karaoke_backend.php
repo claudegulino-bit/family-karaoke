@@ -628,7 +628,7 @@ function kar_mc_voice(): string {
  *
  * Measured against the owner's real 2,058-song library: artist AND title both correct on 97%.
  * Everything stripped here describes the FILE, never the song — pitch markers like (-3),
- * CSG codes, the karaoke singers' own names, [C]/[D] key tags, USA1/2/3 numbering, and words
+ * the singer code codes, the karaoke singers' own names, [C]/[D] key tags, USA1/2/3 numbering, and words
  * such as Video, Lyrics, Testo, Cori, Karaoke. */
 function kar_title_artist(string $file): array {
     $junk = 'lyrics?|letras?|testo|testi|karaokes?|official|video|audio|hd|hq|4k|instrumental|base|'
@@ -1311,7 +1311,7 @@ function kar_convention_name(string $title, ?array $artists = null, string $sing
     if ($raw === '') return '';
     /* ⚠ ORDER MATTERS AND IS NOT OBVIOUS: the PITCH comes off first. The singer block
      * is anchored to the END of the name, so while "(-3)" is still there the singer
-     * regex can never match — "… (Karaoke) CSG (-3)" then kept CSG glued to the title.
+     * regex can never match — "… (Karaoke) ABC (-3)" then kept the code glued to the title.
      * Caught 2026-09-20 sizing a bulk rename, on 613 files. Do not swap these back. */
     if (preg_match('/\s*\(([-+]?\d{1,2})\)\s*([^()]{0,24})?\s*$/u', $raw, $m, PREG_OFFSET_CAPTURE)) {
         if ($pitch === null) $pitch = $m[1][0];
@@ -1319,7 +1319,7 @@ function kar_convention_name(string $title, ?array $artists = null, string $sing
         $raw = trim(mb_substr($raw, 0, mb_strlen(substr($raw, 0, $m[0][1]))));
     }
     /* A singer block already sits after the type marker in the library's convention
-     * ("… (Karaoke) CSG"). Lift it out, or the branding strip leaves it stuck to the
+     * ("… (Karaoke) ABC"). Lift it out, or the branding strip leaves it stuck to the
      * end of the TITLE — which is how "Ave (Karaoke) Maria" came about. */
     if (preg_match('/\((?:Karaoke|Lyrics|Original)\)\s+([A-Za-z][\w\'’ ]{0,40})$/u', $raw, $ms, PREG_OFFSET_CAPTURE)) {
         if ($singers === '') $singers = trim($ms[1][0]);
