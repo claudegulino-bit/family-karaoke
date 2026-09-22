@@ -193,6 +193,12 @@ if [ "$AUTOSTART" = "yes" ]; then
 <plist version="1.0">
 <dict>
   <key>Label</key><string>com.familykaraoke.server</string>
+  <!-- ⚠ Without this key, launchd can place the job outside the real GUI
+       (Aqua) session — especially likely if bootstrap fell through to the legacy
+       launchctl load below. mpv then opens a WINDOW but cannot actually play
+       video through it: it comes up idle, the song never loads, and nothing
+       in mpv's own log says why. Found and traced on the M4, 2026-09-21. -->
+  <key>LimitLoadToSessionType</key><string>Aqua</string>
   <key>ProgramArguments</key>
   <array>
     <string>/usr/bin/caffeinate</string><string>-s</string>

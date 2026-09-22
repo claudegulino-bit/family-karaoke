@@ -6,7 +6,7 @@
 // Caps: 3 waiting songs per name, 50 waiting total. The host runs the line from karaoke.php.
 //
 // Two worlds, one page (2026-09-08): on casAI the guests reach it over the internet at
-// the hosted server; on a standalone Mac they reach the Mac itself on the house Wi-Fi. What a
+// the shared server; on a standalone Mac they reach the Mac itself on the house Wi-Fi. What a
 // guest can do is identical, and identically small.
 require_once __DIR__ . '/karaoke_backend.php';
 $KAR_LOCAL = kar_is_local();
