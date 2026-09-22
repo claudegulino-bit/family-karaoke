@@ -63,7 +63,12 @@ FAILED=""
 for t in php mpv yt-dlp ffmpeg; do
   if command -v "$t" >/dev/null 2>&1; then ok "$t — already here"
   else
-    ok "installing $t…"
+    # ⚠ BRACES ARE LOAD-BEARING. macOS ships /bin/bash 3.2, and under a UTF-8 locale
+    # it parses `$t…` as a variable NAMED `t…` — `set -u` then kills the script.
+    # A fresh Mac has no Homebrew bash, so `| bash` IS 3.2. This line only runs when a
+    # tool is MISSING, so it never fired on a Mac that already had them — which is why
+    # it survived until the first genuinely new Mac (2026-09-22). Do not remove the {}.
+    ok "installing ${t}…"
     if "$BREW" install "$t" >/dev/null 2>&1; then ok "$t — installed"
     else ok "$t — FAILED"; FAILED="$FAILED $t"; fi
   fi
