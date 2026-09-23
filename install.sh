@@ -34,6 +34,46 @@ ok()  { printf "   %s\n" "$1"; }
 say "Cantoria — setting up this Mac"
 
 # ---------------------------------------------------------------- 1 · the tools
+# ---------------------------------------------------- 0 · preflight
+# ⚠ THIS RUNS BEFORE ANYTHING IS INSTALLED, and it exists because of 2026-09-22:
+# an afternoon was spent installing onto a 2018 INTEL Mac mini before anyone checked
+# the chip. Homebrew no longer ships macOS Intel bottles, so every tool would have had
+# to compile from source. Ten seconds of looking would have saved the whole session.
+say "Checking this Mac"
+ARCH="$(uname -m)"
+if [ "$ARCH" != "arm64" ]; then
+  echo "   This is an Intel Mac ($ARCH). Homebrew no longer publishes ready-built"
+  echo "   packages for Intel macOS, so php, mpv and ffmpeg would each have to be"
+  echo "   compiled from source - hours of work, and it usually fails partway."
+  echo "   Cantoria needs an Apple Silicon Mac (M1 or newer). Nothing was changed."
+  exit 1
+fi
+ok "Apple Silicon — good"
+if ! curl -fsS -m 10 -o /dev/null https://formulae.brew.sh/api/formula/php.json 2>/dev/null; then
+  echo "   This Mac cannot reach the internet, and the installer needs to download"
+  echo "   php and mpv. Connect to Wi-Fi and run this again. Nothing was changed."
+  exit 1
+fi
+ok "online — good"
+# An orphaned Homebrew is invisible until an install silently fails: `ls` prints a bare
+# UID where a username should be, because the account that installed it is gone.
+PREBREW="$(command -v brew || true)"
+if [ -n "$PREBREW" ]; then
+  BPFX="$(dirname "$(dirname "$PREBREW")")"
+  BOWN="$(stat -f '%Su' "$BPFX/Cellar" 2>/dev/null || stat -f '%Su' "$BPFX" 2>/dev/null || echo '')"
+  if [ -n "$BOWN" ] && [ "$BOWN" != "$(whoami)" ]; then
+    echo "   Homebrew is here but belongs to another account ('$BOWN'), so this one"
+    echo "   cannot install anything with it. That happens when the Mac's original"
+    echo "   user was deleted. Fix it with this one line, then run the installer again:"
+    echo ""
+    echo "     sudo chown -R \"\$(whoami):admin\" $BPFX"
+    echo ""
+    echo "   Nothing was changed."
+    exit 1
+  fi
+  ok "Homebrew — yours, good"
+fi
+
 say "1 of 5 · The player"
 BREW="$(command -v brew || true)"
 [ -z "$BREW" ] && [ -x /opt/homebrew/bin/brew ] && BREW=/opt/homebrew/bin/brew
@@ -60,6 +100,7 @@ eval "$("$BREW" shellenv)" 2>/dev/null || true
 # `brew install php` had been typed by hand. ffmpeg was the same story: without it a
 # download is never codec-checked, so an AV1 file arrives playing sound with no picture.
 FAILED=""
+TOOLLOG="$(mktemp -t cantoria-tool)"
 for t in php mpv yt-dlp ffmpeg; do
   if command -v "$t" >/dev/null 2>&1; then ok "$t — already here"
   else
@@ -69,8 +110,20 @@ for t in php mpv yt-dlp ffmpeg; do
     # tool is MISSING, so it never fired on a Mac that already had them — which is why
     # it survived until the first genuinely new Mac (2026-09-22). Do not remove the {}.
     ok "installing ${t}…"
-    if "$BREW" install "$t" >/dev/null 2>&1; then ok "$t — installed"
-    else ok "$t — FAILED"; FAILED="$FAILED $t"; fi
+    # ⚠ TWO BUGS LIVED HERE UNTIL 2026-09-23, both found on a genuinely fresh Mac.
+    #  (a) output went to /dev/null, so a failure could only ever say "FAILED" with no
+    #      reason. It cost three rounds of guesswork to find an orphaned Homebrew.
+    #      Now it goes to a log and the real error is PRINTED when the step fails.
+    #  (b) Homebrew 7 asks "Do you want to proceed? [y/n]" before pulling dependencies.
+    #      Under `curl ... | bash` the script's stdin IS THE PIPE, so that question can
+    #      never be answered and brew gives up. NONINTERACTIVE + </dev/null settle it.
+    if NONINTERACTIVE=1 HOMEBREW_NO_ENV_HINTS=1 "$BREW" install "$t" > "$TOOLLOG" 2>&1 </dev/null; then
+      ok "$t — installed"
+    else
+      ok "$t — FAILED. Homebrew said:"
+      sed 's/^/        /' "$TOOLLOG" | tail -12
+      FAILED="$FAILED $t"
+    fi
   fi
 done
 eval "$("$BREW" shellenv)" 2>/dev/null || true
