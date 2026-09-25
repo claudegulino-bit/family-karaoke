@@ -885,7 +885,7 @@ if (!$KAR_LOCAL) {
             <rect x="<?= $_x0 ?>" y="<?= $_sy ?>" width="<?= $_cw ?>" height="<?= $_sh ?>" rx="12" fill="<?= $_sc['fi'] ?>" stroke="<?= $_sc['st'] ?>" stroke-width="1.6"/>
             <text x="<?= $_mid ?>" y="<?= $_sy + 21 ?>" text-anchor="middle" fill="<?= $_sc['nm'] ?>" font-family="inherit" font-size="14" font-weight="800">🎵 One songs folder in Google Drive — shared by my own Macs only</text>
             <?php /* ⚠ the band is $_cw (652px) wide: a sub-line past ~110 characters at 12px is clipped at the right edge, silently. */ ?>
-            <text x="<?= $_mid ?>" y="<?= $_sy + 39 ?>" text-anchor="middle" fill="<?= $_sc['cp'] ?>" font-family="inherit" font-size="12">the laptop and my two minis see the same songs · everyone else keeps their own copy</text>
+            <text x="<?= $_mid ?>" y="<?= $_sy + 39 ?>" text-anchor="middle" fill="<?= $_sc['cp'] ?>" font-family="inherit" font-size="12">the laptop and my minis see the same songs · everyone else keeps their own copy</text>
           </svg>
           <p style="margin:-2px 0 14px;color:#94a3b8;font-size:12px;text-align:center">Arrows show the order in which a release reaches each computer, not a network connection, and the dotted lines indicate the shared songs folder rather than a connection. Each Mac installs its own update; nothing is pushed from here.</p>
 
@@ -2718,11 +2718,24 @@ function karPickFolder(){
             if (r.status === 'Error' || !(r.results || []).length) {
               say('#94a3b8', 'Nothing found on YouTube for &ldquo;' + karEsc(q) + '&rdquo;.'); return;
             }
-            KAR_YT_HITS = r.results;
+            KAR_YT_HITS = r.results; KAR_SY_OPEN = -1; KAR_SY_SEEN = {}; KAR_SY_GOT = {};
             karSimpleYtRender();
           }).catch(function(){});
         }, 1200);
       }).catch(function(){ say('#f87171', 'Network hiccup - try again.'); });
+    }
+    // ── Which result is which, after a trip to YouTube ──────────────────────────────────────
+    // the owner, 2026-09-24, on the M4: "if I say watch it... when I go back, I don't know which
+    // song is playing... there are so many songs on the list." So the row he last opened stays
+    // LIT (red rail, "now playing on YouTube"), every row he opened before keeps a grey
+    // "watched" mark, and a row he fetched turns green. Held in state, not in the DOM, so a
+    // re-render cannot wipe them - the same lesson as the Downloads panel's trail (2026-09-14).
+    var KAR_SY_OPEN = -1, KAR_SY_SEEN = {}, KAR_SY_GOT = {};
+    function karSimpleWatch(i){
+      KAR_SY_OPEN = i; KAR_SY_SEEN[i] = 1;
+      var l = document.getElementById('kar-list'), top = l ? l.scrollTop : 0;
+      karSimpleYtRender();
+      if (l) l.scrollTop = top;
     }
     function karSimpleYtRender(){
       // ⚠ NO CAP. EVERY result is shown. The Mac fetches 30 and a cap here throws the rest
@@ -2731,10 +2744,16 @@ function karPickFolder(){
       // this one kept its own at 8 until he searched Celentano and got eight songs
       // (2026-09-18). If you are about to add slice() here, don't.
       var out = KAR_YT_HITS.map(function(h, i){
-        return '<div class="kar-row" style="display:flex;align-items:center;gap:14px;padding:10px 6px;border-top:1px solid #1e293b">'
-          + '<button type="button" onclick="karSimpleGet(' + i + ',this)" style="font-family:inherit;flex:0 0 auto;width:130px;cursor:pointer;'
-          + 'font-size:15px;font-weight:800;padding:10px 0;border-radius:8px;background:rgba(22,163,74,.18);border:1px solid #16a34a;color:#6ee7b7">Get this one</button>'
-          + '<a href="' + karEscA(h.url) + '" target="_blank" rel="noopener" title="Listen to it on YouTube first" style="flex:0 0 auto;font-family:inherit;text-decoration:none;font-size:14px;font-weight:800;padding:10px 14px;border-radius:8px;background:rgba(239,68,68,.14);border:1px solid #EF4444;color:#fca5a5">▶ Watch</a>'
+        var st = KAR_SY_GOT[i] ? 'got' : (i === KAR_SY_OPEN ? 'open' : (KAR_SY_SEEN[i] ? 'seen' : ''));
+        var rail = st === 'got' ? '#16a34a' : (st === 'open' ? '#EF4444' : (st === 'seen' ? '#64748b' : 'transparent'));
+        var bg   = st === 'got' ? 'rgba(22,163,74,.10)' : (st === 'open' ? 'rgba(239,68,68,.12)' : 'transparent');
+        var tag  = st === 'got'  ? '<div style="color:#6ee7b7;font-size:13px;font-weight:700;margin-top:4px">&#10003; downloading this one</div>'
+                 : st === 'open' ? '<div style="color:#fca5a5;font-size:13px;font-weight:800;margin-top:4px">&#9654; this is the one playing on YouTube now</div>'
+                 : st === 'seen' ? '<div style="color:#94a3b8;font-size:12.5px;margin-top:4px">&#10003; watched</div>' : '';
+        return '<div class="kar-row" style="display:flex;align-items:center;gap:14px;padding:10px 6px;border-top:1px solid #1e293b;border-left:4px solid ' + rail + ';background:' + bg + '">'
+          + '<button type="button"' + (st === 'got' ? ' disabled' : '') + ' onclick="karSimpleGet(' + i + ',this)" style="font-family:inherit;flex:0 0 auto;width:130px;cursor:pointer;'
+          + 'font-size:15px;font-weight:800;padding:10px 0;border-radius:8px;background:rgba(22,163,74,.18);border:1px solid #16a34a;color:#6ee7b7">' + (st === 'got' ? 'Downloading…' : 'Get this one') + '</button>'
+          + '<a href="' + karEscA(h.url) + '" target="_blank" rel="noopener" onclick="karSimpleWatch(' + i + ')" title="Listen to it on YouTube first" style="flex:0 0 auto;font-family:inherit;text-decoration:none;font-size:14px;font-weight:800;padding:10px 14px;border-radius:8px;background:rgba(239,68,68,.14);border:1px solid #EF4444;color:#fca5a5">▶ Watch</a>'
           + '<img src="' + karEscA(h.thumb) + '" alt="" style="flex:0 0 auto;width:96px;height:54px;object-fit:cover;border-radius:5px;background:#1e293b">'
           + '<span style="font-size:17px;color:#e2e8f0;line-height:1.35">' + karEsc(h.title)
           // ⚠ KEEP THIS. The server already tells us which songs he owns that look like this one
@@ -2744,6 +2763,7 @@ function karPickFolder(){
           + ((h.have && h.have.length)
              ? '<div style="color:#D2AD6C;font-size:13px;margin-top:4px">&#9888; you may already have this &mdash; ' + karEsc(h.have[0].label) + '</div>'
              : '')
+          + tag
           + '</span></div>';
       }).join('');
       document.getElementById('kar-list').innerHTML =
@@ -2758,6 +2778,9 @@ function karPickFolder(){
         if (!d.ok) { btn.disabled = false; btn.textContent = 'Get this one';
           alert('Could not fetch that song' + (d.error ? ': ' + d.error : '') + '.'); return; }
         btn.textContent = 'Downloading…';
+        KAR_SY_GOT[i] = 1;
+        var l = document.getElementById('kar-list'), top = l ? l.scrollTop : 0;
+        karSimpleYtRender(); if (l) l.scrollTop = top;
         // It lands in the arrival strip under the search box, with a Play button on it.
         // This used to set the search box to the file's own name instead. That worked, but it
         // threw away whatever he was looking for, and a filtered list is not "click and play" -
