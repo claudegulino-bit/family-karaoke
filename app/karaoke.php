@@ -244,13 +244,14 @@ if (!$KAR_LOCAL) {
   #kar-sm-yt:hover   { background:#E00000; border-color:#E00000; color:#FFFFFF; }
   #kar-sm-yt.kar-on  { background:#CC0000; border-color:#FFFFFF; color:#FFFFFF; box-shadow:0 0 0 2px rgba(255,255,255,.35); }
   .kar-chip.kar-on, .kar-smode.kar-on { background:#3D536F; color:#CDE8FF; border-color:#A9D9FF; }
-  /* SONG DATABASE is VIOLET with a vinyl record — the owner, 2026-09-26: tried teal (option B)
-     first, "I don't like the green that much", switched to option A. BOTH Song Database buttons
-     (the list, and the search mode) wear it so they read as one library. */
-  #kar-chip-db, #kar-sm-list          { background:linear-gradient(135deg,#7c3aed,#4c1d95); border-color:#a78bfa; color:#fff; font-weight:600; gap:6px; letter-spacing:.01em; }   /* 800 → 600: "too bold… make it lighter, more clear" (2026-09-26) */
-  #kar-chip-db:hover, #kar-sm-list:hover { background:linear-gradient(135deg,#8b5cf6,#5b21b6); color:#fff; }
-  #kar-chip-db.kar-on, #kar-sm-list.kar-on { border-color:#c4b5fd; box-shadow:0 0 0 2px rgba(196,181,253,.38); color:#fff; }
-  #kar-chip-db .kar-cnt               { background:rgba(255,255,255,.22); color:#fff; }
+  /* SONG DATABASE is MINT GREEN — the exact green of the Tempo "100%" (#6ee7b7), in the same
+     tint-plus-mint recipe as the Play and Guide buttons. History, all 2026-09-26: teal (rejected,
+     "don't like the green that much"), violet (rejected, "purple does not match with the red"),
+     then this: "the same green that you have in the 100% number in the tempo". */
+  #kar-chip-db, #kar-sm-list          { background:rgba(110,231,183,.14); border-color:rgba(110,231,183,.55); color:#6ee7b7; font-weight:600; gap:6px; letter-spacing:.01em; }
+  #kar-chip-db:hover, #kar-sm-list:hover { background:rgba(110,231,183,.24); color:#a7f3d0; }
+  #kar-chip-db.kar-on, #kar-sm-list.kar-on { background:rgba(110,231,183,.22); border-color:#6ee7b7; box-shadow:0 0 0 2px rgba(110,231,183,.28); color:#6ee7b7; }
+  #kar-chip-db .kar-cnt               { background:rgba(110,231,183,.22); color:#d1fae5; }
   /* the three modes sit inside the field, so they run one size smaller — colour is shared above */
   /* All three the same width — the owner, 2026-09-18: "song database, YouTube, a link, they
      need to be the same size." Sized to the longest label; justify-content centres the short
@@ -493,7 +494,7 @@ if (!$KAR_LOCAL) {
       <!-- The three lists. Emerald when chosen — the same green as Play, because these are the
            songs you play. Colours come from CSS on .kar-chip, NEVER inline from karSwitch. -->
       <div id="kar-listbar" style="flex:0 0 auto;display:flex;align-items:center;gap:7px">
-        <button type="button" id="kar-chip-db" class="kar-chip kar-on" onclick="karSwitch('db',this)" title="Every song in the library"><svg class="kar-vinyl" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" style="flex:0 0 auto"><circle cx="12" cy="12" r="10.5" fill="#111"/><circle cx="12" cy="12" r="8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="5.8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="3.6" fill="#f0abfc"/><circle cx="12" cy="12" r="1" fill="#111"/><path d="M6 7.5 A7.5 7.5 0 0 1 12 4.5" stroke="#fff" stroke-opacity=".35" stroke-width="1.2" fill="none"/></svg>Song Database <span id="kar-db-count" class="kar-cnt"><?= count($_kjDb) ?></span></button>
+        <button type="button" id="kar-chip-db" class="kar-chip kar-on" onclick="karSwitch('db',this)" title="Every song in the library"><svg class="kar-vinyl" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" style="flex:0 0 auto"><circle cx="12" cy="12" r="10.5" fill="#111"/><circle cx="12" cy="12" r="8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="5.8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="3.6" fill="#6ee7b7"/><circle cx="12" cy="12" r="1" fill="#111"/><path d="M6 7.5 A7.5 7.5 0 0 1 12 4.5" stroke="#fff" stroke-opacity=".35" stroke-width="1.2" fill="none"/></svg>Song Database <span id="kar-db-count" class="kar-cnt"><?= count($_kjDb) ?></span></button>
         <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away"><span style="font-size:15px">&#x1F195;</span>New Songs <span id="kar-new-count" class="kar-cnt"><?= count($_kjNew) ?></span></button>
         <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Which singer&#39;s songs to show — the ones they know. Pick a name, or add a new person.">
           <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
@@ -517,7 +518,7 @@ if (!$KAR_LOCAL) {
           <span id="kar-sicon" style="flex:0 0 auto;font-size:14px;line-height:1;pointer-events:none;opacity:.65">&#x1F50D;</span>
           <input id="kar-search" type="text" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type here. Esc clears it." style="flex:1;min-width:50px;background:none;border:none;outline:none;color:#e2e8f0;font-size:14px;font-weight:600;padding:0">
           <span style="flex:0 0 auto;display:flex;align-items:center;gap:3px">
-            <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the song database — the songs you already have"><svg class="kar-vinyl" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="flex:0 0 auto"><circle cx="12" cy="12" r="10.5" fill="#111"/><circle cx="12" cy="12" r="8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="5.8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="3.6" fill="#f0abfc"/><circle cx="12" cy="12" r="1" fill="#111"/><path d="M6 7.5 A7.5 7.5 0 0 1 12 4.5" stroke="#fff" stroke-opacity=".35" stroke-width="1.2" fill="none"/></svg>Song Database</button>
+            <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the song database — the songs you already have"><svg class="kar-vinyl" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="flex:0 0 auto"><circle cx="12" cy="12" r="10.5" fill="#111"/><circle cx="12" cy="12" r="8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="5.8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="3.6" fill="#6ee7b7"/><circle cx="12" cy="12" r="1" fill="#111"/><path d="M6 7.5 A7.5 7.5 0 0 1 12 4.5" stroke="#fff" stroke-opacity=".35" stroke-width="1.2" fill="none"/></svg>Song Database</button>
             <button type="button" class="kar-smode" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">▶&#xFE0E; YouTube</button>
             <button type="button" class="kar-smode" id="kar-sm-link" onclick="karSetMode('link')" title="Paste a link somebody gave you and download it"><span style="text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:2px">Link</span><svg class="kar-hand" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" style="vertical-align:-5px;margin-left:3px"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v4.5c0 3.6-2.4 6.5-6 6.5h-.8c-2 0-3.4-.8-4.6-2.3L4.4 16.3a1.6 1.6 0 0 1 2.4-2.1L9 16.5V11" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </span>
