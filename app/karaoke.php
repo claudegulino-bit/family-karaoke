@@ -247,7 +247,7 @@ if (!$KAR_LOCAL) {
   /* SONG DATABASE is VIOLET with a vinyl record — the owner, 2026-09-26: tried teal (option B)
      first, "I don't like the green that much", switched to option A. BOTH Song Database buttons
      (the list, and the search mode) wear it so they read as one library. */
-  #kar-chip-db, #kar-sm-list          { background:linear-gradient(135deg,#7c3aed,#4c1d95); border-color:#a78bfa; color:#fff; font-weight:800; gap:6px; }
+  #kar-chip-db, #kar-sm-list          { background:linear-gradient(135deg,#7c3aed,#4c1d95); border-color:#a78bfa; color:#fff; font-weight:600; gap:6px; letter-spacing:.01em; }   /* 800 → 600: "too bold… make it lighter, more clear" (2026-09-26) */
   #kar-chip-db:hover, #kar-sm-list:hover { background:linear-gradient(135deg,#8b5cf6,#5b21b6); color:#fff; }
   #kar-chip-db.kar-on, #kar-sm-list.kar-on { border-color:#c4b5fd; box-shadow:0 0 0 2px rgba(196,181,253,.38); color:#fff; }
   #kar-chip-db .kar-cnt               { background:rgba(255,255,255,.22); color:#fff; }
