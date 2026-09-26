@@ -244,14 +244,14 @@ if (!$KAR_LOCAL) {
   #kar-sm-yt:hover   { background:#E00000; border-color:#E00000; color:#FFFFFF; }
   #kar-sm-yt.kar-on  { background:#CC0000; border-color:#FFFFFF; color:#FFFFFF; box-shadow:0 0 0 2px rgba(255,255,255,.35); }
   .kar-chip.kar-on, .kar-smode.kar-on { background:#3D536F; color:#CDE8FF; border-color:#A9D9FF; }
-  /* SONG DATABASE is MINT GREEN — the exact green of the Tempo "100%" (#6ee7b7), in the same
-     tint-plus-mint recipe as the Play and Guide buttons. History, all 2026-09-26: teal (rejected,
-     "don't like the green that much"), violet (rejected, "purple does not match with the red"),
-     then this: "the same green that you have in the 100% number in the tempo". */
-  #kar-chip-db, #kar-sm-list          { background:rgba(110,231,183,.14); border-color:rgba(110,231,183,.55); color:#6ee7b7; font-weight:600; gap:6px; letter-spacing:.01em; }
-  #kar-chip-db:hover, #kar-sm-list:hover { background:rgba(110,231,183,.24); color:#a7f3d0; }
-  #kar-chip-db.kar-on, #kar-sm-list.kar-on { background:rgba(110,231,183,.22); border-color:#6ee7b7; box-shadow:0 0 0 2px rgba(110,231,183,.28); color:#6ee7b7; }
-  #kar-chip-db .kar-cnt               { background:rgba(110,231,183,.22); color:#d1fae5; }
+  /* SONG DATABASE is a DARK GREEN BOX with WHITE text and a WHITE border (the owner, 2026-09-26,
+     after teal, violet and a mint tint: "use the darker green for the box and white text…
+     maybe the line around the box should be white also" — then "it needs to be darker").
+     Emerald #047857, same family as Play/Guide/Tempo, dark enough for white lettering. */
+  #kar-chip-db, #kar-sm-list          { background:#047857; border-color:#ffffff; color:#ffffff; font-weight:600; gap:6px; letter-spacing:.01em; }
+  #kar-chip-db:hover, #kar-sm-list:hover { background:#065f46; color:#ffffff; }
+  #kar-chip-db.kar-on, #kar-sm-list.kar-on { background:#047857; border-color:#ffffff; box-shadow:0 0 0 2px rgba(255,255,255,.30); color:#ffffff; }
+  #kar-chip-db .kar-cnt               { background:rgba(255,255,255,.22); color:#ffffff; }
   /* the three modes sit inside the field, so they run one size smaller — colour is shared above */
   /* All three the same width — the owner, 2026-09-18: "song database, YouTube, a link, they
      need to be the same size." Sized to the longest label; justify-content centres the short
