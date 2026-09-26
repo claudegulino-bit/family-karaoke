@@ -21,6 +21,15 @@ if (!kar_is_local()) {
     exit;
 }
 
+// A singer's photo, for the preview in the singer window. GET so an <img> can load it.
+if (isset($_GET['singer_photo'])) {
+    $f = kar_singer_photo((string)$_GET['singer_photo']);
+    if ($f === '') { http_response_code(404); exit; }
+    header('Content-Type: image/jpeg');
+    readfile($f);
+    exit;
+}
+
 $ft = (string)($_POST['form_type'] ?? '');
 $db = kar_db();
 
@@ -52,6 +61,75 @@ try {
             ? kar_play_qmidi($song, $pitch)
             : kar_play($song, $pitch);
         kj(['ok'=>$ok, 'error'=>$ok ? '' : $note, 'note'=>$note]);
+    }
+
+    // ---------------------------------------------------------------- singers
+    // The singer window: short name (the menu), full name (the announcer), Man/Woman (which
+    // intro video — the person singing, never who recorded the song), and a photo.
+    case 'karaoke_singer_get': {
+        $name = trim((string)($_POST['name'] ?? ''));
+        if ($name === '') kj(['ok'=>false,'error'=>'no name']);
+        $s = kar_singer($name);
+        [$state] = kar_intro_state($name);
+        $err = '';
+        if ($state === 'failed' && $s) {
+            $e = $db->prepare('SELECT error FROM karaoke_intros WHERE name=? ORDER BY rendered_at DESC LIMIT 1');
+            $e->execute([$s['name']]); $err = (string)$e->fetchColumn();
+        }
+        kj(['ok'=>true, 'name'=>$s['name'] ?? $name, 'full_name'=>(string)($s['full_name'] ?? ''),
+            'variant'=>(string)($s['variant'] ?? ''), 'has_photo'=>kar_singer_photo($name) !== '',
+            'intro'=>$state, 'intro_error'=>$err, 'engine'=>kar_fx_on(),
+            'photo_v'=>(string)($s['photo_hash'] ?? '')]);
+    }
+
+    case 'karaoke_singers_state': {
+        $out = [];
+        foreach ($db->query('SELECT name FROM karaoke_singers') as $r) {
+            [$state] = kar_intro_state($r['name']);
+            $out[$r['name']] = ['photo'=>kar_singer_photo($r['name']) !== '', 'intro'=>$state];
+        }
+        kj(['ok'=>true, 'singers'=>(object)$out, 'engine'=>kar_fx_on()]);
+    }
+
+    case 'karaoke_singer_save': {
+        $name = trim((string)($_POST['name'] ?? ''));
+        if ($name === '' || mb_strlen($name) > 40) kj(['ok'=>false,'error'=>'A name is needed (40 characters at most).']);
+        $full = trim((string)($_POST['full_name'] ?? ''));
+        if (mb_strlen($full) > 80) kj(['ok'=>false,'error'=>'The full name is too long.']);
+        $var = (string)($_POST['variant'] ?? '');
+        if (!in_array($var, ['', 'male', 'female'], true)) $var = '';
+        // The photo first: if it is refused, nothing else is changed either.
+        if (!empty($_FILES['photo']['tmp_name']) && is_uploaded_file($_FILES['photo']['tmp_name'])) {
+            [$okp, $msg] = kar_singer_set_photo($name, $_FILES['photo']['tmp_name']);
+            if (!$okp) kj(['ok'=>false, 'error'=>$msg]);
+        } elseif (!empty($_POST['remove_photo'])) {
+            kar_singer_remove_photo($name);
+        }
+        $db->prepare("INSERT INTO karaoke_singers (name, full_name, variant) VALUES (?,?,?)
+                      ON CONFLICT(name) DO UPDATE SET full_name=excluded.full_name, variant=excluded.variant")
+           ->execute([$name, $full !== '' ? $full : null, $var]);
+        kar_log('singer', "saved $name" . ($full !== '' ? " ($full)" : '') . ($var !== '' ? ", $var" : ''));
+        kar_intro_spawn($name);
+        [$state] = kar_intro_state($name);
+        kj(['ok'=>true, 'intro'=>$state, 'has_photo'=>kar_singer_photo($name) !== '']);
+    }
+
+    // Plays this singer's intro now, on its own, to check how it looks — no song, no queue.
+    case 'karaoke_intro_test': {
+        $name = trim((string)($_POST['name'] ?? ''));
+        [$state, $path] = kar_intro_state($name);
+        if ($state !== 'ready') kj(['ok'=>false, 'error'=>'This singer\'s intro is not ready yet.']);
+        if (kar_mpv_alive()) {
+            kar_mpv_send(['set_property', 'loop-file', 'no']);
+            kar_mpv_send(['set_property', 'vid', 'auto']);
+            kar_mpv_send(['set_property', 'pause', false]);
+            kar_mpv_send(['loadfile', $path, 'replace']);
+        } else {
+            @exec(escapeshellarg(kar_tool('mpv')) . ' --input-ipc-server=' . escapeshellarg(KAR_MPV_SOCK)
+                . ' --geometry=55%x70%-0+60 --idle=yes --keep-open=always' . (kar_words_on_top() ? ' --ontop' : '')
+                . ' ' . escapeshellarg($path) . ' >/dev/null 2>&1 &');
+        }
+        kj(['ok'=>true]);
     }
 
     case 'karaoke_stop':
@@ -304,6 +382,9 @@ try {
             } elseif ($ft === 'karaoke_q_clear') {
                 $db->exec('DELETE FROM karaoke_sing_queue');
             }
+            // A singer joining the queue with a photo but no intro yet: start it now, so it is
+            // most likely ready by their turn. Cheap no-op when it is ready or already running.
+            if ($ft === 'karaoke_q_add' && !empty($singer)) { try { kar_intro_spawn($singer); } catch (Throwable $e) { } }
             kj(['ok'=>true, 'error'=>'', 'queue'=>$qState(), 'sung'=>(object)$qSung()]);
         } catch (Throwable $qe) {
             kj(['ok'=>false, 'error'=>$qe->getMessage(), 'queue'=>$qState(), 'sung'=>(object)$qSung()]);

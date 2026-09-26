@@ -45,8 +45,10 @@ if ($job === 'announce') {
     $song   = (string)($spec['song'] ?? '');
     $singer = (string)($spec['singer'] ?? '');
     if ($song === '' || $singer === '') exit;
-    // Announced and shown as the person, not the list: "Claude — practice" says "Claude".
-    if (function_exists('kar_mc_name')) $singer = kar_mc_name($singer);
+    // Announced and shown as the person, not the list: "Claude — practice" says "Claude" —
+    // and by their FULL name when one is set ("Maria Rossi", the owner 2026-09-26).
+    if (function_exists('kar_singer_spoken')) $singer = kar_singer_spoken($singer);
+    elseif (function_exists('kar_mc_name'))  $singer = kar_mc_name($singer);
 
     // Nothing below may stop the music. If any step fails, put the volume back and let
     // the song play — a party does not care that the announcer failed.
@@ -67,8 +69,16 @@ if ($job === 'announce') {
         }
         if (!kar_mpv_alive()) throw new RuntimeException('the player never answered');
 
-        $ap    = kar_mc_applause();
-        $crowd = ($ap !== '' && kar_mc_applause_has_video($ap));
+        // The video kar_play put on screen (a personal intro, a plain intro, or the crowd).
+        // Only guess from the applause when an older kar_play did not say.
+        if (array_key_exists('crowd', $spec)) {
+            $ap    = (string)$spec['crowd'];
+            $crowd = ($ap !== '');
+            if (!$crowd) $ap = kar_mc_applause();
+        } else {
+            $ap    = kar_mc_applause();
+            $crowd = ($ap !== '' && kar_mc_applause_has_video($ap));
+        }
 
         if (!$crowd) kar_mpv_send(['set_property', 'pause', true]);   // certain, not assumed
         [$artist, $title] = kar_title_artist($song);                  // pure text, costs nothing
@@ -140,6 +150,36 @@ if ($job === 'announce') {
         @kar_mpv_send(['set_property', 'volume', 100]);
         @kar_mpv_send(['loadfile', kar_songs_dir() . '/' . $song, 'replace']);
         @kar_mpv_send(['set_property', 'pause', false]);
+    }
+    exit;
+}
+
+// ---------------------------------------------------------------------------
+// A personalized intro — the singer's face on the intro video. Minutes of CPU, so it runs
+// here in the background, never in a web request. Not behind the worker lock: a download
+// in progress is no reason to hold it up.
+// ---------------------------------------------------------------------------
+if ($job === 'intro') {
+    $spec = json_decode((string)base64_decode((string)($argv[3] ?? '')), true) ?: [];
+    $name = (string)($spec['name'] ?? ''); $id = (string)($spec['intro'] ?? ''); $hash = (string)($spec['hash'] ?? '');
+    if ($name === '' || $id === '' || $hash === '') exit;
+    $photo = kar_singer_photo($name);
+    $upd = $db->prepare('UPDATE karaoke_intros SET status=?, video_path=?, error=?, secs=?, rendered_at=datetime(\'now\',\'localtime\')
+                         WHERE name=? AND intro_id=? AND photo_hash=?');
+    if ($photo === '') { $upd->execute(['failed', null, 'no photo', null, $name, $id, $hash]); exit; }
+    $outDir = kar_data_dir() . '/intros';
+    if (!is_dir($outDir)) @mkdir($outDir, 0755, true);
+    $out = $outDir . '/' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $name) . '-' . $id . '-' . $hash . '.mp4';
+    $t0 = microtime(true);
+    [$rc, $msg] = kar_fx_run(['render', $id, $photo, $out], 3600);
+    $secs = round(microtime(true) - $t0, 1);
+    if ($rc === 0 && is_file($out) && filesize($out) > 0) {
+        $upd->execute(['ready', $out, null, $secs, $name, $id, $hash]);
+        kar_log('intro', "ready for $name ($id) in {$secs}s");
+    } else {
+        @unlink($out);
+        $upd->execute(['failed', null, mb_substr($msg ?: 'render failed', 0, 300), $secs, $name, $id, $hash]);
+        kar_log('intro', "FAILED for $name ($id): " . $msg);
     }
     exit;
 }

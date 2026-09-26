@@ -255,6 +255,29 @@ const KAR_SCHEMA = [
         k2   TEXT NOT NULL DEFAULT '',
         at   TEXT NOT NULL,
         PRIMARY KEY (kind, k1, k2))",
+    // A SINGER — the person, not a Best list. The short name is what the menu and the queue
+    // show ("Claude"); full_name is what the announcer says ("Maria Rossi"); variant picks
+    // the intro video — "male" | "female" | '' — and belongs to the PERSON SINGING, never to
+    // who recorded the song (the owner, 2026-09-26). Photos live in data/singers/.
+    "CREATE TABLE IF NOT EXISTS karaoke_singers (
+        name       TEXT PRIMARY KEY COLLATE NOCASE,
+        full_name  TEXT DEFAULT NULL,
+        variant    TEXT NOT NULL DEFAULT '',
+        photo_hash TEXT DEFAULT NULL,
+        photo_updated_at TEXT DEFAULT NULL,
+        created_at TEXT DEFAULT (datetime('now','localtime')))",
+    // One personalized intro per singer + base video + photo. A new photo or a new variant is
+    // simply a new row; old rows and their files are deleted when the photo changes.
+    "CREATE TABLE IF NOT EXISTS karaoke_intros (
+        name       TEXT NOT NULL COLLATE NOCASE,
+        intro_id   TEXT NOT NULL,
+        photo_hash TEXT NOT NULL,
+        video_path TEXT DEFAULT NULL,
+        status     TEXT NOT NULL DEFAULT 'pending',   -- pending | ready | failed
+        error      TEXT DEFAULT NULL,
+        secs       REAL DEFAULT NULL,
+        rendered_at TEXT DEFAULT NULL,
+        PRIMARY KEY (name, intro_id, photo_hash))",
     "CREATE TABLE IF NOT EXISTS karaoke_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         at TEXT DEFAULT (datetime('now','localtime')),
@@ -485,6 +508,9 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     $mc    = ($singer !== '' && kar_mc_on());
     $crowd = $mc ? kar_mc_applause() : '';
     if ($crowd !== '' && !kar_mc_applause_has_video($crowd)) $crowd = '';
+    // The singer's own intro (their face on the singer), or the plain intro for their
+    // Man/Woman choice, takes the crowd video's place. Never waits: only a READY file counts.
+    if ($mc) { $own = kar_intro_for_play($singer); if ($own !== '') $crowd = $own; }
     if ($crowd !== '') $path = $crowd;          // the player opens on the crowd, not the song
     if (kar_mpv_alive()) {
         // Pause BEFORE loading: mpv keeps the property across a loadfile, so the new song
@@ -512,7 +538,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         kar_mpv_send(['set_property', 'speed', 1.0]);
         // Through the lua script so the on-screen UP/DOWN counter stays in step.
         kar_mpv_send(['script-message', 'casai-set-pitch', (string)$pitch]);
-        if ($mc) { kar_mc_spawn($song, $singer, $pitch); }
+        if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd); }
         else     { kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it', $pitch), 5000]); }
         return [true, sprintf('pitch %+d applied%s', $pitch, $mc ? ', announcing ' . $singer : '')];
     }
@@ -568,7 +594,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         if (kar_mpv_alive()) break;
         usleep(250000);
     }
-    if ($mc) { kar_mc_spawn($song, $singer, $pitch); }
+    if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd); }
     else     { kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it · F fullscreen · Q closes', $pitch), 6000]); }
     return [true, sprintf('pitch %+d applied%s', $pitch, $mc ? ', announcing ' . $singer : '')];
 }
@@ -944,16 +970,185 @@ function kar_mc_applause_loop(float $seconds = 45.0): string {
 }
 
 /** Start the introduction in the background so the web request returns at once. */
-function kar_mc_spawn(string $song, string $singer, int $pitch): void {
+function kar_mc_spawn(string $song, string $singer, int $pitch, string $crowd = ''): void {
     $worker = __DIR__ . '/karaoke_worker.php';
     if (!is_file($worker)) return;
     $php = PHP_BINARY ?: 'php';
-    $arg = base64_encode(json_encode(['song' => $song, 'singer' => $singer, 'pitch' => $pitch]));
+    // 'crowd' = the video kar_play actually put on screen, so the worker never has to guess.
+    $arg = base64_encode(json_encode(['song' => $song, 'singer' => $singer, 'pitch' => $pitch, 'crowd' => $crowd]));
     // Deliberately NOT behind the worker lock: a download running is no reason for the
     // party to lose its announcements.
     @exec(escapeshellarg($php) . ' ' . escapeshellarg($worker) . ' '
         . escapeshellarg(kar_marker_path() ?: '') . ' announce ' . escapeshellarg($arg)
         . ' >/dev/null 2>&1 &');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PERSONALIZED INTROS — the singer's face on the intro video (2026-09-26)
+//
+// A singer has a photo and a Man/Woman choice. A photo starts a render in the background
+// (karaoke_worker.php 'intro', ~8-9 minutes on an M2 Max). When "Next singer" plays and that
+// singer's intro is READY for their current photo, it is the video on screen during the
+// announcement; otherwise the plain intro for their variant; otherwise the old crowd video.
+// The show never waits on a render.
+//
+// The engine (Python + insightface + inswapper + GFPGAN, ~1.2 GB) is NOT part of the public
+// bundle — inswapper is licensed for non-commercial use only. It is found through
+// "faceswap_engine" in karaoke_standalone.json; without it the whole feature is simply off.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const KAR_INTRO_BY_VARIANT = ['male' => 'male-singer-intro-18s', 'female' => 'female-singer-intro-18s'];
+
+function kar_fx_engine(): string {
+    $e = rtrim(trim((string)(kar_cfg()['faceswap_engine'] ?? '')), '/');
+    return ($e !== '' && is_file($e . '/cantoria_intro.py') && is_file($e . '/.venv/bin/python')) ? $e : '';
+}
+function kar_fx_on(): bool { return kar_fx_engine() !== ''; }
+
+/** Where the base intro videos and their .faces.json sidecars live on this Mac. */
+function kar_intros_dir(): string {
+    $c = kar_cfg();
+    if (!empty($c['intros_folder'])) return rtrim($c['intros_folder'], '/');
+    $m = kar_marker_path();
+    return ($m ? dirname($m) : sys_get_temp_dir()) . '/intros';
+}
+
+/** The singer record for a queue/list name. "Claude — practice" is the person "Claude". */
+function kar_singer(string $name): ?array {
+    $name = trim($name);
+    if ($name === '') return null;
+    $st = kar_db()->prepare('SELECT * FROM karaoke_singers WHERE name = ?');
+    foreach (array_unique([$name, kar_mc_name($name)]) as $n) {
+        $st->execute([$n]);
+        if ($r = $st->fetch()) return $r;
+    }
+    return null;
+}
+
+/** What the announcer says: the full name if one is set, else the short name. */
+function kar_singer_spoken(string $name): string {
+    $r = kar_singer($name);
+    $full = $r ? trim((string)($r['full_name'] ?? '')) : '';
+    return $full !== '' ? $full : kar_mc_name($name);
+}
+
+function kar_singer_dir(string $name): string {
+    $slug = preg_replace('/[^a-z0-9]+/', '-', mb_strtolower(kar_mc_name($name)));
+    return kar_data_dir() . '/singers/' . trim($slug, '-') . '-' . substr(sha1(mb_strtolower($name)), 0, 6);
+}
+function kar_singer_photo(string $name): string {
+    $f = kar_singer_dir($name) . '/photo.jpg';
+    return is_file($f) ? $f : '';
+}
+
+/** Run the engine: returns [exit code, last line of output]. */
+function kar_fx_run(array $args, int $timeout = 60): array {
+    $e = kar_fx_engine();
+    if ($e === '') return [1, 'face swap engine not installed on this Mac'];
+    $cmd = 'cd ' . escapeshellarg($e) . ' && CANTORIA_INTROS=' . escapeshellarg(kar_intros_dir())
+         . ' ' . escapeshellarg($e . '/.venv/bin/python') . ' cantoria_intro.py '
+         . implode(' ', array_map('escapeshellarg', $args)) . ' 2>/dev/null';
+    $out = []; $rc = 0;
+    @exec($cmd, $out, $rc);
+    $last = '';
+    foreach (array_reverse($out) as $l) { if (trim($l) !== '') { $last = trim($l); break; } }
+    return [$rc, $last];
+}
+
+/** Save an uploaded photo for a singer: normalise to JPEG ≤1024px, then insist on exactly one
+ *  face before anything is replaced. Returns [ok, message]. */
+function kar_singer_set_photo(string $name, string $tmp): array {
+    if (!is_file($tmp)) return [false, 'the photo did not arrive'];
+    $dir = kar_singer_dir($name);
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $cand = $dir . '/incoming.jpg';
+    @exec('sips -s format jpeg -Z 1024 ' . escapeshellarg($tmp) . ' --out ' . escapeshellarg($cand) . ' >/dev/null 2>&1');
+    if (!is_file($cand) || filesize($cand) === 0) return [false, 'That file is not a picture Cantoria can read.'];
+    if (kar_fx_on()) {
+        [$rc, $msg] = kar_fx_run(['check', $cand], 120);
+        if ($rc !== 0) { @unlink($cand); return [false, preg_replace('/^PHOTO REJECTED:\s*/', '', $msg ?: 'The photo could not be checked.')]; }
+    }
+    $old = kar_singer_photo($name);
+    rename($cand, $dir . '/photo.jpg');
+    $hash = substr(hash_file('sha256', $dir . '/photo.jpg'), 0, 16);
+    $db = kar_db();
+    $db->prepare("INSERT INTO karaoke_singers (name, photo_hash, photo_updated_at) VALUES (?,?,datetime('now','localtime'))
+                  ON CONFLICT(name) DO UPDATE SET photo_hash=excluded.photo_hash, photo_updated_at=excluded.photo_updated_at")
+       ->execute([$name, $hash]);
+    kar_intros_forget($name, $hash);
+    kar_log('singer', 'photo ' . ($old ? 'changed' : 'added') . ' for ' . $name);
+    return [true, 'Photo saved.'];
+}
+
+/** Delete this singer's cached intros, except those for $keepHash. */
+function kar_intros_forget(string $name, string $keepHash = ''): void {
+    $db = kar_db();
+    $st = $db->prepare('SELECT video_path, photo_hash FROM karaoke_intros WHERE name = ?');
+    $st->execute([$name]);
+    foreach ($st->fetchAll() as $r) {
+        if ($r['photo_hash'] === $keepHash) continue;
+        if (!empty($r['video_path']) && is_file($r['video_path'])) @unlink($r['video_path']);
+    }
+    $db->prepare('DELETE FROM karaoke_intros WHERE name = ? AND photo_hash <> ?')->execute([$name, $keepHash]);
+}
+
+function kar_singer_remove_photo(string $name): void {
+    $p = kar_singer_photo($name);
+    if ($p !== '') @unlink($p);
+    kar_intros_forget($name, '');
+    kar_db()->prepare('UPDATE karaoke_singers SET photo_hash = NULL, photo_updated_at = NULL WHERE name = ?')->execute([$name]);
+    kar_log('singer', 'photo removed for ' . $name);
+}
+
+/** Which base intro this singer gets, or '' if their variant is not set / the video is missing. */
+function kar_intro_id_for(?array $singer): string {
+    $v = $singer ? (string)$singer['variant'] : '';
+    $id = KAR_INTRO_BY_VARIANT[$v] ?? '';
+    return ($id !== '' && is_file(kar_intros_dir() . '/' . $id . '.mp4')) ? $id : '';
+}
+
+/** State of this singer's personalized intro: [status, video path]. status is one of
+ *  none (no photo or no variant) | pending | ready | failed. */
+function kar_intro_state(string $name): array {
+    $s = kar_singer($name);
+    $id = kar_intro_id_for($s);
+    if (!$s || $id === '' || empty($s['photo_hash']) || !kar_fx_on()) return ['none', ''];
+    $st = kar_db()->prepare('SELECT status, video_path FROM karaoke_intros WHERE name = ? AND intro_id = ? AND photo_hash = ?');
+    $st->execute([$s['name'], $id, $s['photo_hash']]);
+    $r = $st->fetch();
+    if (!$r) return ['pending', ''];
+    if ($r['status'] === 'ready' && is_file((string)$r['video_path'])) return ['ready', $r['video_path']];
+    return [$r['status'] === 'ready' ? 'failed' : $r['status'], ''];
+}
+
+/** Start this singer's render in the background, unless it is ready or already running. */
+function kar_intro_spawn(string $name): void {
+    $s = kar_singer($name);
+    $id = kar_intro_id_for($s);
+    if (!$s || $id === '' || empty($s['photo_hash']) || !kar_fx_on()) return;
+    [$state] = kar_intro_state($s['name']);
+    if ($state === 'ready') return;
+    $db = kar_db();
+    $st = $db->prepare("SELECT status, rendered_at FROM karaoke_intros WHERE name=? AND intro_id=? AND photo_hash=?");
+    $st->execute([$s['name'], $id, $s['photo_hash']]);
+    $row = $st->fetch();
+    if ($row && $row['status'] === 'pending') return;   // already running
+    $db->prepare("INSERT INTO karaoke_intros (name, intro_id, photo_hash, status) VALUES (?,?,?,'pending')
+                  ON CONFLICT(name, intro_id, photo_hash) DO UPDATE SET status='pending', error=NULL")
+       ->execute([$s['name'], $id, $s['photo_hash']]);
+    $worker = __DIR__ . '/karaoke_worker.php';
+    $arg = base64_encode(json_encode(['name' => $s['name'], 'intro' => $id, 'hash' => $s['photo_hash']]));
+    @exec(escapeshellarg(PHP_BINARY ?: 'php') . ' ' . escapeshellarg($worker) . ' '
+        . escapeshellarg(kar_marker_path() ?: '') . ' intro ' . escapeshellarg($arg) . ' >/dev/null 2>&1 &');
+}
+
+/** The video to show during a singer's announcement: their own intro if ready, else the plain
+ *  intro for their variant, else '' (the caller falls back to the crowd video). */
+function kar_intro_for_play(string $singer): string {
+    [$state, $path] = kar_intro_state($singer);
+    if ($state === 'ready') return $path;
+    $id = kar_intro_id_for(kar_singer($singer));
+    return $id !== '' ? kar_intros_dir() . '/' . $id . '.mp4' : '';
 }
 
 function kar_qmidi_available(): bool { return is_dir('/Applications/QMidi Pro.app'); }
