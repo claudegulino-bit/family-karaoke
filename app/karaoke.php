@@ -584,7 +584,7 @@ if (!$KAR_LOCAL) {
           <span id="kar-lbl-playback" style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Playback</span>
           <span style="display:flex;align-items:center;gap:8px">
             <button id="kar-lyrics-btn" type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics screen, or bring it back in front of everything" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:11px;font-weight:800;line-height:1.1;padding:0 10px;height:36px;border-radius:8px;white-space:nowrap">🎬 Lyrics<br>Screen</button>
-            <button type="button" id="kar-start-btn" onclick="karPlayAgain()" title="Start this song from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">▶ Start</button>
+            <button type="button" id="kar-start-btn" onclick="karPlayAgain()" title="Restart from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏮ Restart</button>
             <button type="button" onclick="karPauseToggle(this)" id="kar-stop-btn" title="Stop the song where it is. Press again to resume. To end a song, close the lyrics screen (Q)." style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏹ Stop</button>
           </span>
         </span>
@@ -631,7 +631,7 @@ if (!$KAR_LOCAL) {
         if (!$KAR_LOCAL) $_karCards[] = ['config', $_num('Configuration and workflow'), 'Machines, release process and shared data.', 'Setting up'];
         $_karCards[] = ['update', $_num('Software updates'), $KAR_LOCAL ? 'Installing the latest version.' : 'How the other Macs receive a release.', 'Setting up'];
         $_karCards[] = ['sing',  $_num('Play a song'),          'Search, playback and key.', 'Using it'];
-        $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: key, speed, start and stop.', 'Using it'];
+        $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: key, speed, restart and stop.', 'Using it'];
         $_karCards[] = ['songs', $_num('Managing songs'),       'Best lists, new arrivals, renaming and removal.', 'Using it'];
         $_karCards[] = ['party', $_num('Party controls'),       'The singing queue, guest requests and downloads.', 'At a party'];
         // The three party panels each get a card of their own. Their words live HERE and
@@ -697,7 +697,7 @@ if (!$KAR_LOCAL) {
             <li><b>Speed</b> — − and + change it 5% at a time. It takes effect immediately, mid-song, and shows what the player is actually doing. At <b>100%</b> it is quiet green; at anything else it turns <b>amber</b>, and one click on the number puts it straight back to normal. A song that sounds slow or fast is therefore visible on the bar rather than left to guesswork.</li>
             <li><b>Key</b> sits beside it and also takes effect mid-song. Each song's own starting key is the <b>Pitch</b> box on its row; the key set here is for tonight only and is not saved.</li>
             <li><b>The progress line</b> under the song name shows how far through it is — drag it to move within the song.</li>
-            <li><b>▶ Start</b> restarts the song from the beginning. <b>⏹ Stop</b> pauses it where it is and becomes <b>▶ Resume</b>.</li>
+            <li><b>⏮ Restart</b> goes back to the beginning of the song. <b>⏹ Stop</b> pauses it where it is and becomes <b>▶ Resume</b>, which carries on from that point.</li>
             <li><b>🎬 Lyrics Screen</b> hides the lyrics window or brings it back. It otherwise stays in front of the browser while a song plays. To end a song, close that window — <b>Q</b> or its red <b>✕</b> on the Mac.</li>
             <li>Changes made in the gold bar apply to the current performance only. A song's saved key is the <b>Pitch</b> value on its row.</li>
           </ul>
