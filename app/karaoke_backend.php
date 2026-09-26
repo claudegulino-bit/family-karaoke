@@ -817,10 +817,37 @@ function kar_mc_lang(string $title, string $artist = ''): string {
     return $sp > $il ? 'es' : 'it';
 }
 
+// THE PRESENTER'S WORDINGS for the Chatterbox announcer (spec 2026-09-26): one line each,
+// with a build-up. "..." is a pause; [NAME] is spoken plain and its first-name vowel stretched;
+// [SONG] and [ARTIST] are never stretched. With no artist, "di/de/by [ARTIST]" is dropped.
+// Six per language, same shuffled-bag rule as the Mac voice's set above.
+const KAR_CB_PHRASINGS = [
+  'en' => ["Ladies and gentlemen... please welcome... [NAME]! Singing... [SONG]!",
+           "And now... coming to the stage... it's [NAME]! Here's... [SONG]!",
+           "Get those hands ready, everybody... [NAME] is going to sing... [SONG]!",
+           "Up next... a big round of applause for... [NAME]! With... [SONG]!",
+           "Alright, everybody... it's time for... [NAME]! Performing... [SONG]!",
+           "Make some noise... for... [NAME]! And the song is... [SONG]!"],
+  'it' => ["Signore e signori... un grande applauso per... [NAME]! Con... [SONG]!",
+           "E adesso... sul palco... ecco a voi... [NAME]! Canta... [SONG]!",
+           "Preparate le mani... [NAME] sta per cantare... [SONG]!",
+           "Un applauso per... [NAME]... che si appresta a cantare... [SONG]... di [ARTIST]!",
+           "Forza, tutti insieme... è il momento di... [NAME]! Con... [SONG]!",
+           "Fate rumore... per... [NAME]! E la canzone è... [SONG]!"],
+  'es' => ["Señoras y señores... [NAME] cantará... [SONG]... de [ARTIST]!",
+           "Y ahora... [NAME] cantará la próxima canción... [SONG]!",
+           "Le toca a... [NAME]... que canta... [SONG]!",
+           "Un aplauso para... [NAME]... que está a punto de cantar... [SONG]!",
+           "Demos la bienvenida a... [NAME]... que nos cantará... [SONG]!",
+           "Prepárense todos... aquí viene... [NAME]! Con... [SONG]!"],
+];
+
 /** A shuffled bag, not a cycle: never the same phrasing twice running, and all six are
- *  used before any repeats. */
-function kar_mc_phrasing(string $lang): array {
-    $set = KAR_MC_PHRASINGS[$lang] ?? KAR_MC_PHRASINGS['en'];
+ *  used before any repeats. $set/$bagKey let the Chatterbox wordings keep their own bag. */
+function kar_mc_phrasing(string $lang, ?array $sets = null, string $bagKey = '') {
+    $sets = $sets ?? KAR_MC_PHRASINGS;
+    $set  = $sets[$lang] ?? $sets['en'];
+    $lang = $bagKey . $lang;
     $f   = kar_data_dir() . '/mc/phrasing_bag.json';
     $bag = is_file($f) ? (json_decode((string)@file_get_contents($f), true) ?: []) : [];
     $left = $bag[$lang] ?? [];
@@ -1026,13 +1053,14 @@ function kar_mc_spawn(string $song, string $singer, int $pitch, string $crowd = 
 // ─────────────────────────────────────────────────────────────────────────────
 function kar_cb_dir(): string {
     $d = rtrim(trim((string)(kar_cfg()['announce_chatterbox'] ?? '')), '/');
-    return ($d !== '' && is_file($d . '/cantoria_announce.py') && is_file($d . '/.venv/bin/python')) ? $d : '';
+    return ($d !== '' && is_file($d . '/cantoria_mc_intro.py') && is_file($d . '/.venv/bin/python')) ? $d : '';
 }
 
 /** Where the ready announcement for this singer + song lives. Keyed by the SPOKEN name, so
  *  changing someone's full name makes a new announcement rather than reusing the old one. */
 function kar_cb_file(string $spoken, string $title, string $artist): string {
-    return kar_data_dir() . '/mc/cb/' . substr(sha1($spoken . '|' . $title . '|' . $artist), 0, 16) . '.wav';
+    // "v2" = the presenter treatment (stretched name, stadium FX); v1 files were the plain voice.
+    return kar_data_dir() . '/mc/cb/' . substr(sha1('v2|' . $spoken . '|' . $title . '|' . $artist), 0, 16) . '.wav';
 }
 
 function kar_cb_kick(): void {

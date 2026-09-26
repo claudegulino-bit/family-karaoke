@@ -174,7 +174,8 @@ if ($job === 'mcvoice') {
     if ($dir === '') exit;
     $lk = @fopen(kar_data_dir() . '/mcvoice.lock', 'c');
     if (!$lk || !flock($lk, LOCK_EX | LOCK_NB)) exit;           // one at a time
-    $pause = (float)(kar_cfg()['announce_pause'] ?? 0.9);
+    // The voice to clone: the owner's chosen sample B unless the config names another.
+    $ref   = trim((string)(kar_cfg()['announce_voice_ref'] ?? '')) ?: $dir . '/voice-sample-B.wav';
     $tmp   = kar_data_dir() . '/mc/cb/tmp';
     @mkdir($tmp, 0775, true);
     for ($round = 0; $round < 5; $round++) {
@@ -187,24 +188,22 @@ if ($job === 'mcvoice') {
             if (isset($seen[$out]) || (is_file($out) && filesize($out) > 0)) continue;
             $seen[$out] = 1;
             $lang = kar_mc_lang($title, $artist);
-            [$p1, $p2, $p3] = kar_mc_phrasing($lang);
-            if ($artist === '') $p3 = '{title}!';
-            $f = fn($x) => str_replace(['{singer}', '{title}', '{artist}'], [$spoken, $title, $artist], $x);
-            $jobs[] = ['lang' => $lang, 'lines' => [$f($p1), $f($p2) !== '' ? $f($p2) : ' ', $f($p3)],
-                       'prefix' => $tmp . '/' . basename($out, '.wav'), 'out' => $out, 'who' => "$spoken / $title"];
+            $jobs[] = ['mode' => 'voice', 'lang' => $lang, 'template' => kar_mc_phrasing($lang, KAR_CB_PHRASINGS, 'cb_'),
+                       'name' => $spoken, 'song' => $title, 'artist' => $artist, 'voice' => $ref,
+                       'out' => $out, 'who' => "$spoken / $title"];
         }
         if (!$jobs) break;
         $jf = $tmp . '/jobs.json';
         file_put_contents($jf, json_encode($jobs));
         $t0 = microtime(true);
         $log = [];
-        @exec(escapeshellarg($dir . '/.venv/bin/python') . ' ' . escapeshellarg($dir . '/cantoria_announce.py') . ' '
-            . escapeshellarg($jf) . ' 2>/dev/null', $log);
+        // The finished announcement per song: presenter wording, stretched first name, stadium FX.
+        $ff = kar_tool('ffmpeg');
+        @exec('FFMPEG=' . escapeshellarg($ff !== '' ? $ff : 'ffmpeg') . ' ' . escapeshellarg($dir . '/.venv/bin/python') . ' '
+            . escapeshellarg($dir . '/cantoria_mc_intro.py') . ' ' . escapeshellarg($jf) . ' 2>/dev/null', $log);
         foreach ($jobs as $j) {
-            $a = $j['prefix'] . '-1.wav'; $b = $j['prefix'] . '-2.wav'; $d = $j['prefix'] . '-3.wav';
-            $ok = is_file($a) && is_file($b) && is_file($d) && kar_mc_assemble($a, $b, $d, $j['out'], $pause) !== '';
+            $ok = is_file($j['out']) && filesize($j['out']) > 0;
             kar_log('mcvoice', ($ok ? 'ready: ' : 'FAILED: ') . $j['who']);
-            @unlink($a); @unlink($b); @unlink($d);
         }
         kar_log('mcvoice', sprintf('%d announcement(s) in %.0fs', count($jobs), microtime(true) - $t0));
     }
