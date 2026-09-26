@@ -238,9 +238,11 @@ if (!$KAR_LOCAL) {
   .kar-chip:hover, .kar-smode:hover { background:#35465E; color:#B3DEFF; }
   /* YouTube wears YouTube's red — the one flash of another colour in a blue row, and it means
      something: this is the button that leaves your library and goes out to the internet. */
-  #kar-sm-yt         { background:#4A2226; border-color:#FF7B7B; color:#FF7B7B; }
-  #kar-sm-yt:hover   { background:#5C2A2F; color:#FFA3A3; }
-  #kar-sm-yt.kar-on  { background:#6B3036; border-color:#FFA0A0; color:#FFC4C4; }
+  /* 2026-09-26, the owner: "red and then white text… take it from the YouTube icon" — solid
+     YouTube red (#FF0000) with white text and a white ▶, like the YouTube logo itself. */
+  #kar-sm-yt         { background:#FF0000; border-color:#FF0000; color:#FFFFFF; }
+  #kar-sm-yt:hover   { background:#E00000; border-color:#E00000; color:#FFFFFF; }
+  #kar-sm-yt.kar-on  { background:#CC0000; border-color:#FFFFFF; color:#FFFFFF; box-shadow:0 0 0 2px rgba(255,255,255,.35); }
   .kar-chip.kar-on, .kar-smode.kar-on { background:#3D536F; color:#CDE8FF; border-color:#A9D9FF; }
   /* the three modes sit inside the field, so they run one size smaller — colour is shared above */
   /* All three the same width — the owner, 2026-09-18: "song database, YouTube, a link, they
@@ -509,7 +511,7 @@ if (!$KAR_LOCAL) {
           <input id="kar-search" type="text" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type here. Esc clears it." style="flex:1;min-width:50px;background:none;border:none;outline:none;color:#e2e8f0;font-size:14px;font-weight:600;padding:0">
           <span style="flex:0 0 auto;display:flex;align-items:center;gap:3px">
             <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the song database — the songs you already have">Song Database</button>
-            <button type="button" class="kar-smode" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">YouTube</button>
+            <button type="button" class="kar-smode" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">▶&#xFE0E; YouTube</button>
             <button type="button" class="kar-smode" id="kar-sm-link" onclick="karSetMode('link')" title="Paste a link somebody gave you and download it">Link</button>
           </span>
         </div>
