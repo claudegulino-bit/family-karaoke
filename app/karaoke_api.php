@@ -523,6 +523,28 @@ try {
         kj(['ok'=>true, 'rows'=>$rows]);
     }
 
+    // ------------------------------------------- is there a newer Cantoria? (2026-09-26)
+    // Powers the one-click "⬆︎ Update" button that appears on the gold bar only when there is
+    // something new. Reads the published VERSION straight from the public repository, and
+    // remembers the answer for 10 minutes so a page left open all evening asks GitHub rarely
+    // (its unauthenticated limit is 60 an hour per house). Never throws: "can't tell" = no button.
+    case 'karaoke_update_check': {
+        $local = trim((string)@file_get_contents(__DIR__ . '/VERSION'));
+        $cache = kar_data_dir() . '/update_check.json';
+        $c = @json_decode((string)@file_get_contents($cache), true);
+        if (!is_array($c) || empty($c['at']) || time() - (int)$c['at'] > 600 || !empty($_POST['fresh'])) {
+            $url = 'https://api.github.com/repos/claudegulino-bit/family-karaoke/contents/app/VERSION?ref=main';
+            $raw = (string)@shell_exec('curl -fsS -m 6 -H ' . escapeshellarg('Accept: application/vnd.github.raw') . ' ' . escapeshellarg($url) . ' 2>/dev/null');
+            $latest = preg_match('/^\d{4}-\d{2}-\d{2}\.[0-9a-f]{7}$/', trim($raw)) ? trim($raw) : '';
+            $c = ['at' => time(), 'latest' => $latest];
+            @file_put_contents($cache, json_encode($c));
+        }
+        $latest = (string)($c['latest'] ?? '');
+        // Newer = a different build whose date is not older than ours (the date leads the string).
+        $avail = $latest !== '' && $local !== '' && $latest !== $local && strcmp(substr($latest, 0, 10), substr($local, 0, 10)) >= 0;
+        kj(['ok' => true, 'local' => $local, 'latest' => $latest, 'available' => $avail]);
+    }
+
     // --------------------------------------------------- setup helpers (Guide)
     case 'karaoke_pick_folder': {
         // Two-phase, exactly as the server version: start queues the job, check polls it.

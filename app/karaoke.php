@@ -605,6 +605,7 @@ if (!$KAR_LOCAL) {
              "Refresh will be the last one. Then it will be guide. And then it will be start and
              stop." No label above them — they say what they are. -->
         <span style="display:flex;align-items:center;gap:7px;padding:0 0 0 16px;border-left:1px solid rgba(210,173,108,.28)">
+          <?php if ($KAR_LOCAL): ?><button type="button" id="kar-upd-now" onclick="karUpdateNow(this)" title="A newer Cantoria is ready — one click installs it and reloads this page. Your songs, singers, keys and settings are not touched." style="display:none;font-family:inherit;background:#D2AD6C;border:1px solid #fde68a;color:#1A1F2C;cursor:pointer;font-size:12.5px;font-weight:800;padding:0 14px;height:36px;border-radius:8px;box-shadow:0 0 0 3px rgba(210,173,108,.28)">⬆︎ Update</button><?php endif; ?>
           <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" class="kar-ref kar-tile" title="How everything on this page works — all the rules in one readable place"><span style="font-size:15px">&#x1F4D6;</span>Guide</button>
           <button type="button" onclick="location.reload()" class="kar-ref" title="Refresh — reload the song lists from the server"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 12a8.5 8.5 0 1 1-2.49-6.01"/><path d="M20.5 4v5.5h-5.5"/></svg>Refresh</button>
         </span>
@@ -2462,7 +2463,8 @@ function karPickFolder(){
     }
     function karUpdate(){
       // Fetching and replacing the program is a real change to this Mac, so it asks first.
-      if (!confirm('Fetch the newest karaoke?\n\nOnly the program is replaced. Your songs, your settings, the lists and every saved key stay exactly as they are.')) return;
+      // No "are you sure?" any more (the owner, 2026-09-26: four clicks for one update was three too
+      // many). An update only replaces the program — songs, settings, lists and keys are untouched.
       var btn = document.getElementById('kar-upd-btn');
       btn.disabled = true;
       btn.style.opacity = .6;
@@ -2482,13 +2484,52 @@ function karPickFolder(){
           karUpdState('same', '✔︎ <b>Nothing to update.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">This Mac is already on the latest version. ' + karEsc(note.replace(/^Already up to date \(/, '').replace(/\)\.?\s*$/, '')) + '</div>');
           return;
         }
-        var m = note.match(/karaoke (\S+?)\s*\(was (\S+?)\)/);
+        var m = note.match(/(?:Cantoria|karaoke) (\S+?)\s*\(was (\S+?)\)/);
         var ver = m ? m[1] : '', was = m ? m[2] : '';
         var vEl = document.getElementById('kar-upd-ver');
         if (vEl && ver) vEl.textContent = ver;
         karUpdState('done', '✅ <b>Updated.</b><div style="font-weight:600;font-size:12.5px;margin-top:2px">'
           + (ver ? 'Now on <b>' + karEsc(ver) + '</b>' + (was ? ' — was ' + karEsc(was) : '') + '. ' : karEsc(note) + ' ')
-          + '<a href="#" onclick="location.reload();return false;" style="color:#93c5fd">Reload the page to use it →</a></div>');
+          + 'Reloading…</div>');
+        karUpdateDone(ver);
+      });
+    }
+    // ------------------------------------------------ ONE-CLICK UPDATE (2026-09-26)
+    // the owner: Guide → Software updates → Update → OK was four steps; "somebody who's not familiar
+    // with computers… one button, it does all four things". The ⬆︎ Update button on the gold bar
+    // appears ONLY when a newer version is published; one click installs and reloads the page.
+    function karUpdateDone(ver){
+      try { sessionStorage.setItem('kar_just_updated', ver || '1'); } catch(e) {}
+      setTimeout(function(){ location.reload(); }, 900);
+    }
+    function karUpdateCheck(fresh){
+      if (!KAR_LOCAL) return;
+      var fd = new FormData(); fd.append('form_type','karaoke_update_check'); if (fresh) fd.append('fresh','1');
+      fetch(KAR_API,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+        var b = document.getElementById('kar-upd-now'); if (!b || !d || !d.ok) return;
+        b.style.display = d.available ? '' : 'none';
+        if (d.available) b.title = 'Cantoria ' + d.latest + ' is ready (this Mac has ' + d.local + '). One click installs it and reloads this page. Your songs, singers, keys and settings are not touched.';
+      }).catch(function(){});
+    }
+    function karUpdateNow(btn){
+      btn.disabled = true; btn.textContent = '⏳ Updating…';
+      karMacAsk('update', null, function(ok, note){
+        if (!ok) { btn.disabled = false; btn.textContent = '⬆︎ Update'; alert('The update did not finish: ' + note + '\n\nNothing on this Mac was changed. Try again in a minute.'); return; }
+        var m = note.match(/(?:Cantoria|karaoke) (\S+?)\s*\(was/); btn.textContent = '✓ Updated';
+        karUpdateDone(m ? m[1] : '');
+      });
+    }
+    if (KAR_LOCAL) {
+      document.addEventListener('DOMContentLoaded', function(){
+        var v = null; try { v = sessionStorage.getItem('kar_just_updated'); sessionStorage.removeItem('kar_just_updated'); } catch(e) {}
+        if (v) {
+          var t = document.createElement('div');
+          t.textContent = '✓ Cantoria updated' + (v !== '1' ? ' to ' + v : '') + ' — your songs and settings are as they were.';
+          t.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:9999;background:#047857;color:#fff;border:1px solid #fff;border-radius:10px;padding:10px 18px;font:600 14px -apple-system,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.4)';
+          document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 6000);
+        }
+        karUpdateCheck(false);
+        setInterval(function(){ karUpdateCheck(false); }, 10 * 60 * 1000);
       });
     }
     function karCheckTools(){
