@@ -3589,7 +3589,7 @@ function karPickFolder(){
 <script>
   // ── The singer window (standalone only) ─────────────────────────────────────
   var KAR_SW = {name:'', file:null, remove:false};
-  var KAR_SW_WORDS = {ready:'✓ Their personal intro is ready.', pending:'⏳ Making their personal intro — about 9 minutes. You can keep using Cantoria.',
+  var KAR_SW_WORDS = {ready:'✓ Their personal intro is ready.', pending:'⏳ Their personal intro is in line to be made. Intros are made one at a time, about 9 minutes each. You can keep using Cantoria.',
                       failed:'✕ The personal intro could not be made. The plain intro will play instead.', none:''};
   function karSingerOpen(name){
     if (!name) { alert('Pick or add a singer first.'); return; }

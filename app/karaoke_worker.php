@@ -160,27 +160,42 @@ if ($job === 'announce') {
 // in progress is no reason to hold it up.
 // ---------------------------------------------------------------------------
 if ($job === 'intro') {
-    $spec = json_decode((string)base64_decode((string)($argv[3] ?? '')), true) ?: [];
-    $name = (string)($spec['name'] ?? ''); $id = (string)($spec['intro'] ?? ''); $hash = (string)($spec['hash'] ?? '');
-    if ($name === '' || $id === '' || $hash === '') exit;
-    $photo = kar_singer_photo($name);
-    $upd = $db->prepare('UPDATE karaoke_intros SET status=?, video_path=?, error=?, secs=?, rendered_at=datetime(\'now\',\'localtime\')
-                         WHERE name=? AND intro_id=? AND photo_hash=?');
-    if ($photo === '') { $upd->execute(['failed', null, 'no photo', null, $name, $id, $hash]); exit; }
-    $outDir = kar_data_dir() . '/intros';
-    if (!is_dir($outDir)) @mkdir($outDir, 0755, true);
-    $out = $outDir . '/' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $name) . '-' . $id . '-' . $hash . '.mp4';
-    $t0 = microtime(true);
-    [$rc, $msg] = kar_fx_run(['render', $id, $photo, $out], 3600);
-    $secs = round(microtime(true) - $t0, 1);
-    if ($rc === 0 && is_file($out) && filesize($out) > 0) {
-        $upd->execute(['ready', $out, null, $secs, $name, $id, $hash]);
-        kar_log('intro', "ready for $name ($id) in {$secs}s");
-    } else {
-        @unlink($out);
-        $upd->execute(['failed', null, mb_substr($msg ?: 'render failed', 0, 300), $secs, $name, $id, $hash]);
-        kar_log('intro', "FAILED for $name ($id): " . $msg);
+    // ONE at a time, oldest first. The lock makes a second worker exit immediately; the one
+    // holding it works the queue until it is empty. See kar_intro_kick().
+    $lock = fopen(kar_data_dir() . '/intros.lock', 'c');
+    if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) exit;
+    $upd = $db->prepare("UPDATE karaoke_intros SET status=?, video_path=?, error=?, secs=?, rendered_at=datetime('now','localtime')
+                         WHERE name=? AND intro_id=? AND photo_hash=?");
+    while (true) {
+        $r = $db->query("SELECT i.name, i.intro_id, i.photo_hash FROM karaoke_intros i
+                         JOIN karaoke_singers s ON s.name = i.name AND s.photo_hash = i.photo_hash
+                         WHERE i.status = 'pending' ORDER BY i.rowid LIMIT 1")->fetch();
+        if (!$r) break;
+        [$name, $id, $hash] = [$r['name'], $r['intro_id'], $r['photo_hash']];
+        $photo = kar_singer_photo($name);
+        if ($photo === '') { $upd->execute(['failed', null, 'no photo', null, $name, $id, $hash]); continue; }
+        $outDir = kar_data_dir() . '/intros';
+        if (!is_dir($outDir)) @mkdir($outDir, 0755, true);
+        $out = $outDir . '/' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $name) . '-' . $id . '-' . $hash . '.mp4';
+        $t0 = microtime(true);
+        [$rc, $msg] = kar_fx_run(['render', $id, $photo, $out], 3600);
+        $secs = round(microtime(true) - $t0, 1);
+        if ($rc === 0 && is_file($out) && filesize($out) > 0) {
+            $upd->execute(['ready', $out, null, $secs, $name, $id, $hash]);
+            kar_log('intro', "ready for $name ($id) in {$secs}s");
+        } else {
+            @unlink($out);
+            $upd->execute(['failed', null, mb_substr($msg ?: 'render failed', 0, 300), $secs, $name, $id, $hash]);
+            kar_log('intro', "FAILED for $name ($id): " . $msg);
+        }
     }
+    // Stale rows (a photo that has since been replaced) are dropped, not rendered.
+    $db->exec("DELETE FROM karaoke_intros WHERE status='pending' AND NOT EXISTS
+               (SELECT 1 FROM karaoke_singers s WHERE s.name = karaoke_intros.name AND s.photo_hash = karaoke_intros.photo_hash)");
+    flock($lock, LOCK_UN);
+    // Something queued in the instant between the last check and the unlock would otherwise
+    // wait for the next save; look once more and hand over.
+    if ((int)$db->query("SELECT COUNT(*) FROM karaoke_intros WHERE status='pending'")->fetchColumn() > 0) kar_intro_kick();
     exit;
 }
 

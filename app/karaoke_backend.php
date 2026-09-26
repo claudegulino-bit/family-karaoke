@@ -1132,14 +1132,21 @@ function kar_intro_spawn(string $name): void {
     $st = $db->prepare("SELECT status, rendered_at FROM karaoke_intros WHERE name=? AND intro_id=? AND photo_hash=?");
     $st->execute([$s['name'], $id, $s['photo_hash']]);
     $row = $st->fetch();
-    if ($row && $row['status'] === 'pending') return;   // already running
-    $db->prepare("INSERT INTO karaoke_intros (name, intro_id, photo_hash, status) VALUES (?,?,?,'pending')
-                  ON CONFLICT(name, intro_id, photo_hash) DO UPDATE SET status='pending', error=NULL")
-       ->execute([$s['name'], $id, $s['photo_hash']]);
+    if (!$row || $row['status'] !== 'pending') {
+        $db->prepare("INSERT INTO karaoke_intros (name, intro_id, photo_hash, status) VALUES (?,?,?,'pending')
+                      ON CONFLICT(name, intro_id, photo_hash) DO UPDATE SET status='pending', error=NULL")
+           ->execute([$s['name'], $id, $s['photo_hash']]);
+    }
+    kar_intro_kick();
+}
+
+/** Make sure ONE intro worker is running. ⚠ Never one per singer: on 2026-09-26 ten photos saved
+ *  in a row started ten renders at once, load average 150, each ~10x slower and ~2 GB of memory
+ *  apiece. The worker holds a lock and works the queue oldest-first; a second one exits at once. */
+function kar_intro_kick(): void {
     $worker = __DIR__ . '/karaoke_worker.php';
-    $arg = base64_encode(json_encode(['name' => $s['name'], 'intro' => $id, 'hash' => $s['photo_hash']]));
     @exec(escapeshellarg(PHP_BINARY ?: 'php') . ' ' . escapeshellarg($worker) . ' '
-        . escapeshellarg(kar_marker_path() ?: '') . ' intro ' . escapeshellarg($arg) . ' >/dev/null 2>&1 &');
+        . escapeshellarg(kar_marker_path() ?: '') . ' intro >/dev/null 2>&1 &');
 }
 
 /** The video to show during a singer's announcement: their own intro if ready, else the plain
