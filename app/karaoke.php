@@ -512,7 +512,7 @@ if (!$KAR_LOCAL) {
           <span style="flex:0 0 auto;display:flex;align-items:center;gap:3px">
             <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the song database — the songs you already have">Song Database</button>
             <button type="button" class="kar-smode" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">▶&#xFE0E; YouTube</button>
-            <button type="button" class="kar-smode" id="kar-sm-link" onclick="karSetMode('link')" title="Paste a link somebody gave you and download it">Link</button>
+            <button type="button" class="kar-smode" id="kar-sm-link" onclick="karSetMode('link')" title="Paste a link somebody gave you and download it"><span style="text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:2px">Link</span><svg class="kar-hand" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" style="vertical-align:-5px;margin-left:3px"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v4.5c0 3.6-2.4 6.5-6 6.5h-.8c-2 0-3.4-.8-4.6-2.3L4.4 16.3a1.6 1.6 0 0 1 2.4-2.1L9 16.5V11" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </span>
         </div>
       </div>
@@ -2863,16 +2863,18 @@ function karPickFolder(){
       if (!/^https?:\/\//i.test(url)) { alert('That does not look like a link. It should start with http.'); return; }
       // The Link button itself shows that it is working — there is no separate Download
       // button any more. Its width is fixed in CSS, so swapping the text cannot shift the row.
-      var go = document.getElementById('kar-sm-link'), lbl = go ? go.textContent : 'Link';
+      // ⚠ innerHTML, not textContent: the label is an underlined span + a drawn hand (2026-09-26),
+      // and textContent would flatten it to plain text for ever after the first download.
+      var go = document.getElementById('kar-sm-link'), lbl = go ? go.innerHTML : 'Link';
       if (go) { go.disabled = true; go.textContent = '…'; }
       var fd = new FormData(); fd.append('form_type', 'karaoke_dl_add'); fd.append('url', url);
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
-        if (go) { go.disabled = false; go.textContent = lbl; }
+        if (go) { go.disabled = false; go.innerHTML = lbl; }
         if (!d.ok) { alert('That link was not accepted' + (d.error ? ': ' + d.error : '') + '.'); return; }
         inp.value = '';
         karArrAdd(url, 'your link');
         karDlGo().then(karArrPoll);
-      }).catch(function(){ if (go) { go.disabled = false; go.textContent = lbl; } alert('Network error — the link was not sent.'); });
+      }).catch(function(){ if (go) { go.disabled = false; go.innerHTML = lbl; } alert('Network error — the link was not sent.'); });
     }
 
     // ------------------------------------------------------- SONGS THAT HAVE JUST ARRIVED
