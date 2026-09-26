@@ -122,7 +122,14 @@ if ($job === 'announce') {
         // And now the room lets go, while they stand, cross the floor and take the microphone.
         if ($crowd) kar_mpv_send(['set_property', 'volume', 100]);
         $loud = $crowd ? 0 : $play($loop, 1.0);
-        usleep((int)(KAR_MC_WALK_UP * 1000000));
+        // An intro plays ONCE: the walk-up lasts as long as the intro has left, so the song
+        // starts as it ends (never less than 3 s, never more than the usual walk-up).
+        $walk = KAR_MC_WALK_UP;
+        if (!empty($spec['intro'])) {
+            $dur = kar_mpv_get('duration'); $pos = kar_mpv_get('time-pos');
+            if (is_numeric($dur) && is_numeric($pos)) $walk = max(3.0, min(KAR_MC_WALK_UP, (float)$dur - (float)$pos));
+        }
+        usleep((int)($walk * 1000000));
         $kill($loud);
 
         $mclog('presentation finished — starting the song');
@@ -159,6 +166,52 @@ if ($job === 'announce') {
 // here in the background, never in a web request. Not behind the worker lock: a download
 // in progress is no reason to hold it up.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// The Chatterbox announcer — made in advance for every queued song (2026-09-26)
+// ---------------------------------------------------------------------------
+if ($job === 'mcvoice') {
+    $dir = kar_cb_dir();
+    if ($dir === '') exit;
+    $lk = @fopen(kar_data_dir() . '/mcvoice.lock', 'c');
+    if (!$lk || !flock($lk, LOCK_EX | LOCK_NB)) exit;           // one at a time
+    $pause = (float)(kar_cfg()['announce_pause'] ?? 0.9);
+    $tmp   = kar_data_dir() . '/mc/cb/tmp';
+    @mkdir($tmp, 0775, true);
+    for ($round = 0; $round < 5; $round++) {
+        $jobs = []; $seen = [];
+        foreach (kar_db()->query("SELECT singer, filename FROM karaoke_sing_queue WHERE status IN ('Singing','Waiting')
+                                  ORDER BY (status='Singing') DESC, position ASC, id ASC") as $r) {
+            $spoken = function_exists('kar_singer_spoken') ? kar_singer_spoken((string)$r['singer']) : kar_mc_name((string)$r['singer']);
+            [$artist, $title] = kar_title_artist((string)$r['filename']);
+            $out = kar_cb_file($spoken, $title, $artist);
+            if (isset($seen[$out]) || (is_file($out) && filesize($out) > 0)) continue;
+            $seen[$out] = 1;
+            $lang = kar_mc_lang($title, $artist);
+            [$p1, $p2, $p3] = kar_mc_phrasing($lang);
+            if ($artist === '') $p3 = '{title}!';
+            $f = fn($x) => str_replace(['{singer}', '{title}', '{artist}'], [$spoken, $title, $artist], $x);
+            $jobs[] = ['lang' => $lang, 'lines' => [$f($p1), $f($p2) !== '' ? $f($p2) : ' ', $f($p3)],
+                       'prefix' => $tmp . '/' . basename($out, '.wav'), 'out' => $out, 'who' => "$spoken / $title"];
+        }
+        if (!$jobs) break;
+        $jf = $tmp . '/jobs.json';
+        file_put_contents($jf, json_encode($jobs));
+        $t0 = microtime(true);
+        $log = [];
+        @exec(escapeshellarg($dir . '/.venv/bin/python') . ' ' . escapeshellarg($dir . '/cantoria_announce.py') . ' '
+            . escapeshellarg($jf) . ' 2>/dev/null', $log);
+        foreach ($jobs as $j) {
+            $a = $j['prefix'] . '-1.wav'; $b = $j['prefix'] . '-2.wav'; $d = $j['prefix'] . '-3.wav';
+            $ok = is_file($a) && is_file($b) && is_file($d) && kar_mc_assemble($a, $b, $d, $j['out'], $pause) !== '';
+            kar_log('mcvoice', ($ok ? 'ready: ' : 'FAILED: ') . $j['who']);
+            @unlink($a); @unlink($b); @unlink($d);
+        }
+        kar_log('mcvoice', sprintf('%d announcement(s) in %.0fs', count($jobs), microtime(true) - $t0));
+    }
+    flock($lk, LOCK_UN);
+    exit;
+}
+
 if ($job === 'intro') {
     // ONE at a time, oldest first. The lock makes a second worker exit immediately; the one
     // holding it works the queue until it is empty. See kar_intro_kick().

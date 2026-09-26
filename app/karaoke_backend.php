@@ -510,7 +510,16 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     if ($crowd !== '' && !kar_mc_applause_has_video($crowd)) $crowd = '';
     // The singer's own intro (their face on the singer), or the plain intro for their
     // Man/Woman choice, takes the crowd video's place. Never waits: only a READY file counts.
-    if ($mc) { $own = kar_intro_for_play($singer); if ($own !== '') $crowd = $own; }
+    $isIntro = false;
+    if ($mc) {
+        $own = kar_intro_for_play($singer);
+        if ($own !== '' && is_file($own)) { $crowd = $own; $isIntro = true; }
+    }
+    // PLAYED ONCE (the owner, 2026-09-26: "the video... plays twice. It's been doing this all
+    // along"). The loop was right for the six-second crowd clip; an 18-second intro under a
+    // ~22-second presentation restarted for its last seconds. An intro is not looped — the
+    // worker starts the song as it ends — and keep-open holds its last frame if the voice runs on.
+    $loopIt = ($crowd !== '' && !$isIntro);
     if ($crowd !== '') $path = $crowd;          // the player opens on the crowd, not the song
     if (kar_mpv_alive()) {
         // Pause BEFORE loading: mpv keeps the property across a loadfile, so the new song
@@ -526,7 +535,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         // announcement would have nowhere to appear (the owner, 2026-09-13).
         kar_mpv_send(['set_property', 'force-window', 'yes']);
         kar_mpv_send(['set_property', 'vid', ($mc && $crowd === '') ? 'no' : 'auto']);
-        kar_mpv_send(['set_property', 'loop-file', $crowd !== '' ? 'inf' : 'no']);
+        kar_mpv_send(['set_property', 'loop-file', $loopIt ? 'inf' : 'no']);
         kar_mpv_send(['set_property', 'volume', 100]);
         // Re-assert the words window's on-top setting on EVERY song, not only at launch.
         // A running player keeps whatever it started with, so an instance that was already
@@ -538,7 +547,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         kar_mpv_send(['set_property', 'speed', 1.0]);
         // Through the lua script so the on-screen UP/DOWN counter stays in step.
         kar_mpv_send(['script-message', 'casai-set-pitch', (string)$pitch]);
-        if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd); }
+        if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd, $isIntro); }
         else     { kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it', $pitch), 5000]); }
         return [true, sprintf('pitch %+d applied%s', $pitch, $mc ? ', announcing ' . $singer : '')];
     }
@@ -577,7 +586,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     $args[] = '--osd-font-size=48';
     if ($mc) {
         if ($crowd !== '') {
-            $args[] = '--loop-file=inf';                  // the crowd keeps going
+            if ($loopIt) $args[] = '--loop-file=inf';     // the crowd keeps going; an intro plays once
         } else {
             $args[] = '--pause';                          // held until the presentation is done
             $args[] = '--vid=no';                         // and no picture until then either
@@ -594,7 +603,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         if (kar_mpv_alive()) break;
         usleep(250000);
     }
-    if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd); }
+    if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd, $isIntro); }
     else     { kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it · F fullscreen · Q closes', $pitch), 6000]); }
     return [true, sprintf('pitch %+d applied%s', $pitch, $mc ? ', announcing ' . $singer : '')];
 }
@@ -870,6 +879,13 @@ function kar_mc_voice_for(string $lang): string {
 }
 
 function kar_mc_build(string $singer, string $title, string $artist): string {
+    // The Chatterbox voice, when this Mac has it and the announcement was made in advance
+    // (made when the song joined the queue). Never waited for: not ready -> the Mac's voice.
+    if (kar_cb_dir() !== '') {
+        $ready = kar_cb_file($singer, $title, $artist);
+        if (is_file($ready) && filesize($ready) > 0) return $ready;
+        kar_cb_kick();
+    }
     $c      = kar_cfg();
     $pause  = (float)($c['announce_pause'] ?? 0.9);
     // The song picks its own announcer: language from the title, then that language's voice
@@ -890,7 +906,11 @@ function kar_mc_build(string $singer, string $title, string $artist): string {
     $dir = kar_data_dir() . '/mc';
     $out = $dir . '/' . substr(sha1($voice . '|' . $lead . '|' . $mid . '|' . $tail . '|' . $pause), 0, 16) . '.wav';
     if (is_file($out) && filesize($out) > 0) return $out;
+    return kar_mc_assemble($a, $b, $d, $out, $pause);
+}
 
+/** Three clips -> one loud announcement wav with real silence between the lines. */
+function kar_mc_assemble(string $a, string $b, string $d, string $out, float $pause): string {
     $ff = kar_tool('ffmpeg');
     if ($ff === '') return '';
     // Loud and plain. loudnorm ERRORS above I=-5 rather than clamping, so normalise to its
@@ -976,17 +996,57 @@ function kar_mc_applause_loop(float $seconds = 45.0): string {
 }
 
 /** Start the introduction in the background so the web request returns at once. */
-function kar_mc_spawn(string $song, string $singer, int $pitch, string $crowd = ''): void {
+function kar_mc_spawn(string $song, string $singer, int $pitch, string $crowd = '', bool $intro = false): void {
     $worker = __DIR__ . '/karaoke_worker.php';
     if (!is_file($worker)) return;
     $php = PHP_BINARY ?: 'php';
     // 'crowd' = the video kar_play actually put on screen, so the worker never has to guess.
-    $arg = base64_encode(json_encode(['song' => $song, 'singer' => $singer, 'pitch' => $pitch, 'crowd' => $crowd]));
+    $arg = base64_encode(json_encode(['song' => $song, 'singer' => $singer, 'pitch' => $pitch, 'crowd' => $crowd, 'intro' => $intro]));
     // Deliberately NOT behind the worker lock: a download running is no reason for the
     // party to lose its announcements.
     @exec(escapeshellarg($php) . ' ' . escapeshellarg($worker) . ' '
         . escapeshellarg(kar_marker_path() ?: '') . ' announce ' . escapeshellarg($arg)
         . ' >/dev/null 2>&1 &');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THE CHATTERBOX ANNOUNCER VOICE (the owner, 2026-09-26: "I want to see the announcer voice, the
+// new one... implement that one")
+//
+// Chatterbox (open source, MIT, runs on this Mac) speaks in a voice cloned from the owner's chosen
+// sample ("announcer-sample-B-toned-down.wav"). It is far too slow to speak on the spot — about
+// 50 s to load, then seconds per line — so each announcement is MADE IN ADVANCE: when a song joins
+// the queue, karaoke_worker.php 'mcvoice' (one at a time, behind data/mcvoice.lock) speaks the
+// three lines for every queued song that has none yet. kar_mc_build uses the ready file; if it is
+// not ready the Mac's own voice announces as before. The show never waits.
+//
+// Switched on per Mac by "announce_chatterbox": "/path/to/cantoria_announcer" in
+// karaoke_standalone.json. That folder (venv + model cache, several GB) is NOT in the public
+// bundle. Remove the key and every announcement is the Mac's voice again.
+// ─────────────────────────────────────────────────────────────────────────────
+function kar_cb_dir(): string {
+    $d = rtrim(trim((string)(kar_cfg()['announce_chatterbox'] ?? '')), '/');
+    return ($d !== '' && is_file($d . '/cantoria_announce.py') && is_file($d . '/.venv/bin/python')) ? $d : '';
+}
+
+/** Where the ready announcement for this singer + song lives. Keyed by the SPOKEN name, so
+ *  changing someone's full name makes a new announcement rather than reusing the old one. */
+function kar_cb_file(string $spoken, string $title, string $artist): string {
+    return kar_data_dir() . '/mc/cb/' . substr(sha1($spoken . '|' . $title . '|' . $artist), 0, 16) . '.wav';
+}
+
+function kar_cb_kick(): void {
+    if (kar_cb_dir() === '') return;
+    @exec(escapeshellarg(PHP_BINARY ?: 'php') . ' ' . escapeshellarg(__DIR__ . '/karaoke_worker.php') . ' '
+        . escapeshellarg(kar_marker_path() ?: '') . ' mcvoice >/dev/null 2>&1 &');
+}
+
+/** One property from the player, decoded; null when it does not answer. */
+function kar_mpv_get(string $prop) {
+    $r = kar_mpv_send(['get_property', $prop]);
+    if ($r === null) return null;
+    $j = json_decode($r, true);
+    return (is_array($j) && ($j['error'] ?? '') === 'success') ? ($j['data'] ?? null) : null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -384,7 +384,7 @@ try {
             }
             // A singer joining the queue with a photo but no intro yet: start it now, so it is
             // most likely ready by their turn. Cheap no-op when it is ready or already running.
-            if ($ft === 'karaoke_q_add' && !empty($singer)) { try { kar_intro_spawn($singer); } catch (Throwable $e) { } }
+            if ($ft === 'karaoke_q_add' && !empty($singer)) { try { kar_intro_spawn($singer); } catch (Throwable $e) { } try { kar_cb_kick(); } catch (Throwable $e) { } }
             kj(['ok'=>true, 'error'=>'', 'queue'=>$qState(), 'sung'=>(object)$qSung()]);
         } catch (Throwable $qe) {
             kj(['ok'=>false, 'error'=>$qe->getMessage(), 'queue'=>$qState(), 'sung'=>(object)$qSung()]);
