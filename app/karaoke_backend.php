@@ -733,9 +733,9 @@ function kar_mc_clip(string $text, string $voice, int $rate): string {
  * Kept as three separate clips joined by silence rather than one sentence — that is what
  * makes the pause a dial instead of a guess, and it survives changing the voice. */
 // ── THE THREE ANNOUNCERS (the owner, 2026-09-14) ──────────────────────────────────────
-// A song is announced WHOLE in its own language, by that language's voice. Four phrasings
-// each, and they are the SAME FOUR MOODS in every language - formal welcome · and-now ·
-// your turn · applause - so the rotation varies the wording without changing the character
+// A song is announced WHOLE in its own language, by that language's voice. Six phrasings
+// each (four until 2026-09-26; the owner: "never say the same thing twice"), the SAME SIX MOODS in
+// every language - formal welcome · and-now · your turn · applause · welcome-to-the-stage · get-ready - so the rotation varies the wording without changing the character
 // of the MC. Each line is three parts because the audio is three clips joined by real
 // silence; that rhythm was settled by ear on 10 Sep and is untouched here.
 //
@@ -747,15 +747,21 @@ const KAR_MC_PHRASINGS = [
   'en' => [['Ladies and gentlemen',       '{singer} will sing',                   '{title}, by {artist}!'],
            ['And now',                    '{singer} will sing our next song',     '{title}, by {artist}!'],
            ['Next up',                    '{singer} is about to sing',            '{title}, by {artist}!'],
-           ["Let's hear it for {singer}", 'who is going to sing',                 '{title}, by {artist}!']],
+           ["Let's hear it for {singer}", 'who is going to sing',                 '{title}, by {artist}!'],
+           ['Please welcome to the stage', '{singer}, singing', '{title}, by {artist}!'],
+           ['Get ready, everybody', 'here comes {singer}', 'with {title}, by {artist}!']],
   'it' => [['Signore e signori',           '{singer} canterà',                     '{title}, di {artist}!'],
            ['E adesso',                    '{singer} canterà la prossima canzone', '{title}, di {artist}!'],
            ['Tocca a {singer}',            'che canta',                            '{title}, di {artist}!'],
-           ['Un applauso per {singer}',    'che si appresta a cantare',            '{title}, di {artist}!']],
+           ['Un applauso per {singer}',    'che si appresta a cantare',            '{title}, di {artist}!'],
+           ['Diamo il benvenuto a {singer}', 'che ci canterà', '{title}, di {artist}!'],
+           ['Preparatevi tutti', 'ecco {singer}', 'con {title}, di {artist}!']],
   'es' => [['Señoras y señores',           '{singer} cantará',                     '{title}, de {artist}!'],
            ['Y ahora',                     '{singer} cantará la próxima canción',  '{title}, de {artist}!'],
            ['Le toca a {singer}',          'que canta',                            '{title}, de {artist}!'],
-           ['Un aplauso para {singer}',    'que está a punto de cantar',           '{title}, de {artist}!']],
+           ['Un aplauso para {singer}',    'que está a punto de cantar',           '{title}, de {artist}!'],
+           ['Demos la bienvenida a {singer}', 'que nos cantará', '{title}, de {artist}!'],
+           ['Prepárense todos', 'aquí viene {singer}', 'con {title}, de {artist}!']],
 ];
 
 /** Which language is this song? Read from the title, where the answer honestly is. The
@@ -802,7 +808,7 @@ function kar_mc_lang(string $title, string $artist = ''): string {
     return $sp > $il ? 'es' : 'it';
 }
 
-/** A shuffled bag, not a cycle: never the same phrasing twice running, and all four are
+/** A shuffled bag, not a cycle: never the same phrasing twice running, and all six are
  *  used before any repeats. */
 function kar_mc_phrasing(string $lang): array {
     $set = KAR_MC_PHRASINGS[$lang] ?? KAR_MC_PHRASINGS['en'];
@@ -867,7 +873,7 @@ function kar_mc_build(string $singer, string $title, string $artist): string {
     $c      = kar_cfg();
     $pause  = (float)($c['announce_pause'] ?? 0.9);
     // The song picks its own announcer: language from the title, then that language's voice
-    // and one of its four phrasings.
+    // and one of its six phrasings.
     $lang   = kar_mc_lang($title, $artist);
     $voice  = kar_mc_voice_for($lang);
     [$p1, $p2, $p3] = kar_mc_phrasing($lang);
