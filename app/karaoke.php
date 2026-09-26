@@ -934,7 +934,8 @@ if (!$KAR_LOCAL) {
         <?php if ($KAR_LOCAL): ?>
         <div class="kar-gs" id="kar-gs-update" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Software updates</h3>
-          <p style="margin:0 0 8px">Installs the latest version. <b>Songs, settings, Best lists and saved keys are preserved</b>; only the program is replaced.</p>
+          <p style="margin:0 0 8px"><b>Usually you do not need this page.</b> When a new version is published, a gold <b style="color:#D2AD6C">⬆︎ Update</b> button appears on the gold bar, next to Guide. Press it once: the new version installs and the page reloads by itself.</p>
+          <p style="margin:0 0 8px">The button below does the same thing, any time. <b>Songs, settings, Best lists and saved keys are preserved</b>; only the program is replaced.</p>
           <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Cantoria Software Update</button>
           <div id="kar-upd-state" style="display:none;margin-top:8px;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;line-height:1.6"></div>
           <span id="kar-upd-msg" style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">Installed version: <b id="kar-upd-ver" style="color:#cbd5e1"><?= h(kar_installed_version()) ?></b></span>
@@ -2528,7 +2529,7 @@ function karPickFolder(){
           t.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:9999;background:#047857;color:#fff;border:1px solid #fff;border-radius:10px;padding:10px 18px;font:600 14px -apple-system,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.4)';
           document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 6000);
         }
-        karUpdateCheck(false);
+        karUpdateCheck(true);   // fresh on every page load, so Refresh shows a new release at once
         setInterval(function(){ karUpdateCheck(false); }, 10 * 60 * 1000);
       });
     }
