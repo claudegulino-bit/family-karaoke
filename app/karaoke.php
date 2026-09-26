@@ -244,12 +244,19 @@ if (!$KAR_LOCAL) {
   #kar-sm-yt:hover   { background:#E00000; border-color:#E00000; color:#FFFFFF; }
   #kar-sm-yt.kar-on  { background:#CC0000; border-color:#FFFFFF; color:#FFFFFF; box-shadow:0 0 0 2px rgba(255,255,255,.35); }
   .kar-chip.kar-on, .kar-smode.kar-on { background:#3D536F; color:#CDE8FF; border-color:#A9D9FF; }
+  /* SONG DATABASE is teal with a record shelf — the owner chose it 2026-09-26 ("the one in the
+     middle"). BOTH Song Database buttons (the list, and the search mode) wear it so they read as
+     one library. Teal is the one colour not already used: blue row, red YouTube, gold Queue, green Play. */
+  #kar-chip-db, #kar-sm-list          { background:linear-gradient(135deg,#0d9488,#115e59); border-color:#14b8a6; color:#fff; font-weight:800; gap:6px; }
+  #kar-chip-db:hover, #kar-sm-list:hover { background:linear-gradient(135deg,#14b8a6,#0f766e); color:#fff; }
+  #kar-chip-db.kar-on, #kar-sm-list.kar-on { border-color:#99f6e4; box-shadow:0 0 0 2px rgba(153,246,228,.35); color:#fff; }
+  #kar-chip-db .kar-cnt               { background:rgba(255,255,255,.22); color:#fff; }
   /* the three modes sit inside the field, so they run one size smaller — colour is shared above */
   /* All three the same width — the owner, 2026-09-18: "song database, YouTube, a link, they
      need to be the same size." Sized to the longest label; justify-content centres the short
      ones inside it. Change the labels and this number has to be re-measured in a browser. */
   .kar-smode        { height:28px; padding:0 6px; border-radius:7px; font-size:12.5px;
-                      width:104px; justify-content:center; }
+                      width:126px; justify-content:center; }   /* 104 → 126 on 2026-09-26: the shelf icon joined "Song Database" */
   /* the party tools — amber at rest, so the eye finds the queue and the QR code in one move */
   .kar-tool         { background:rgba(251,191,36,.13); border-color:rgba(251,191,36,.42);
                       color:#fcd34d; font-weight:700; }
@@ -486,7 +493,7 @@ if (!$KAR_LOCAL) {
       <!-- The three lists. Emerald when chosen — the same green as Play, because these are the
            songs you play. Colours come from CSS on .kar-chip, NEVER inline from karSwitch. -->
       <div id="kar-listbar" style="flex:0 0 auto;display:flex;align-items:center;gap:7px">
-        <button type="button" id="kar-chip-db" class="kar-chip kar-on" onclick="karSwitch('db',this)" title="Every song in the library"><span style="font-size:15px">&#x1F5C2;</span>Song Database <span id="kar-db-count" class="kar-cnt"><?= count($_kjDb) ?></span></button>
+        <button type="button" id="kar-chip-db" class="kar-chip kar-on" onclick="karSwitch('db',this)" title="Every song in the library"><svg class="kar-shelf" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 auto"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="9" y="4" width="4" height="16" rx="1"/><path d="M15.5 5.2l3.6-1 3 15.6-3.6 1z"/><path d="M2 21h20"/></svg>Song Database <span id="kar-db-count" class="kar-cnt"><?= count($_kjDb) ?></span></button>
         <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away"><span style="font-size:15px">&#x1F195;</span>New Songs <span id="kar-new-count" class="kar-cnt"><?= count($_kjNew) ?></span></button>
         <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Which singer&#39;s songs to show — the ones they know. Pick a name, or add a new person.">
           <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
@@ -510,7 +517,7 @@ if (!$KAR_LOCAL) {
           <span id="kar-sicon" style="flex:0 0 auto;font-size:14px;line-height:1;pointer-events:none;opacity:.65">&#x1F50D;</span>
           <input id="kar-search" type="text" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type here. Esc clears it." style="flex:1;min-width:50px;background:none;border:none;outline:none;color:#e2e8f0;font-size:14px;font-weight:600;padding:0">
           <span style="flex:0 0 auto;display:flex;align-items:center;gap:3px">
-            <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the song database — the songs you already have">Song Database</button>
+            <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the song database — the songs you already have"><svg class="kar-shelf" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:0 0 auto"><rect x="3" y="4" width="4" height="16" rx="1"/><rect x="9" y="4" width="4" height="16" rx="1"/><path d="M15.5 5.2l3.6-1 3 15.6-3.6 1z"/><path d="M2 21h20"/></svg>Song Database</button>
             <button type="button" class="kar-smode" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">▶&#xFE0E; YouTube</button>
             <button type="button" class="kar-smode" id="kar-sm-link" onclick="karSetMode('link')" title="Paste a link somebody gave you and download it"><span style="text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:2px">Link</span><svg class="kar-hand" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true" style="vertical-align:-5px;margin-left:3px"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v4.5c0 3.6-2.4 6.5-6 6.5h-.8c-2 0-3.4-.8-4.6-2.3L4.4 16.3a1.6 1.6 0 0 1 2.4-2.1L9 16.5V11" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </span>
