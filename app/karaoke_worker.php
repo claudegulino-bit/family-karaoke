@@ -45,8 +45,8 @@ if ($job === 'announce') {
     $song   = (string)($spec['song'] ?? '');
     $singer = (string)($spec['singer'] ?? '');
     if ($song === '' || $singer === '') exit;
-    // Announced and shown as the person, not the list: "Claude — practice" says "Claude" —
-    // and by their FULL name when one is set ("Maria Rossi", the owner 2026-09-26).
+    // Announced and shown as the person, not the list: "Maria — practice" says "Maria" —
+    // and by their FULL name when one is set ("Maria Rossi", 2026-09-26).
     if (function_exists('kar_singer_spoken')) $singer = kar_singer_spoken($singer);
     elseif (function_exists('kar_mc_name'))  $singer = kar_mc_name($singer);
 

@@ -256,7 +256,7 @@ const KAR_SCHEMA = [
         at   TEXT NOT NULL,
         PRIMARY KEY (kind, k1, k2))",
     // A SINGER — the person, not a Best list. The short name is what the menu and the queue
-    // show ("Claude"); full_name is what the announcer says ("Maria Rossi"); variant picks
+    // show ("Maria"); full_name is what the announcer says ("Maria Rossi"); variant picks
     // the intro video — "male" | "female" | '' — and belongs to the PERSON SINGING, never to
     // who recorded the song (the owner, 2026-09-26). Photos live in data/singers/.
     "CREATE TABLE IF NOT EXISTS karaoke_singers (
