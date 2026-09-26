@@ -467,6 +467,13 @@ function kar_lua_path(): string {
 }
 
 /** Play a song NOW. Returns [ok, note]. */
+// Words window above the browser? Default YES (2026-09-26); an explicit false in the Mac's
+// settings file still wins. One place, so the launch and the reuse path can never disagree.
+function kar_words_on_top(): bool {
+    $cfg = kar_cfg();
+    return array_key_exists('words_on_top', $cfg) ? !empty($cfg['words_on_top']) : true;
+}
+
 function kar_play(string $song, int $pitch, string $singer = ''): array {
     $path = kar_songs_dir() . '/' . $song;
     if (!is_file($path)) return [false, 'file not found in the songs folder'];
@@ -499,7 +506,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         // A running player keeps whatever it started with, so an instance that was already
         // open when the switch was turned on would stay behind the browser for the rest of
         // the night. Sent both ways, so unticking takes effect on the next song too.
-        kar_mpv_send(['set_property', 'ontop', !empty(kar_cfg()['words_on_top'])]);
+        kar_mpv_send(['set_property', 'ontop', kar_words_on_top()]);
         kar_mpv_send(['loadfile', $path, 'replace']);
         // Speed persists across loads — every song starts at normal tempo.
         kar_mpv_send(['set_property', 'speed', 1.0]);
@@ -536,10 +543,11 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     // window never went away.
     $args[] = '--idle=yes';
     $args[] = '--keep-open=always';
-    // Off by default, deliberately: pinning the words above everything stops the two
-    // windows being used side by side. "words_on_top": true if you want it anyway.
-    $cfg = kar_cfg();
-    if (!empty($cfg['words_on_top'])) $args[] = '--ontop';
+    // ON by default since 2026-09-26 (the owner, on Mike's mini: the words "opened up at the
+    // bottom, so I couldn't see it — make sure the text opens always on top above the Cantoria
+    // page"). It used to be off to allow side-by-side windows; a party needs the words visible.
+    // "words_on_top": false in karaoke_standalone.json still turns it off for a Mac that wants that.
+    if (kar_words_on_top()) $args[] = '--ontop';
     $args[] = '--osd-font-size=48';
     if ($mc) {
         if ($crowd !== '') {
