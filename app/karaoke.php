@@ -511,6 +511,14 @@ if (!$KAR_LOCAL) {
         <!-- The singer window: full name for the announcer, Man/Woman, photo (2026-09-26). -->
         <button type="button" id="kar-singer-btn" class="kar-chip" onclick="karSingerOpen(karWho)" title="This singer: full name for the announcer, Man or Woman, and the photo shown when they are called up" style="padding:0 11px;position:relative"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg><span id="kar-singer-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px"></span></button>
         <?php endif; ?>
+        <!-- Tier filter, Singer view only (the owner, 2026-09-27): a 415-song search on his own
+             singer code was "not reasonable" to pick from. Defaults to ① only - the whole
+             point is opening small, not showing everything and asking you to narrow it. -->
+        <div id="kar-tierbar" style="display:none;align-items:center;gap:4px">
+          <button type="button" class="kar-chip kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show tier ① songs">①</button>
+          <button type="button" class="kar-chip kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show tier ② songs">②</button>
+          <button type="button" class="kar-chip kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show tier ③ songs">③</button>
+        </div>
       </div>
       <!-- ⚠ flex-basis, NOT min-width, decides where a flex row breaks a line. With a 320px
            basis the row wrapped at 1440px even though the field could legally shrink to 255 —
@@ -1155,11 +1163,17 @@ if (!$KAR_LOCAL) {
     var KAR_DUP = <?= json_encode((object)$_kjDup, JSON_UNESCAPED_UNICODE) ?>;
     var karWho = <?= json_encode($_kjWho) ?>;
     try { var _w = localStorage.getItem('kar_best_who'); if (_w && KAR_BEST_BY[_w]) karWho = _w; } catch(e){}
+    // KAR_BEST_SET maps a bare song name -> its tier (1/2/3), not just present/absent
+    // (the owner, 2026-09-27). KAR_BEST_BY entries are [filename, tier] pairs, but KAR_DATA.best
+    // stays a flat array of filenames - every other bit of rendering (search, sort, the "src"
+    // used all over karRender) expects a plain string there and must not have to know tiers
+    // exist at all.
     var KAR_BEST_SET = {};
     function karRebuildBest(){
-      KAR_DATA.best = KAR_BEST_BY[karWho] || [];
+      var pairs = KAR_BEST_BY[karWho] || [];
+      KAR_DATA.best = pairs.map(function(pair){ return pair[0]; });
       KAR_BEST_SET = {};
-      KAR_DATA.best.forEach(function(n){ KAR_BEST_SET[n.replace(/\.[a-z0-9]{2,4}$/i,'')] = 1; });
+      pairs.forEach(function(pair){ KAR_BEST_SET[pair[0].replace(/\.[a-z0-9]{2,4}$/i,'')] = pair[1]; });
       // The dropdown IS the Best-of box now (the owner, 2026-09-13: "why do I need to click on
       // Best of Claude… is there a way to eliminate one box"). Its own option carries the name
       // AND the count, so one control does what two used to.
@@ -1278,6 +1292,28 @@ if (!$KAR_LOCAL) {
     // Sorting the SONG FILENAME column. '' = the view's natural order (alphabetical for the
     // library, newest-first for 🆕 New), then A→Z, then Z→A, then back to natural.
     var karSort = '';
+    // Best-list tier filter (the owner, 2026-09-27): which tiers show in the Singer view.
+    // Defaults to ① only - opening small is the whole point, not everything at once.
+    // Remembered per browser, same as other view preferences on this page.
+    var karTierFilter = { 1: true, 2: false, 3: false };
+    try {
+      var _tf = JSON.parse(localStorage.getItem('kar_tier_filter') || 'null');
+      if (_tf && typeof _tf === 'object') karTierFilter = _tf;
+    } catch(e){}
+    function karTierFilterToggle(t){
+      karTierFilter[t] = !karTierFilter[t];
+      // Never let every tier end up off - that would silently show nothing at all.
+      if (!karTierFilter[1] && !karTierFilter[2] && !karTierFilter[3]) karTierFilter[t] = true;
+      try { localStorage.setItem('kar_tier_filter', JSON.stringify(karTierFilter)); } catch(e){}
+      karPaintTierFilter();
+      karRender();
+    }
+    function karPaintTierFilter(){
+      document.querySelectorAll('.kar-tier-chip').forEach(function(b){
+        var t = parseInt(b.getAttribute('data-tier'), 10);
+        b.classList.toggle('kar-on', !!karTierFilter[t]);
+      });
+    }
     // Which Mac every button on this page talks to. Remembered per browser, so the
     // TV Mac in one house and the laptop in another each keep their own choice.
     var karMacName = '';
@@ -1398,6 +1434,8 @@ if (!$KAR_LOCAL) {
       if (hd) hd.style.display = (karView === 'new') ? '' : 'none';
       var hc = document.getElementById('kar-h-chk');
       if (hc) hc.style.display = (karView === 'new') ? '' : 'none';
+      var htb = document.getElementById('kar-tierbar');
+      if (htb) htb.style.display = (karView === 'best') ? 'flex' : 'none';
       // ⚠ Sort the ORDER, not the array. Every click handler below resolves its data-i against
       // KAR_DATA[karRenderedView], so reordering the array itself would make Play, ✎ and ✕ act on
       // the wrong song. Building an index list keeps data-i meaning what it has always meant.
@@ -1418,13 +1456,26 @@ if (!$KAR_LOCAL) {
         var i = order[k];
         var full = src[i];
         if (q && full.toLowerCase().indexOf(q) === -1) continue;
+        // Tier filter, Singer view only (the owner, 2026-09-27): this is the actual fix for
+        // "415 songs is not a reasonable search" - narrows what shows, same as the search
+        // box does, just by tier instead of by text.
+        if (karView === 'best') {
+          var nameF = full.replace(/\.[a-z0-9]{2,4}$/i,'');
+          if (!karTierFilter[KAR_BEST_SET[nameF] || 1]) continue;
+        }
         rowNo++;
         var name = full.replace(/\.[a-z0-9]{2,4}$/i,'');
-        var inBest = !!KAR_BEST_SET[name];
-        var star = '<button type="button" class="kar-star" data-i="' + i + '" title="'
-          + (inBest ? 'On ' : 'Not on ') + karWho + '’s Best list — click to ' + (inBest ? 'remove it' : 'add it') + '" '
+        // Three tiers, not just on/off (the owner, 2026-09-27): ① favorites, widening through
+        // ② ③ - a 415-song search on his own singer code was "not reasonable" to pick a song
+        // from. Click cycles ☆ -> ① -> ② -> ③ -> ☆.
+        var tierN = KAR_BEST_SET[name] || 0;
+        var KAR_TIER_ICON  = ['☆','①','②','③'];
+        var KAR_TIER_COLOR = ['#94a3b8','#FFD34D','#60A5FA','#f87171'];
+        var KAR_TIER_NEXT  = ['add it as ①', 'move it to ②', 'move it to ③', 'remove it'];
+        var star = '<button type="button" class="kar-star" data-i="' + i + '" data-tier="' + tierN + '" title="'
+          + (tierN ? ('Tier ' + tierN + ' on ') : 'Not on ') + karWho + '’s Best list — click to ' + KAR_TIER_NEXT[tierN] + '" '
           + 'style="font-family:inherit;flex:0 0 auto;width:48px;background:none;border:none;cursor:pointer;font-size:17px;line-height:1;padding:0;text-align:center;'
-          + (inBest ? 'color:#FFD34D;text-shadow:0 0 6px rgba(255,211,77,.45)' : 'color:#94a3b8') + '">' + (inBest ? '⭐' : '☆') + '</button>';
+          + (tierN ? ('color:' + KAR_TIER_COLOR[tierN] + ';text-shadow:0 0 6px rgba(255,211,77,.3)') : 'color:#94a3b8') + '">' + KAR_TIER_ICON[tierN] + '</button>';
         var ovr = Object.prototype.hasOwnProperty.call(KAR_PITCH, full);
         var eff = ovr ? KAR_PITCH[full] : karFnPitch(full);
         if (eff === null) eff = 0;  // every song shows its real playing pitch — 0 by default
@@ -1969,24 +2020,30 @@ if (!$KAR_LOCAL) {
         }).catch(function(){ qb.textContent = '➕'; alert('Network error — the request was not added.'); });
         return;
       }
-      // ⭐ / ☆: add or remove this song on the selected person's Best list.
+      // ☆ / ① / ② / ③: cycle this song's tier on the selected person's Best list
+      // (the owner, 2026-09-27). ☆ -> ① -> ② -> ③ -> back to ☆ (off the list).
       var stb = ev.target.closest ? ev.target.closest('.kar-star') : null;
       if (stb) {
         var songS = src[parseInt(stb.getAttribute('data-i'), 10)];
         if (!songS) return;
         var nameS = songS.replace(/\.[a-z0-9]{2,4}$/i,'');
-        var wantS = !KAR_BEST_SET[nameS];
+        var curTierS = KAR_BEST_SET[nameS] || 0;
+        var nextTierS = (curTierS + 1) % 4;
         var fdS = new FormData();
         fdS.append('form_type', 'karaoke_best_toggle');
         fdS.append('song', songS);
         fdS.append('person', karWho);
-        fdS.append('want', wantS ? '1' : '0');
+        fdS.append('tier', String(nextTierS));
         fetch(KAR_API, {method:'POST', body: fdS}).then(function(r){ return r.json(); }).then(function(d){
           if (!d.ok) { alert('Not saved. ' + karWhyFail(d.error)); return; }
           var aS = KAR_BEST_BY[karWho] || (KAR_BEST_BY[karWho] = []);
-          var ixS = aS.indexOf(songS);
-          if (wantS && ixS === -1) aS.push(songS);
-          if (!wantS && ixS !== -1) aS.splice(ixS, 1);
+          var ixS = -1;
+          for (var qS = 0; qS < aS.length; qS++) { if (aS[qS][0] === songS) { ixS = qS; break; } }
+          if (nextTierS > 0) {
+            if (ixS === -1) aS.push([songS, nextTierS]); else aS[ixS][1] = nextTierS;
+          } else if (ixS !== -1) {
+            aS.splice(ixS, 1);
+          }
           karRebuildBest();
           var listElS = document.getElementById('kar-list');
           var stS = listElS.scrollTop;
@@ -3575,6 +3632,7 @@ function karPickFolder(){
     // list empty until a chip was clicked (the owner, 2026-09-06). The Song Database
     // chip is already marked active in the HTML, and karView starts as 'db' to match.
     karRebuildBest();
+    karPaintTierFilter();  // reflect the remembered tier filter on the chips themselves
     karApplyQmidiVis();  // hide/show the QMidi column per the remembered Guide setting
     karApplySimple();     // Simple / Complete — hide or show everything but singing
     karHelpApply('dl');  // the "? How it works" blocks, per this computer's remembered choice

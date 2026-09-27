@@ -292,6 +292,10 @@ const KAR_ADD_COLUMNS = [
     "ALTER TABLE karaoke_downloads ADD COLUMN dup_rule TEXT DEFAULT NULL",
     // When he marked the song CHECKED and took it off the 🆕 New review list.
     "ALTER TABLE karaoke_downloads ADD COLUMN reviewed_at TEXT DEFAULT NULL",
+    // Best-list tiers (the owner, 2026-09-27): a 415-song search on his own singer code was
+    // "not reasonable" to pick a song from - ① his favorites, ② ③ progressively wider. Every
+    // existing row defaults to 1, same as casAI's matching ALTER TABLE.
+    "ALTER TABLE karaoke_best ADD COLUMN tier INTEGER NOT NULL DEFAULT 1",
 ];
 
 function kar_db(): PDO {
@@ -2320,12 +2324,14 @@ function kar_best_seed(?PDO $db = null): array {
     return $v === '' ? [] : array_values(array_filter(array_map('trim', explode(',', $v)), 'strlen'));
 }
 
+/** Each entry is [filename, tier] - tier 1/2/3 (the owner, 2026-09-27), so a singer's own Best
+ *  list can be narrowed to just their favorites instead of searching everything at once. */
 function kar_best_lists(PDO $db): array {
     $out = [];
     foreach (kar_best_seed($db) as $person) $out[(string)$person] = [];
     try {
-        foreach ($db->query("SELECT person, filename FROM karaoke_best ORDER BY person, filename") as $r) {
-            $out[$r['person']][] = $r['filename'];
+        foreach ($db->query("SELECT person, filename, tier FROM karaoke_best ORDER BY person, filename") as $r) {
+            $out[$r['person']][] = [$r['filename'], (int)($r['tier'] ?: 1)];
         }
     } catch (Throwable $e) { /* table missing → empty lists, page still works */ }
     uksort($out, 'strcasecmp');

@@ -230,11 +230,16 @@ try {
     case 'karaoke_best_toggle': {
         $song   = trim((string)($_POST['song'] ?? ''));
         $person = trim((string)($_POST['person'] ?? ''));
-        $want   = (string)($_POST['want'] ?? '') === '1';
+        // 0 = off the list; 1/2/3 = the tier (the owner, 2026-09-27 - a 415-song search on his
+        // own singer code was "not reasonable" to pick from, so the star became three tiers:
+        // ① favorites, widening through ② ③). 'want' kept as a fallback for a stale cached
+        // page mid-update, so it still does something sane rather than erroring outright.
+        $tier = isset($_POST['tier']) ? max(0, min(3, (int)$_POST['tier'])) : ((string)($_POST['want'] ?? '') === '1' ? 1 : 0);
         if ($person === '' || mb_strlen($person) > 40 || strpbrk($person, '/\\') !== false) kj(['ok'=>false,'error'=>'bad person name']);
         if (!kar_ok_name($song) || !kar_known($song)) kj(['ok'=>false,'error'=>'unknown song']);
-        if ($want) {
-            $db->prepare('INSERT OR IGNORE INTO karaoke_best (person, filename) VALUES (?,?)')->execute([$person, $song]);
+        if ($tier > 0) {
+            $db->prepare('INSERT INTO karaoke_best (person, filename, tier) VALUES (?,?,?)
+                          ON CONFLICT(person, filename) DO UPDATE SET tier=excluded.tier')->execute([$person, $song, $tier]);
             // An add cancels an older removal, or the other Mac would keep taking it away.
             $db->prepare('DELETE FROM karaoke_removals WHERE kind=? AND k1=? AND k2=?')->execute(['best', $person, $song]);
         } else {
@@ -242,7 +247,7 @@ try {
             kar_sync_record_removal($db, 'best', $person, $song);
         }
         try { kar_sync($db, true); } catch (Throwable $e) { }
-        kj(['ok'=>true, 'error'=>'', 'on'=>$want]);
+        kj(['ok'=>true, 'error'=>'', 'tier'=>$tier]);
     }
 
     case 'karaoke_best_remove_person': {
