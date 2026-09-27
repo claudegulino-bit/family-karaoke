@@ -2082,6 +2082,16 @@ if (!$KAR_LOCAL) {
           } else if (ixS !== -1) {
             aS.splice(ixS, 1);
           }
+          // Your own click just moved this song to nextTierS - it must not vanish from a
+          // filter that was showing something else (the owner, 2026-09-27: clicking ① to make
+          // it ② "just goes away... it doesn't change the number to two, it actually goes
+          // away" - the row WAS still there, just filtered out of the tier you happened to be
+          // looking at). Reveal whatever tier you just set, same as opening a new tier chip.
+          if (nextTierS > 0 && !karTierFilter[nextTierS]) {
+            karTierFilter[nextTierS] = true;
+            try { localStorage.setItem('kar_tier_filter', JSON.stringify(karTierFilter)); } catch(e){}
+            karPaintTierFilter();
+          }
           karRebuildBest();
           var listElS = document.getElementById('kar-list');
           var stS = listElS.scrollTop;
