@@ -380,6 +380,11 @@ if (!$KAR_LOCAL) {
      /* 2026-09-27: doubled from 14px first (the circled tier numbers ①②③, unlike the plain star
      this replaced, were "almost can't see it"), then brought back down about 20% ("now 2 big") and
      made explicitly unbold - the numerals read heavier than a plain star at the same size. */
+  .kar-tier-chip { font-size: 22px !important; font-weight: 400 !important; padding: 0 9px !important; }
+     /* The "Show:" filter chips, 2026-09-27: "the numbers are so small... a big box, a very small
+     number inside" - these inherit the ordinary .kar-chip text size (14px) meant for a whole word
+     like "New Songs", not one lone circled digit sitting in a 36px-tall button. Matches .kar-star's
+     own size above, for the same reason. */
 
   /* The two list chips join the grey too, and selection is shown the way the Simple|Complete switch
      already shows it - BRIGHTER means selected - with a near-white ring instead of the gold one.
