@@ -683,6 +683,10 @@ function kar_title_artist(string $file): array {
           . 'cover|remaster(?:ed)?|cori|con\s+cori|senza\s+voce|con\s+voce|full|version|'
           . 'originale?|live|remix|edit|clip|spanish|italian|english|usa\d*|ita\d*|esp\d*';
     $s = preg_replace('/\.[A-Za-z0-9]{2,4}$/', '', $file);
+    // THE NAMING CONVENTION: "Artist - Title (Karaoke|Lyrics|Original) Singers (pitch)" - everything
+    // after the type marker is singer codes and pitch, never words to say. Without this the
+    // announcer said "Io per Lei Mike" wherever the singer list was not to hand (2026-09-26).
+    $s = preg_replace('/\((?:karaoke|lyrics?|original)\).*$/iu', ' ', $s);
     $s = preg_replace('/\(\s*[+-]?\d{1,2}\s*\)/', ' ', $s);          // (0) (-3) pitch
     $s = preg_replace('/\bCSG\d*\b/i', ' ', $s);
     foreach (kar_singer_names() as $p) {

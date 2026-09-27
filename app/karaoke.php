@@ -507,14 +507,9 @@ if (!$KAR_LOCAL) {
           <option value="__remove__">− Remove a person…</option>
           </select>
         </select>
-        <?php if ($KAR_LOCAL): ?>
+        <?php if (true): /* the singer window is in BOTH editions (2026-09-26) */ ?>
         <!-- The singer window: full name for the announcer, Man/Woman, photo (2026-09-26). -->
-        <button type="button" id="kar-singer-btn" class="kar-chip" onclick="karSingerOpen(karWho)" title="This singer: full name for the announcer, Man or Woman, and a photo for their personal intro" style="padding:0 11px;position:relative"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg><span id="kar-singer-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px"></span></button>
-        <?php else: ?>
-        <!-- casAI edition (2026-09-26, the owner: "this is where we do development... what if I want to
-             change a name"): the singer cards live in THIS MAC's own Cantoria, where the announcer and
-             the photo intros read them - so the camera opens that card there, in its own tab. -->
-        <button type="button" id="kar-singer-btn" class="kar-chip" onclick="window.open('http://localhost:8899/karaoke.php#singer=' + encodeURIComponent(karWho || ''), 'cantoria-local')" title="Open this singer's card (full name, Man or Woman, photo) in this Mac's own Cantoria" style="padding:0 11px"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg></button>
+        <button type="button" id="kar-singer-btn" class="kar-chip" onclick="karSingerOpen(karWho)" title="This singer: full name for the announcer, Man or Woman, and the photo shown when they are called up" style="padding:0 11px;position:relative"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg><span id="kar-singer-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px"></span></button>
         <?php endif; ?>
       </div>
       <!-- ⚠ flex-basis, NOT min-width, decides where a flex row breaks a line. With a 320px
@@ -3558,7 +3553,7 @@ function karPickFolder(){
          You will see your place in the queue. You can bring a song from YouTube too.</p>
       <p class="kar-pr-url" id="kar-qr-print-url"></p>
     </div>
-<?php if ($KAR_LOCAL): ?>
+<?php if (true): /* both editions — casAI is where cards are kept (2026-09-26) */ ?>
 <div id="kar-singer-win" style="display:none;position:fixed;inset:0;background:rgba(5,8,15,.62);z-index:300;align-items:center;justify-content:center" onclick="if(event.target===this)karSingerClose()">
   <div style="background:#1e2636;border:1px solid #3b4a63;border-radius:14px;width:min(460px,calc(100vw - 32px));padding:20px 22px;color:#e2e8f0;box-shadow:0 20px 60px rgba(0,0,0,.5)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -3569,13 +3564,13 @@ function karPickFolder(){
     <div id="kar-sw-name" style="font-size:15px;font-weight:700;margin-bottom:12px"></div>
     <label for="kar-sw-full" style="display:block;font-size:12px;color:#94a3b8;margin-bottom:4px">Full name for the announcer</label>
     <input id="kar-sw-full" type="text" maxlength="80" placeholder="Maria Rossi" style="width:100%;box-sizing:border-box;height:36px;border-radius:8px;border:1px solid #3b4a63;background:#111827;color:#f1f5f9;padding:0 10px;font-size:14px;margin-bottom:12px">
-    <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px">Singer (picks the intro video — the person singing, not who recorded the song)</label>
+    <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px">Man or woman (the person singing, not who recorded the song)</label>
     <div style="display:flex;gap:16px;margin-bottom:14px;font-size:14px">
       <label style="cursor:pointer"><input type="radio" name="kar-sw-var" value="male"> Man</label>
       <label style="cursor:pointer"><input type="radio" name="kar-sw-var" value="female"> Woman</label>
       <label style="cursor:pointer;color:#94a3b8"><input type="radio" name="kar-sw-var" value=""> Not set</label>
     </div>
-    <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px">Photo for the personal intro</label>
+    <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px">Photo — shown on screen with their name when they are called up to sing</label>
     <div style="display:flex;gap:14px;align-items:center;margin-bottom:8px">
       <div id="kar-sw-prev" style="width:84px;height:84px;border-radius:10px;background:#111827 center/cover no-repeat;border:1px solid #3b4a63;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#475569;font-size:11px">no photo</div>
       <div style="display:flex;flex-direction:column;gap:7px;align-items:flex-start">
@@ -3586,16 +3581,17 @@ function karPickFolder(){
     </div>
     <div id="kar-sw-status" style="font-size:12.5px;color:#94a3b8;min-height:18px;margin-bottom:14px"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button type="button" id="kar-sw-test" onclick="karSingerTest()" style="display:none;background:none;border:1px solid #6ee7b7;color:#6ee7b7;border-radius:8px;height:36px;padding:0 14px;cursor:pointer;font-size:13.5px">▶ Test intro</button>
+      <button type="button" id="kar-sw-test" onclick="karSingerTest()" style="display:none;background:none;border:1px solid #6ee7b7;color:#6ee7b7;border-radius:8px;height:36px;padding:0 14px;cursor:pointer;font-size:13.5px">▶ Test</button>
       <button type="button" id="kar-sw-save" onclick="karSingerSave()" style="background:#047857;border:1px solid #fff;color:#fff;border-radius:8px;height:36px;padding:0 18px;cursor:pointer;font-size:14px;font-weight:700">Save</button>
     </div>
   </div>
 </div>
 <script>
-  // ── The singer window (standalone only) ─────────────────────────────────────
+  // ── The singer window (both editions since 2026-09-26; casAI keeps the cards) ──
   var KAR_SW = {name:'', file:null, remove:false};
-  var KAR_SW_WORDS = {ready:'✓ Their personal intro is ready.', pending:'⏳ Their personal intro is in line to be made. Intros are made one at a time, about 9 minutes each. You can keep using Cantoria.',
-                      failed:'✕ The personal intro could not be made. The plain intro will play instead.', none:''};
+  var KAR_SW_WORDS = {ready:'✓ At Next singer: their photo, their name and the song, with applause and the announcer.',
+                      pending:'⏳ Being prepared.', failed:'✕ Could not be prepared — the crowd video and the announcer play instead.',
+                      none:'No photo yet — the crowd video plays and the announcer still says their name.'};
   // Opened from casAI's camera button: karaoke.php#singer=<name> opens that card on arrival.
   if (KAR_LOCAL && /^#singer=/.test(location.hash)) {
     var _swName = decodeURIComponent(location.hash.slice(8));
@@ -3614,13 +3610,12 @@ function karPickFolder(){
       if (!d.ok) { document.getElementById('kar-sw-status').textContent = d.error || ''; return; }
       document.getElementById('kar-sw-full').value = d.full_name || '';
       document.querySelectorAll('input[name="kar-sw-var"]').forEach(function(r){ r.checked = (r.value === (d.variant||'')); });
-      karSingerPreview(d.has_photo ? ('/karaoke_api.php?singer_photo=' + encodeURIComponent(name) + '&v=' + (d.photo_v||'')) : '');
+      karSingerPreview(d.has_photo ? ((KAR_LOCAL ? '/karaoke_api.php?singer_photo=' : '/app.php?karaoke_singer_photo=') + encodeURIComponent(name) + '&v=' + (d.photo_v||'')) : '');
       var st = KAR_SW_WORDS[d.intro] || '';
       if (d.intro === 'failed' && d.intro_error) st += ' (' + d.intro_error + ')';
-      if (!d.engine) st = 'The personal-intro engine is not installed on this Mac — the name and Man/Woman still work.';
-      else if (d.intro === 'none' && d.has_photo && !d.variant) st = 'Choose Man or Woman so Cantoria knows which intro to make.';
+
       document.getElementById('kar-sw-status').textContent = st;
-      document.getElementById('kar-sw-test').style.display = (d.intro === 'ready') ? '' : 'none';
+      document.getElementById('kar-sw-test').style.display = (!KAR_LOCAL && d.intro === 'ready') ? '' : 'none';
     }).catch(function(){ document.getElementById('kar-sw-status').textContent = 'Could not reach Cantoria.'; });
   }
   function karSingerClose(){ document.getElementById('kar-singer-win').style.display = 'none'; }
@@ -3632,9 +3627,21 @@ function karPickFolder(){
   }
   function karSingerPicked(inp){
     var f = inp.files && inp.files[0]; if (!f) return;
-    KAR_SW.file = f; KAR_SW.remove = false;
-    karSingerPreview(URL.createObjectURL(f));
-    document.getElementById('kar-sw-status').textContent = 'Press Save — the photo is checked for one clear face.';
+    KAR_SW.file = null; KAR_SW.remove = false; KAR_SW.busy = true;
+    // The photo is made a JPEG of at most 1024 px HERE, in the browser, before it is sent:
+    // phone photos are 5-10 MB, and casAI's server has no image library to shrink them.
+    var img = new Image(), url = URL.createObjectURL(f);
+    img.onload = function(){
+      var k = Math.min(1, 1024 / Math.max(img.naturalWidth, img.naturalHeight));
+      var c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(function(b){ KAR_SW.file = new File([b], 'photo.jpg', {type:'image/jpeg'}); KAR_SW.busy = false; }, 'image/jpeg', 0.9);
+    };
+    img.onerror = function(){ KAR_SW.busy = false; document.getElementById('kar-sw-status').textContent = '✕ That photo could not be opened here. Please choose a JPEG or PNG photo.'; };
+    img.src = url;
+    karSingerPreview(url);
+    document.getElementById('kar-sw-status').textContent = 'Press Save to keep this photo.';
   }
   function karSingerRemovePhoto(){
     KAR_SW.file = null; KAR_SW.remove = true;
@@ -3643,6 +3650,7 @@ function karPickFolder(){
     document.getElementById('kar-sw-status').textContent = 'The photo will be removed when you press Save.';
   }
   function karSingerSave(){
+    if (KAR_SW.busy) { setTimeout(karSingerSave, 250); return; }   // the photo is still being prepared
     var btn = document.getElementById('kar-sw-save');
     var v = document.querySelector('input[name="kar-sw-var"]:checked');
     var fd = new FormData();
@@ -3657,14 +3665,15 @@ function karPickFolder(){
       if (!d.ok) { document.getElementById('kar-sw-status').textContent = '✕ ' + (d.error || 'Not saved.'); return; }
       KAR_SW.file = null; KAR_SW.remove = false;
       document.getElementById('kar-sw-status').textContent = 'Saved. ' + (KAR_SW_WORDS[d.intro] || '');
-      document.getElementById('kar-sw-test').style.display = (d.intro === 'ready') ? '' : 'none';
+      document.getElementById('kar-sw-test').style.display = (!KAR_LOCAL && d.intro === 'ready') ? '' : 'none';
       karSingerBadges();
     }).catch(function(){ btn.disabled = false; btn.textContent = 'Save'; document.getElementById('kar-sw-status').textContent = 'Could not reach Cantoria — nothing was saved.'; });
   }
   function karSingerTest(){
     var fd = new FormData(); fd.append('form_type','karaoke_intro_test'); fd.append('name', KAR_SW.name);
     fetch(KAR_API,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
-      if (!d.ok) alert(d.error || 'Could not play the intro.');
+      if (!d.ok) { alert(d.error || 'Could not play the intro.'); return; }
+      document.getElementById('kar-sw-status').textContent = '▶ The laptop is preparing their intro — it plays on the lyrics screen in about a minute.';
     });
   }
   // The small mark on the camera button: ✓ ready · … being made · ! failed, for the selected singer.

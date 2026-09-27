@@ -71,6 +71,8 @@ try {
         if ($name === '') kj(['ok'=>false,'error'=>'no name']);
         $s = kar_singer($name);
         [$state] = kar_intro_state($name);
+        // Photo intros (2026-09-26): a photo IS the intro — made per song when it is queued.
+        if (kar_photo_intros_on()) $state = kar_singer_photo($name) !== '' ? 'ready' : 'none';
         $err = '';
         if ($state === 'failed' && $s) {
             $e = $db->prepare('SELECT error FROM karaoke_intros WHERE name=? ORDER BY rendered_at DESC LIMIT 1');
@@ -86,6 +88,7 @@ try {
         $out = [];
         foreach ($db->query('SELECT name FROM karaoke_singers') as $r) {
             [$state] = kar_intro_state($r['name']);
+            if (kar_photo_intros_on()) $state = kar_singer_photo($r['name']) !== '' ? 'ready' : 'none';
             $out[$r['name']] = ['photo'=>kar_singer_photo($r['name']) !== '', 'intro'=>$state];
         }
         kj(['ok'=>true, 'singers'=>(object)$out, 'engine'=>kar_fx_on()]);
@@ -111,6 +114,7 @@ try {
         kar_log('singer', "saved $name" . ($full !== '' ? " ($full)" : '') . ($var !== '' ? ", $var" : ''));
         kar_intro_spawn($name);
         [$state] = kar_intro_state($name);
+        if (kar_photo_intros_on()) $state = kar_singer_photo($name) !== '' ? 'ready' : 'none';
         kj(['ok'=>true, 'intro'=>$state, 'has_photo'=>kar_singer_photo($name) !== '']);
     }
 
