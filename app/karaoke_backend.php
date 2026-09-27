@@ -892,25 +892,30 @@ function kar_mc_lang(string $title, string $artist = ''): string {
 // with a build-up. "..." is a pause; [NAME] is spoken plain and its first-name vowel stretched;
 // [SONG] and [ARTIST] are never stretched. With no artist, "di/de/by [ARTIST]" is dropped.
 // Six per language, same shuffled-bag rule as the Mac voice's set above.
+// EVERY WORDING NOW NAMES THE ARTIST (the owner, 2026-09-27, after noticing it never did for an
+// English song: "was that a decision you made or was that oversight" - honestly, oversight; the
+// original six English lines never had a slot for it at all, unlike the classic Mac voice above,
+// which always said "by [artist]"). "by/di/de [ARTIST]" is dropped cleanly with no artist known -
+// same mechanism already proven on the one Italian line that had it from the start.
 const KAR_CB_PHRASINGS = [
-  'en' => ["Ladies and gentlemen... please welcome... [NAME]! Singing... [SONG]!",
-           "And now... coming to the stage... it's [NAME]! Here's... [SONG]!",
-           "Get those hands ready, everybody... [NAME] is going to sing... [SONG]!",
-           "Up next... a big round of applause for... [NAME]! With... [SONG]!",
-           "Alright, everybody... it's time for... [NAME]! Performing... [SONG]!",
-           "Make some noise... for... [NAME]! And the song is... [SONG]!"],
-  'it' => ["Signore e signori... un grande applauso per... [NAME]! Con... [SONG]!",
-           "E adesso... sul palco... ecco a voi... [NAME]! Canta... [SONG]!",
-           "Preparate le mani... [NAME] sta per cantare... [SONG]!",
+  'en' => ["Ladies and gentlemen... please welcome... [NAME]! Singing... [SONG]... by [ARTIST]!",
+           "And now... coming to the stage... it's [NAME]! Here's... [SONG]... by [ARTIST]!",
+           "Get those hands ready, everybody... [NAME] is going to sing... [SONG]... by [ARTIST]!",
+           "Up next... a big round of applause for... [NAME]! With... [SONG]... by [ARTIST]!",
+           "Alright, everybody... it's time for... [NAME]! Performing... [SONG]... by [ARTIST]!",
+           "Make some noise... for... [NAME]! And the song is... [SONG]... by [ARTIST]!"],
+  'it' => ["Signore e signori... un grande applauso per... [NAME]! Con... [SONG]... di [ARTIST]!",
+           "E adesso... sul palco... ecco a voi... [NAME]! Canta... [SONG]... di [ARTIST]!",
+           "Preparate le mani... [NAME] sta per cantare... [SONG]... di [ARTIST]!",
            "Un applauso per... [NAME]... che si appresta a cantare... [SONG]... di [ARTIST]!",
-           "Forza, tutti insieme... è il momento di... [NAME]! Con... [SONG]!",
-           "Fate rumore... per... [NAME]! E la canzone è... [SONG]!"],
+           "Forza, tutti insieme... è il momento di... [NAME]! Con... [SONG]... di [ARTIST]!",
+           "Fate rumore... per... [NAME]! E la canzone è... [SONG]... di [ARTIST]!"],
   'es' => ["Señoras y señores... [NAME] cantará... [SONG]... de [ARTIST]!",
-           "Y ahora... [NAME] cantará la próxima canción... [SONG]!",
-           "Le toca a... [NAME]... que canta... [SONG]!",
-           "Un aplauso para... [NAME]... que está a punto de cantar... [SONG]!",
-           "Demos la bienvenida a... [NAME]... que nos cantará... [SONG]!",
-           "Prepárense todos... aquí viene... [NAME]! Con... [SONG]!"],
+           "Y ahora... [NAME] cantará la próxima canción... [SONG]... de [ARTIST]!",
+           "Le toca a... [NAME]... que canta... [SONG]... de [ARTIST]!",
+           "Un aplauso para... [NAME]... que está a punto de cantar... [SONG]... de [ARTIST]!",
+           "Demos la bienvenida a... [NAME]... que nos cantará... [SONG]... de [ARTIST]!",
+           "Prepárense todos... aquí viene... [NAME]! Con... [SONG]... de [ARTIST]!"],
 ];
 
 /** The words on a photo intro, under the name: "Maria Rossi will sing" / the song. */

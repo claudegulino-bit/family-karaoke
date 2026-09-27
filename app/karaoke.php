@@ -659,6 +659,7 @@ if (!$KAR_LOCAL) {
         $_karCards[] = ['downloads', $_num('YouTube Downloads'), 'Searching YouTube and adding songs.', 'At a party'];
         $_karCards[] = ['guestqr',   $_num('Guest QR'),  'Song requests from guests\' phones.', 'At a party'];
         $_karCards[] = ['credits',   $_num('Credits'),  'Where the announcer voice comes from.', 'Setting up'];
+        if (!$KAR_LOCAL) $_karCards[] = ['voiceprog', $_num('Announcer progress'), 'How many songs are ready per singer.', 'Setting up'];
         // Grouped, because ten cards in one flat grid is a wall (the owner, 2026-09-13). The
         // heading spans the whole grid row; the numbers still run 1..N in reading order,
         // because he refers to cards by number out loud.
@@ -778,6 +779,13 @@ if (!$KAR_LOCAL) {
           </div>
         </div>
 
+        <?php if (!$KAR_LOCAL): ?>
+        <div class="kar-gs" id="kar-gs-voiceprog" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Announcer progress</h3>
+          <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">The laptop makes each singer's announcement quietly in the background — between turns, not during one — so it's usually already done by the time they're called up. This is the real, live count, not a guess.</p>
+          <div id="kar-vp-body" style="color:#cbd5e1">Loading…</div>
+        </div>
+        <?php endif; ?>
         <div class="kar-gs" id="kar-gs-credits" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Credits</h3>
           <p style="margin:0">The announcer's voice at <b>Next singer</b> is built from a recording by <b>klankbeeld</b> on
@@ -2439,7 +2447,73 @@ function karPickFolder(){
     // the owner, reading it: "very busy, unorganized… maybe multiple boxes, each box clearly
     // says what it's for."
     var karGuideOpenKey = null;
+    var karVPOpenPerson = null;
+    function karVoiceProgress(){
+      var body = document.getElementById('kar-vp-body'); if (!body) return;
+      var fd = new FormData(); fd.append('form_type','karaoke_voice_progress');
+      fetch(KAR_API,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+        if (!d.ok) { body.textContent = 'Could not read the progress.'; return; }
+        var names = Object.keys(d.by || {}).sort(function(a,b){ return (d.by[b][1]-d.by[b][0]) - (d.by[a][1]-d.by[a][0]); });
+        if (!names.length) { body.textContent = 'Nothing on any singer\'s list yet.'; return; }
+        var rows = names.map(function(n){
+          var done = d.by[n][0], total = d.by[n][1];
+          var pct = total ? Math.round(100*done/total) : 0;
+          var open = (karVPOpenPerson === n);
+          var bar = '<div style="background:#334155;border-radius:5px;height:8px;width:140px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px"><div style="background:'+(done>=total?'#10B981':'#D2AD6C')+';height:100%;width:'+pct+'%"></div></div>';
+          return '<div onclick="karVPToggle(\''+n.replace(/'/g,"\\'")+'\')" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid #263041'+(open?';background:rgba(210,173,108,.06)':'')+'">'+
+                 '<div style="min-width:140px;font-weight:700;color:'+(open?'#D2AD6C':'#e2e8f0')+'">'+n.replace(/</g,'&lt;')+'</div>'+bar+
+                 '<div style="color:#94a3b8;font-size:12.5px;min-width:80px">'+done+' of '+total+'</div></div>';
+        }).join('');
+        var age = d.at ? Math.round((Date.now()/1000 - d.at)/60) : null;
+        var when = age === null ? 'never yet' : (age < 1 ? 'just now' : age + ' minute' + (age===1?'':'s') + ' ago');
+        body.innerHTML = rows +
+          '<p style="margin:10px 0 4px;color:#64748b;font-size:11.5px">Last updated: ' + when + '. Click a name to see their songs.</p>' +
+          '<div id="kar-vp-detail"></div>';
+        if (karVPOpenPerson) karVPLoadDetail(karVPOpenPerson);
+      }).catch(function(){ body.textContent = 'Could not reach Cantoria.'; });
+    }
+    function karVPToggle(person){
+      karVPOpenPerson = (karVPOpenPerson === person) ? null : person;
+      karVoiceProgress();   // redraw so the clicked row highlights and the detail loads
+    }
+    function karVPLoadDetail(person){
+      var det = document.getElementById('kar-vp-detail'); if (!det) return;
+      det.innerHTML = '<p style="color:#64748b;font-size:12.5px;margin:8px 0">Loading ' + person.replace(/</g,'&lt;') + '\u2019s songs\u2026</p>';
+      var fd = new FormData(); fd.append('form_type','karaoke_voice_progress_detail'); fd.append('person', person);
+      fetch(KAR_API,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+        if (karVPOpenPerson !== person) return;   // they clicked elsewhere while this was loading
+        // Only the ones actually done (the owner, 2026-09-27: "the list of songs we should get is
+        // only the ones that have been rendered, not the whole list") - a not-ready song has
+        // nothing to play yet, so it has no place in this list.
+        var ready = (d.songs || []).filter(function(s){ return s.ok; });
+        if (!d.ok || !ready.length) { det.innerHTML = '<p style="color:#64748b;font-size:12.5px">None of ' + person.replace(/</g,'&lt;') + '\u2019s songs are ready yet.</p>'; return; }
+        var rows = ready.map(function(s){
+          var short = s.f.replace(/\.[A-Za-z0-9]{2,4}$/, '');
+          var btn = '<button type="button" onclick="karVPPlay(\''+person.replace(/'/g,"\\'")+'\',\''+s.f.replace(/'/g,"\\'")+'\',this)" style="background:#047857;border:1px solid #6ee7b7;color:#fff;border-radius:6px;height:26px;padding:0 10px;cursor:pointer;font-size:12px;flex:0 0 auto">\u25b6 Play</button>';
+          return '<div style="display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px solid #1c2433">'+
+                 '<div style="flex:1;font-size:12.5px;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+short.replace(/</g,'&lt;')+'</div>'+btn+'</div>';
+        }).join('');
+        det.innerHTML = '<p style="margin:6px 0 4px;color:#64748b;font-size:11.5px">'+ready.length+' of '+d.songs.length+' ready:</p><div style="max-height:280px;overflow-y:auto;border-top:1px solid #334155;padding-top:4px">' + rows + '</div>';
+      }).catch(function(){ if (karVPOpenPerson === person) det.innerHTML = '<p style="color:#f87171;font-size:12.5px">Could not load their songs.</p>'; });
+    }
+    function karVPPlay(person, filename, btn){
+      btn.disabled = true; btn.textContent = 'Playing\u2026';
+      var fd = new FormData(); fd.append('form_type','karaoke_voice_test_play'); fd.append('person', person); fd.append('filename', filename);
+      fetch(KAR_API,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+        btn.disabled = false; btn.textContent = '\u25b6 Play';
+        if (!d.ok) alert(d.error || 'Could not play it.');
+      }).catch(function(){ btn.disabled = false; btn.textContent = '\u25b6 Play'; alert('Could not reach Cantoria.'); });
+    }
+    var karVPTimer = null;
     function karGuideOpen(key){
+      // Refreshes itself while it's open (the owner, 2026-09-27: it looked "stuck" because it only
+      // fetched once, on open — a real gap, not a real stall). Stops the moment anything else
+      // is opened or the card is closed, so it never polls in the background for nothing.
+      if (karVPTimer) { clearInterval(karVPTimer); karVPTimer = null; }
+      if (key === 'voiceprog' && karGuideOpenKey !== key) {
+        setTimeout(karVoiceProgress, 30);
+        karVPTimer = setInterval(karVoiceProgress, 15000);
+      }
       var same = (karGuideOpenKey === key);
       karGuideOpenKey = same ? null : key;
       var cards = document.querySelectorAll('#kar-guide-cards button');
