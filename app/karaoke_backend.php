@@ -920,6 +920,10 @@ function kar_mc_build(string $singer, string $title, string $artist): string {
         $ready = kar_cb_file($singer, $title, $artist);
         if (is_file($ready) && filesize($ready) > 0) return $ready;
         kar_cb_kick();
+        // Voice B in every case (the owner, 2026-09-26: "I like the B voice on all cases"): the
+        // song's own announcement is not ready yet, so the singer's ready-made greeting instead.
+        $greet = kar_cb_greeting_file($singer, kar_mc_lang($title, $artist));
+        if (is_file($greet) && filesize($greet) > 0) return $greet;
     }
     $c      = kar_cfg();
     $pause  = (float)($c['announce_pause'] ?? 0.9);
@@ -1068,7 +1072,16 @@ function kar_cb_dir(): string {
  *  changing someone's full name makes a new announcement rather than reusing the old one. */
 function kar_cb_file(string $spoken, string $title, string $artist): string {
     // "v2" = the presenter treatment (stretched name, stadium FX); v1 files were the plain voice.
-    return kar_data_dir() . '/mc/cb/' . substr(sha1('v2|' . $spoken . '|' . $title . '|' . $artist), 0, 16) . '.wav';
+    return kar_data_dir() . '/mc/cb/' . substr(sha1('v3|' . $spoken . '|' . $title . '|' . $artist), 0, 16) . '.wav';
+}
+
+/** The singer's short greeting in voice B, per language — the fallback when a song's own
+ *  announcement is still being made. Made by the worker first, before the full intros. */
+const KAR_CB_GREETING = ['en' => 'Ladies and gentlemen... please welcome... [NAME]!',
+                         'it' => 'Signore e signori... un grande applauso per... [NAME]!',
+                         'es' => 'Señoras y señores... un aplauso para... [NAME]!'];
+function kar_cb_greeting_file(string $spoken, string $lang): string {
+    return kar_data_dir() . '/mc/cb/' . substr(sha1('greet2|' . $lang . '|' . $spoken), 0, 16) . '.wav';
 }
 
 function kar_cb_kick(): void {
@@ -1090,7 +1103,7 @@ function kar_photo_intro_file(string $singer, string $song): string {
     if (!$s || empty($s['photo_hash'])) return '';
     [$artist, $title] = kar_title_artist($song);
     $spoken = kar_singer_spoken($singer);
-    return kar_data_dir() . '/mc/cb/' . substr(sha1('v3|' . $spoken . '|' . $title . '|' . $artist . '|' . $s['photo_hash']), 0, 16) . '.mp4';
+    return kar_data_dir() . '/mc/cb/' . substr(sha1('v4|' . $spoken . '|' . $title . '|' . $artist . '|' . $s['photo_hash']), 0, 16) . '.mp4';
 }
 
 /** One property from the player, decoded; null when it does not answer. */

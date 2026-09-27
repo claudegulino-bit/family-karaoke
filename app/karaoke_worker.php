@@ -199,8 +199,22 @@ if ($job === 'mcvoice') {
     @mkdir($tmp, 0775, true);
     for ($round = 0; $round < 5; $round++) {
         $jobs = []; $seen = [];
-        foreach (kar_db()->query("SELECT singer, filename FROM karaoke_sing_queue WHERE status IN ('Singing','Waiting')
-                                  ORDER BY (status='Singing') DESC, position ASC, id ASC") as $r) {
+        $rows = kar_db()->query("SELECT singer, filename FROM karaoke_sing_queue WHERE status IN ('Singing','Waiting')
+                                 ORDER BY (status='Singing') DESC, position ASC, id ASC")->fetchAll();
+        // FIRST the singers' short greetings (seconds each), so voice B is ready for everyone
+        // almost at once; the full intros follow.
+        foreach ($rows as $r) {
+            $spoken = function_exists('kar_singer_spoken') ? kar_singer_spoken((string)$r['singer']) : kar_mc_name((string)$r['singer']);
+            [$artist, $title] = kar_title_artist((string)$r['filename']);
+            $lang = kar_mc_lang($title, $artist);
+            $g = kar_cb_greeting_file($spoken, $lang);
+            if (isset($seen[$g]) || (is_file($g) && filesize($g) > 0)) continue;
+            $seen[$g] = 1;
+            $jobs[] = ['mode' => 'voice', 'lang' => $lang, 'template' => KAR_CB_GREETING[$lang] ?? KAR_CB_GREETING['en'],
+                       'name' => $spoken, 'song' => '', 'artist' => '', 'voice' => $ref, 'out' => $g,
+                       'who' => "$spoken (greeting, $lang)"];
+        }
+        foreach ($rows as $r) {
             $who    = (string)$r['singer'];
             $spoken = function_exists('kar_singer_spoken') ? kar_singer_spoken($who) : kar_mc_name($who);
             [$artist, $title] = kar_title_artist((string)$r['filename']);
