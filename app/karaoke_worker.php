@@ -108,9 +108,14 @@ if ($job === 'announce') {
         $t0    = microtime(true);
         $wav   = kar_mc_build($singer, $title, $artist);
         $spent = microtime(true) - $t0;
+        // '' is a deliberate silence now (the owner, 2026-09-26: only ever the one voice), not
+        // necessarily a failure - say so accurately depending on whether this Mac even has the
+        // engine at all.
+        $voiceNote = $wav !== '' ? 'ready' : (function_exists('kar_cb_dir') && kar_cb_dir() !== ''
+            ? 'not ready in time — no announcement this turn' : 'no voice engine on this Mac — no announcement');
         $mclog(sprintf('%s / %s%s — voice %s (%.1fs), applause %s',
             $singer, $title, ($artist !== '' ? ' / ' . $artist : ''),
-            ($wav !== '' ? 'ready' : 'FAILED TO BUILD'), $spent,
+            $voiceNote, $spent,
             ($ap === '' ? 'NONE FOUND — silent walk-up' : ($crowd ? 'ON SCREEN: ' : 'sound only: ') . $ap)));
 
         // Time already spent building counts towards the reading pause, so a cached

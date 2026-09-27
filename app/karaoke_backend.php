@@ -918,16 +918,21 @@ function kar_mc_voice_for(string $lang): string {
 }
 
 function kar_mc_build(string $singer, string $title, string $artist): string {
-    // The Chatterbox voice, when this Mac has it and the announcement was made in advance
-    // (made when the song joined the queue). Never waited for: not ready -> the Mac's voice.
+    // ONLY ONE VOICE, EVER, ONCE A MAC HAS IT (the owner, 2026-09-26: "get rid of all the other
+    // voices... only keep the voice that we want to use... so there will be no misunderstanding
+    // going forward" - and confirmed this applies to every Mac, not only casAI's laptop, since
+    // the voice engine is now part of every install and every software update). Once
+    // kar_cb_dir() is set on this Mac, the classic `say`-based voice below is NEVER used again -
+    // not as a fallback, not for anything. If our own voice has nothing ready, the caller gets
+    // silence for the walk-up rather than a different voice standing in for it. The classic
+    // voice remains this function's ONLY voice on a Mac that has not yet received the engine.
     if (kar_cb_dir() !== '') {
         $ready = kar_cb_file($singer, $title, $artist);
         if (is_file($ready) && filesize($ready) > 0) return $ready;
         kar_cb_kick();
-        // Voice B in every case (the owner, 2026-09-26: "I like the B voice on all cases"): the
-        // song's own announcement is not ready yet, so the singer's ready-made greeting instead.
         $greet = kar_cb_greeting_file($singer, kar_mc_lang($title, $artist));
         if (is_file($greet) && filesize($greet) > 0) return $greet;
+        return '';
     }
     $c      = kar_cfg();
     $pause  = (float)($c['announce_pause'] ?? 0.9);
