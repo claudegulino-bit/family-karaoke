@@ -3564,6 +3564,8 @@ function karPickFolder(){
     <div id="kar-sw-name" style="font-size:15px;font-weight:700;margin-bottom:12px"></div>
     <label for="kar-sw-full" style="display:block;font-size:12px;color:#94a3b8;margin-bottom:4px">Full name for the announcer</label>
     <input id="kar-sw-full" type="text" maxlength="80" placeholder="Maria Rossi" style="width:100%;box-sizing:border-box;height:36px;border-radius:8px;border:1px solid #3b4a63;background:#111827;color:#f1f5f9;padding:0 10px;font-size:14px;margin-bottom:12px">
+    <label for="kar-sw-full-it" style="display:block;font-size:12px;color:#94a3b8;margin-bottom:4px">Name for Italian songs (optional — leave blank to use the name above)</label>
+    <input id="kar-sw-full-it" type="text" maxlength="80" placeholder="Giovanni Rossi" style="width:100%;box-sizing:border-box;height:36px;border-radius:8px;border:1px solid #3b4a63;background:#111827;color:#f1f5f9;padding:0 10px;font-size:14px;margin-bottom:12px">
     <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px">Man or woman (the person singing, not who recorded the song)</label>
     <div style="display:flex;gap:16px;margin-bottom:14px;font-size:14px">
       <label style="cursor:pointer"><input type="radio" name="kar-sw-var" value="male"> Man</label>
@@ -3603,12 +3605,14 @@ function karPickFolder(){
     KAR_SW = {name:name, file:null, remove:false};
     document.getElementById('kar-sw-name').textContent = name;
     document.getElementById('kar-sw-full').value = '';
+    document.getElementById('kar-sw-full-it').value = '';
     document.getElementById('kar-sw-status').textContent = 'Loading…';
     document.getElementById('kar-singer-win').style.display = 'flex';
     var fd = new FormData(); fd.append('form_type','karaoke_singer_get'); fd.append('name', name);
     fetch(KAR_API,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
       if (!d.ok) { document.getElementById('kar-sw-status').textContent = d.error || ''; return; }
       document.getElementById('kar-sw-full').value = d.full_name || '';
+      document.getElementById('kar-sw-full-it').value = d.full_name_it || '';
       document.querySelectorAll('input[name="kar-sw-var"]').forEach(function(r){ r.checked = (r.value === (d.variant||'')); });
       karSingerPreview(d.has_photo ? ((KAR_LOCAL ? '/karaoke_api.php?singer_photo=' : '/app.php?karaoke_singer_photo=') + encodeURIComponent(name) + '&v=' + (d.photo_v||'')) : '');
       var st = KAR_SW_WORDS[d.intro] || '';
@@ -3656,6 +3660,7 @@ function karPickFolder(){
     var fd = new FormData();
     fd.append('form_type','karaoke_singer_save'); fd.append('name', KAR_SW.name);
     fd.append('full_name', document.getElementById('kar-sw-full').value.trim());
+    fd.append('full_name_it', document.getElementById('kar-sw-full-it').value.trim());
     fd.append('variant', v ? v.value : '');
     if (KAR_SW.file) fd.append('photo', KAR_SW.file);
     if (KAR_SW.remove) fd.append('remove_photo','1');
