@@ -213,20 +213,34 @@ on run
 	set theURL to "http://localhost:$PORT/karaoke.php"
 	set code to do shell script "curl -s -o /dev/null -m 5 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
 	if code is not "200" then
-		do shell script "cd $DEST && nohup $PHPBIN -S 0.0.0.0:$PORT -t . > $DEST/logs/server.log 2>&1 &"
-		delay 3
-		set code to do shell script "curl -s -o /dev/null -m 5 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
+		-- stdin, stdout and stderr all redirected, or this script waits on the server forever
+		-- and every later double-click only wakes the stuck copy (2026-09-26)
+		do shell script "cd $DEST && nohup $PHPBIN -S 0.0.0.0:$PORT -t . > $DEST/logs/server.log 2>&1 < /dev/null &"
+		repeat 20 times
+			delay 1
+			set code to do shell script "curl -s -o /dev/null -m 5 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
+			if code is "200" then exit repeat
+		end repeat
 	end if
 	if code is "200" then
 		open location theURL
 	else
-		display dialog "Cantoria could not start on this Mac." buttons {"OK"} default button 1 with icon caution with title "Cantoria"
+		activate
+		display dialog "Cantoria could not start on this Mac." buttons {"OK"} default button 1 with icon caution with title "Cantoria" giving up after 30
 	end if
 end run
 AS
 rm -rf "$TMP/Cantoria.app"
 if osacompile -o "$TMP/Cantoria.app" "$TMP/launch.applescript" 2>/dev/null; then
-  [ -f "$DEST/karaoke.icns" ] && cp "$DEST/karaoke.icns" "$TMP/Cantoria.app/Contents/Resources/applet.icns"
+  # THE CANTORIA ICON (pink/orange, microphone, the name — chosen 2026-09-26). macOS 26 draws an
+  # osacompile app from its Assets.car and ignores applet.icns, so the icon came out a faint gray
+  # square nobody could find. Remove the asset catalogue and its Info.plist pointer, and the
+  # .icns is what shows.
+  if [ -f "$DEST/karaoke.icns" ]; then
+    rm -f "$TMP/Cantoria.app/Contents/Resources/Assets.car"
+    /usr/libexec/PlistBuddy -c "Delete :CFBundleIconName" "$TMP/Cantoria.app/Contents/Info.plist" 2>/dev/null || true
+    cp "$DEST/karaoke.icns" "$TMP/Cantoria.app/Contents/Resources/applet.icns"
+  fi
   xattr -cr "$TMP/Cantoria.app" 2>/dev/null || true
   codesign --force --deep -s - "$TMP/Cantoria.app" 2>/dev/null || true
   rm -rf "$HOME/Desktop/Cantoria.app" "$HOME/Desktop/Karaoke.app"

@@ -38,6 +38,18 @@ done
 # The settings file is yours. It is only ever created, never overwritten.
 [ -f "$DEST/karaoke_standalone.json" ] || cp "$SRC/karaoke_standalone.example.json" "$DEST/karaoke_standalone.json"
 chmod +x "$DEST/start.command" "$DEST/update.sh" 2>/dev/null || true
+# The Desktop icon follows the shipped one, so every Mac gets the Cantoria icon with its next
+# update — not only a fresh install. Only the picture changes; the launcher inside is left alone.
+APP="$HOME/Desktop/Cantoria.app"
+if [ -d "$APP" ] && [ -f "$DEST/karaoke.icns" ] && ! cmp -s "$DEST/karaoke.icns" "$APP/Contents/Resources/applet.icns"; then
+  rm -f "$APP/Contents/Resources/Assets.car"
+  /usr/libexec/PlistBuddy -c "Delete :CFBundleIconName" "$APP/Contents/Info.plist" 2>/dev/null || true
+  cp "$DEST/karaoke.icns" "$APP/Contents/Resources/applet.icns" 2>/dev/null || true
+  xattr -cr "$APP" 2>/dev/null || true
+  codesign --force --deep -s - "$APP" 2>/dev/null || true
+  touch "$APP" 2>/dev/null || true
+  echo "The Cantoria icon on the Desktop was refreshed."
+fi
 NOW="$(cat "$DEST/VERSION" 2>/dev/null || true)"
 if [ -n "$HAD" ] && [ "$HAD" = "$NOW" ]; then
   echo "Already up to date (karaoke $NOW)."
