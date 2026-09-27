@@ -515,7 +515,8 @@ if (!$KAR_LOCAL) {
         <!-- Tier filter, Singer view only (the owner, 2026-09-27): a 415-song search on his own
              singer code was "not reasonable" to pick from. Defaults to ① only - the whole
              point is opening small, not showing everything and asking you to narrow it. -->
-        <div id="kar-tierbar" style="display:none;align-items:center;gap:4px">
+        <div id="kar-tierbar" style="display:none;align-items:center;gap:5px">
+          <span style="color:#64748b;font-size:11.5px;font-weight:700">Show:</span>
           <button type="button" class="kar-chip kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show tier ① songs">①</button>
           <button type="button" class="kar-chip kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show tier ② songs">②</button>
           <button type="button" class="kar-chip kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show tier ③ songs">③</button>
@@ -1313,6 +1314,37 @@ if (!$KAR_LOCAL) {
     // (the owner, 2026-09-27 - see the ✕ warning built into the star, above). Never sent to the
     // server; purely what the star currently shows.
     var karPendingRemove = {};
+    // Shared by both the − and + tier buttons: send the new tier (or 0 to remove), update the
+    // local list, and make sure the row does not vanish from a filter that isn't showing the
+    // tier it just moved to.
+    function karTierSend(song, name, nextTier){
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_best_toggle');
+      fd.append('song', song);
+      fd.append('person', karWho);
+      fd.append('tier', String(nextTier));
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert('Not saved. ' + karWhyFail(d.error)); return; }
+        var a = KAR_BEST_BY[karWho] || (KAR_BEST_BY[karWho] = []);
+        var ix = -1;
+        for (var q = 0; q < a.length; q++) { if (a[q][0] === song) { ix = q; break; } }
+        if (nextTier > 0) {
+          if (ix === -1) a.push([song, nextTier]); else a[ix][1] = nextTier;
+        } else if (ix !== -1) {
+          a.splice(ix, 1);
+        }
+        if (nextTier > 0 && !karTierFilter[nextTier]) {
+          karTierFilter[nextTier] = true;
+          try { localStorage.setItem('kar_tier_filter', JSON.stringify(karTierFilter)); } catch(e){}
+          karPaintTierFilter();
+        }
+        karRebuildBest();
+        var listEl = document.getElementById('kar-list');
+        var st = listEl.scrollTop;
+        karRender();
+        listEl.scrollTop = st;
+      }).catch(function(){ alert('Network error — the change was not saved.'); });
+    }
     function karPaintTierFilter(){
       document.querySelectorAll('.kar-tier-chip').forEach(function(b){
         var t = parseInt(b.getAttribute('data-tier'), 10);
@@ -1480,22 +1512,35 @@ if (!$KAR_LOCAL) {
         // accidental, not deliberate). From ③, the first click shows a red ✕ warning and does
         // NOT touch the server; a second click on that ✕ is what actually removes it. Walking
         // away leaves it exactly as it was - karPendingRemove is purely local and never saved.
+        // − / + either side of the tier, not just a single forward-cycling click (the owner,
+        // 2026-09-27: "if you want to go from a three to a two or from a two to a one... you
+        // learn a song and you want to bring it forward"). − moves down (never removes -
+        // there is nothing below ①, and demoting is never how you take a song off the list);
+        // + moves up, and past ③ is where the same two-click removal confirm still lives.
         var tierN = KAR_BEST_SET[name] || 0;
         var pendingN = !!karPendingRemove[name];
         var KAR_TIER_ICON = ['☆','①','②','③'];
-        var starIcon, starColor, starTitle;
+        var starIcon, starColor, upTitle;
         if (pendingN) {
           starIcon = '✕'; starColor = '#f87171';
-          starTitle = 'Click again to remove from ' + karWho + '’s list';
+          upTitle = 'Click again to remove from ' + karWho + '’s list';
         } else {
           starIcon = KAR_TIER_ICON[tierN];
           starColor = tierN ? '#6ee7b7' : '#94a3b8';
-          starTitle = (tierN ? ('Tier ' + tierN + ' on ') : 'Not on ') + karWho + '’s Best list — click to '
-            + (tierN === 0 ? 'add it as ①' : tierN === 3 ? 'start removing it' : 'move it to ' + KAR_TIER_ICON[tierN + 1]);
+          upTitle = tierN === 0 ? ('Add to ' + karWho + '’s list as ①')
+                  : tierN === 3 ? ('Remove from ' + karWho + '’s list')
+                  : ('Move to ' + KAR_TIER_ICON[tierN + 1]);
         }
-        var star = '<button type="button" class="kar-star" data-i="' + i + '" data-tier="' + tierN + '" title="' + starTitle + '" '
-          + 'style="font-family:inherit;flex:0 0 auto;width:56px;background:none;border:none;cursor:pointer;font-size:27px;font-weight:400;line-height:1;padding:0;text-align:center;'
-          + 'color:' + starColor + '">' + starIcon + '</button>';
+        var dnDisabled = pendingN || tierN <= 1;
+        var dnTitle = tierN <= 1 ? 'Already at the top tier' : ('Move to ' + KAR_TIER_ICON[tierN - 1]);
+        var star = '<span class="kar-tiergrp" style="flex:0 0 auto;width:84px;display:inline-flex;align-items:center;justify-content:center;gap:1px">'
+          + '<button type="button" class="kar-tier-dn" data-i="' + i + '" title="' + dnTitle + '"' + (dnDisabled ? ' disabled' : '')
+          + ' style="flex:0 0 auto;width:20px;height:20px;font-size:15px;font-weight:700;line-height:1;background:transparent;border:0;font-family:inherit;padding:0;'
+          + (dnDisabled ? 'color:#3a4353;cursor:default' : 'color:#94a3b8;cursor:pointer') + '">−</button>'
+          + '<span style="flex:0 0 auto;width:32px;text-align:center;font-size:27px;font-weight:400;line-height:1;color:' + starColor + '">' + starIcon + '</span>'
+          + '<button type="button" class="kar-tier-up" data-i="' + i + '" title="' + upTitle + '" '
+          + 'style="flex:0 0 auto;width:20px;height:20px;font-size:15px;font-weight:700;line-height:1;background:transparent;border:0;color:#94a3b8;cursor:pointer;font-family:inherit;padding:0">+</button>'
+          + '</span>';
         var ovr = Object.prototype.hasOwnProperty.call(KAR_PITCH, full);
         var eff = ovr ? KAR_PITCH[full] : karFnPitch(full);
         if (eff === null) eff = 0;  // every song shows its real playing pitch — 0 by default
@@ -2040,64 +2085,49 @@ if (!$KAR_LOCAL) {
         }).catch(function(){ qb.textContent = '➕'; alert('Network error — the request was not added.'); });
         return;
       }
-      // ☆ / ① / ② / ③: cycle this song's tier on the selected person's Best list
-      // (the owner, 2026-09-27). ☆ -> ① -> ② -> ③ -> a ✕ warning (see below) -> ☆.
-      var stb = ev.target.closest ? ev.target.closest('.kar-star') : null;
-      if (stb) {
-        var songS = src[parseInt(stb.getAttribute('data-i'), 10)];
-        if (!songS) return;
-        var nameS = songS.replace(/\.[a-z0-9]{2,4}$/i,'');
-        var curTierS = KAR_BEST_SET[nameS] || 0;
-        var nextTierS;
-        if (karPendingRemove[nameS]) {
-          // Already showing the ✕ warning: THIS click is the confirm, not another cycle step.
-          clearTimeout(karPendingRemove[nameS]);
-          delete karPendingRemove[nameS];
-          nextTierS = 0;
-        } else if (curTierS === 3) {
+      // − / + on the tier stepper (the owner, 2026-09-27: "if you want to go from a three to a
+      // two or from a two to a one... you learn a song and you want to bring it forward").
+      // + moves up (0->1->2->3, then the ✕ removal confirm past 3); − moves down (3->2->1,
+      // never past 1 - there is nothing below ①, and removal only ever happens going UP past
+      // ③, never by demoting).
+      var stbDn = ev.target.closest ? ev.target.closest('.kar-tier-dn') : null;
+      if (stbDn) {
+        if (stbDn.disabled) return;
+        var songD = src[parseInt(stbDn.getAttribute('data-i'), 10)];
+        if (!songD) return;
+        var nameD = songD.replace(/\.[a-z0-9]{2,4}$/i,'');
+        var curD = KAR_BEST_SET[nameD] || 0;
+        if (curD <= 1) return;
+        if (karPendingRemove[nameD]) { clearTimeout(karPendingRemove[nameD]); delete karPendingRemove[nameD]; }
+        karTierSend(songD, nameD, curD - 1);
+        return;
+      }
+      var stbUp = ev.target.closest ? ev.target.closest('.kar-tier-up') : null;
+      if (stbUp) {
+        var songU = src[parseInt(stbUp.getAttribute('data-i'), 10)];
+        if (!songU) return;
+        var nameU = songU.replace(/\.[a-z0-9]{2,4}$/i,'');
+        var curU = KAR_BEST_SET[nameU] || 0;
+        var nextU;
+        if (karPendingRemove[nameU]) {
+          // Already showing the ✕ warning: THIS click is the confirm, not another step up.
+          clearTimeout(karPendingRemove[nameU]);
+          delete karPendingRemove[nameU];
+          nextU = 0;
+        } else if (curU === 3) {
           // From ③, show the warning and stop - nothing is sent to the server until a
           // second, confirming click. Auto-cancels itself after 4s if left alone, so
           // walking away never turns into an accidental removal later.
-          karPendingRemove[nameS] = setTimeout(function(){
-            delete karPendingRemove[nameS];
+          karPendingRemove[nameU] = setTimeout(function(){
+            delete karPendingRemove[nameU];
             karRender();
           }, 4000);
           karRender();
           return;
         } else {
-          nextTierS = curTierS + 1;   // 0->1, 1->2, 2->3
+          nextU = curU + 1;   // 0->1, 1->2, 2->3
         }
-        var fdS = new FormData();
-        fdS.append('form_type', 'karaoke_best_toggle');
-        fdS.append('song', songS);
-        fdS.append('person', karWho);
-        fdS.append('tier', String(nextTierS));
-        fetch(KAR_API, {method:'POST', body: fdS}).then(function(r){ return r.json(); }).then(function(d){
-          if (!d.ok) { alert('Not saved. ' + karWhyFail(d.error)); return; }
-          var aS = KAR_BEST_BY[karWho] || (KAR_BEST_BY[karWho] = []);
-          var ixS = -1;
-          for (var qS = 0; qS < aS.length; qS++) { if (aS[qS][0] === songS) { ixS = qS; break; } }
-          if (nextTierS > 0) {
-            if (ixS === -1) aS.push([songS, nextTierS]); else aS[ixS][1] = nextTierS;
-          } else if (ixS !== -1) {
-            aS.splice(ixS, 1);
-          }
-          // Your own click just moved this song to nextTierS - it must not vanish from a
-          // filter that was showing something else (the owner, 2026-09-27: clicking ① to make
-          // it ② "just goes away... it doesn't change the number to two, it actually goes
-          // away" - the row WAS still there, just filtered out of the tier you happened to be
-          // looking at). Reveal whatever tier you just set, same as opening a new tier chip.
-          if (nextTierS > 0 && !karTierFilter[nextTierS]) {
-            karTierFilter[nextTierS] = true;
-            try { localStorage.setItem('kar_tier_filter', JSON.stringify(karTierFilter)); } catch(e){}
-            karPaintTierFilter();
-          }
-          karRebuildBest();
-          var listElS = document.getElementById('kar-list');
-          var stS = listElS.scrollTop;
-          karRender();
-          listElS.scrollTop = stS;
-        }).catch(function(){ alert('Network error — the star was not saved.'); });
+        karTierSend(songU, nameU, nextU);
         return;
       }
       var rb = ev.target.closest ? ev.target.closest('.kar-reset') : null;
