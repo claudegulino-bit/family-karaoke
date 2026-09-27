@@ -376,9 +376,12 @@ if (!$KAR_LOCAL) {
                              font-size: 11px !important; }
   .kar-simple .kar-play    { width: 78px !important; font-size: 12.5px !important; padding: 3px 0 !important; }
   .kar-simple #kar-h-casai { width: 78px !important; font-size: 11px !important; }
-  .kar-simple .kar-star    { font-size: 14px !important; }   /* NOT enlarged with the rest: the star is a
-     secondary action (put this on someone's list) and at 22px it competed with Play, which is the whole
-     point of the page. the owner, 2026-09-17: "too big for what we're doing here." */
+  .kar-simple .kar-star    { font-size: 28px !important; }   /* Doubled from 14px, 2026-09-27:
+     the circled tier numbers ①②③ - unlike the plain star this replaced - were "almost can't see it...
+     needs to be big enough so you can actually work with it". The original 14px was tuned down from
+     22px for a different reason, 2026-09-17: a plain star competed visually with Play - that concern
+     was about a SHAPE competing with Play's size, not about numerals being legible at all; this is the
+     current, explicit instruction and takes precedence for this glyph. */
 
   /* The two list chips join the grey too, and selection is shown the way the Simple|Complete switch
      already shows it - BRIGHTER means selected - with a near-white ring instead of the gold one.
@@ -1474,7 +1477,7 @@ if (!$KAR_LOCAL) {
         var KAR_TIER_NEXT  = ['add it as ①', 'move it to ②', 'move it to ③', 'remove it'];
         var star = '<button type="button" class="kar-star" data-i="' + i + '" data-tier="' + tierN + '" title="'
           + (tierN ? ('Tier ' + tierN + ' on ') : 'Not on ') + karWho + '’s Best list — click to ' + KAR_TIER_NEXT[tierN] + '" '
-          + 'style="font-family:inherit;flex:0 0 auto;width:48px;background:none;border:none;cursor:pointer;font-size:17px;line-height:1;padding:0;text-align:center;'
+          + 'style="font-family:inherit;flex:0 0 auto;width:64px;background:none;border:none;cursor:pointer;font-size:34px;line-height:1;padding:0;text-align:center;'
           + (tierN ? ('color:' + KAR_TIER_COLOR[tierN] + ';text-shadow:0 0 6px rgba(255,211,77,.3)') : 'color:#94a3b8') + '">' + KAR_TIER_ICON[tierN] + '</button>';
         var ovr = Object.prototype.hasOwnProperty.call(KAR_PITCH, full);
         var eff = ovr ? KAR_PITCH[full] : karFnPitch(full);
