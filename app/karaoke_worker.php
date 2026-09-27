@@ -80,6 +80,23 @@ if ($job === 'announce') {
             $crowd = ($ap !== '' && kar_mc_applause_has_video($ap));
         }
 
+        if (!empty($spec['baked'])) {
+            // The PHOTO INTRO already holds the photo, the words, the applause and the voice.
+            // Nothing to build or speak: let it play once, then start the song.
+            $mclog("$singer / $song — photo intro ON SCREEN: " . basename($ap));
+            usleep(1500000);
+            for ($i = 0; $i < 240; $i++) {                            // at most ~60 s
+                $dur = kar_mpv_get('duration'); $pos = kar_mpv_get('time-pos'); $eof = kar_mpv_get('eof-reached');
+                if ($eof === true || (is_numeric($dur) && is_numeric($pos) && (float)$pos >= (float)$dur - 0.15)) break;
+                usleep(250000);
+            }
+            $mclog('photo intro finished — starting the song');
+            kar_mpv_send(['set_property', 'loop-file', 'no']);
+            kar_mpv_send(['loadfile', kar_songs_dir() . '/' . $song, 'replace']);
+            kar_mpv_send(['set_property', 'volume', 100]);
+            kar_mpv_send(['set_property', 'pause', false]);
+            exit;
+        }
         if (!$crowd) kar_mpv_send(['set_property', 'pause', true]);   // certain, not assumed
         [$artist, $title] = kar_title_artist($song);                  // pure text, costs nothing
         $screen = $singer . ' will sing' . "\n" . $title . ($artist !== '' ? "\nfrom " . $artist : '');
@@ -176,21 +193,31 @@ if ($job === 'mcvoice') {
     if (!$lk || !flock($lk, LOCK_EX | LOCK_NB)) exit;           // one at a time
     // The voice to clone: the owner's chosen sample B unless the config names another.
     $ref   = trim((string)(kar_cfg()['announce_voice_ref'] ?? '')) ?: $dir . '/voice-sample-B.wav';
+    // The applause and cheering under a photo intro: the crowd video's own soundtrack.
+    $crowdv = kar_mc_applause();
     $tmp   = kar_data_dir() . '/mc/cb/tmp';
     @mkdir($tmp, 0775, true);
     for ($round = 0; $round < 5; $round++) {
         $jobs = []; $seen = [];
         foreach (kar_db()->query("SELECT singer, filename FROM karaoke_sing_queue WHERE status IN ('Singing','Waiting')
                                   ORDER BY (status='Singing') DESC, position ASC, id ASC") as $r) {
-            $spoken = function_exists('kar_singer_spoken') ? kar_singer_spoken((string)$r['singer']) : kar_mc_name((string)$r['singer']);
+            $who    = (string)$r['singer'];
+            $spoken = function_exists('kar_singer_spoken') ? kar_singer_spoken($who) : kar_mc_name($who);
             [$artist, $title] = kar_title_artist((string)$r['filename']);
-            $out = kar_cb_file($spoken, $title, $artist);
+            // With a photo: the whole PHOTO INTRO (photo + "X will sing" + song + applause + voice).
+            // Without one: the announcement alone, spoken over the crowd video.
+            $photo = kar_singer_photo($who);
+            $pi    = $photo !== '' && $crowdv !== '' ? kar_photo_intro_file($who, (string)$r['filename']) : '';
+            $out   = $pi !== '' ? $pi : kar_cb_file($spoken, $title, $artist);
             if (isset($seen[$out]) || (is_file($out) && filesize($out) > 0)) continue;
             $seen[$out] = 1;
             $lang = kar_mc_lang($title, $artist);
-            $jobs[] = ['mode' => 'voice', 'lang' => $lang, 'template' => kar_mc_phrasing($lang, KAR_CB_PHRASINGS, 'cb_'),
-                       'name' => $spoken, 'song' => $title, 'artist' => $artist, 'voice' => $ref,
-                       'out' => $out, 'who' => "$spoken / $title"];
+            $job  = ['mode' => $pi !== '' ? 'intro' : 'voice', 'lang' => $lang,
+                     'template' => kar_mc_phrasing($lang, KAR_CB_PHRASINGS, 'cb_'),
+                     'name' => $spoken, 'song' => $title, 'artist' => $artist, 'voice' => $ref,
+                     'out' => $out, 'who' => "$spoken / $title" . ($pi !== '' ? ' (photo intro)' : '')];
+            if ($pi !== '') $job += ['photo' => $photo, 'crowd' => $crowdv, 'will' => KAR_CB_WILL[$lang] ?? KAR_CB_WILL['en']];
+            $jobs[] = $job;
         }
         if (!$jobs) break;
         $jf = $tmp . '/jobs.json';

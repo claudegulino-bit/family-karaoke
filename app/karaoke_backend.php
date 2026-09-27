@@ -510,8 +510,13 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     if ($crowd !== '' && !kar_mc_applause_has_video($crowd)) $crowd = '';
     // The singer's own intro (their face on the singer), or the plain intro for their
     // Man/Woman choice, takes the crowd video's place. Never waits: only a READY file counts.
-    $isIntro = false;
-    if ($mc) {
+    $isIntro = false; $baked = false;
+    if ($mc && kar_photo_intros_on()) {
+        // The photo intro carries its own picture, words, applause and announcer. Not ready ->
+        // the crowd video with the live announcement, exactly as before. Never waits.
+        $pi = kar_photo_intro_file($singer, $song);
+        if ($pi !== '' && is_file($pi) && filesize($pi) > 0) { $crowd = $pi; $isIntro = true; $baked = true; }
+    } elseif ($mc) {
         $own = kar_intro_for_play($singer);
         if ($own !== '' && is_file($own)) { $crowd = $own; $isIntro = true; }
     }
@@ -547,7 +552,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         kar_mpv_send(['set_property', 'speed', 1.0]);
         // Through the lua script so the on-screen UP/DOWN counter stays in step.
         kar_mpv_send(['script-message', 'casai-set-pitch', (string)$pitch]);
-        if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd, $isIntro); }
+        if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd, $isIntro, $baked); }
         else     { kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it', $pitch), 5000]); }
         return [true, sprintf('pitch %+d applied%s', $pitch, $mc ? ', announcing ' . $singer : '')];
     }
@@ -603,7 +608,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         if (kar_mpv_alive()) break;
         usleep(250000);
     }
-    if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd, $isIntro); }
+    if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd, $isIntro, $baked); }
     else     { kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it · F fullscreen · Q closes', $pitch), 6000]); }
     return [true, sprintf('pitch %+d applied%s', $pitch, $mc ? ', announcing ' . $singer : '')];
 }
@@ -842,6 +847,9 @@ const KAR_CB_PHRASINGS = [
            "Prepárense todos... aquí viene... [NAME]! Con... [SONG]!"],
 ];
 
+/** The words on a photo intro, under the name: "Maria Rossi will sing" / the song. */
+const KAR_CB_WILL = ['en' => 'will sing', 'it' => 'canterà', 'es' => 'cantará'];
+
 /** A shuffled bag, not a cycle: never the same phrasing twice running, and all six are
  *  used before any repeats. $set/$bagKey let the Chatterbox wordings keep their own bag. */
 function kar_mc_phrasing(string $lang, ?array $sets = null, string $bagKey = '') {
@@ -1023,12 +1031,12 @@ function kar_mc_applause_loop(float $seconds = 45.0): string {
 }
 
 /** Start the introduction in the background so the web request returns at once. */
-function kar_mc_spawn(string $song, string $singer, int $pitch, string $crowd = '', bool $intro = false): void {
+function kar_mc_spawn(string $song, string $singer, int $pitch, string $crowd = '', bool $intro = false, bool $baked = false): void {
     $worker = __DIR__ . '/karaoke_worker.php';
     if (!is_file($worker)) return;
     $php = PHP_BINARY ?: 'php';
     // 'crowd' = the video kar_play actually put on screen, so the worker never has to guess.
-    $arg = base64_encode(json_encode(['song' => $song, 'singer' => $singer, 'pitch' => $pitch, 'crowd' => $crowd, 'intro' => $intro]));
+    $arg = base64_encode(json_encode(['song' => $song, 'singer' => $singer, 'pitch' => $pitch, 'crowd' => $crowd, 'intro' => $intro, 'baked' => $baked]));
     // Deliberately NOT behind the worker lock: a download running is no reason for the
     // party to lose its announcements.
     @exec(escapeshellarg($php) . ' ' . escapeshellarg($worker) . ' '
@@ -1067,6 +1075,22 @@ function kar_cb_kick(): void {
     if (kar_cb_dir() === '') return;
     @exec(escapeshellarg(PHP_BINARY ?: 'php') . ' ' . escapeshellarg(__DIR__ . '/karaoke_worker.php') . ' '
         . escapeshellarg(kar_marker_path() ?: '') . ' mcvoice >/dev/null 2>&1 &');
+}
+
+/** PHOTO INTROS (the owner, 2026-09-26): at Next singer the screen shows the singer's own PHOTO,
+ *  "Maria Rossi will sing" and the song, over applause and cheering taken from the crowd
+ *  video, with the announcer on top — all one file, made in advance when the song is queued
+ *  (worker 'mcvoice'). On whenever the Chatterbox voice is on. The face-swap video is not used. */
+function kar_photo_intros_on(): bool { return kar_cb_dir() !== ''; }
+
+/** The ready photo intro for this singer + song, or ''. Keyed by the photo too, so a new photo
+ *  makes a new intro. */
+function kar_photo_intro_file(string $singer, string $song): string {
+    $s = kar_singer($singer);
+    if (!$s || empty($s['photo_hash'])) return '';
+    [$artist, $title] = kar_title_artist($song);
+    $spoken = kar_singer_spoken($singer);
+    return kar_data_dir() . '/mc/cb/' . substr(sha1('v3|' . $spoken . '|' . $title . '|' . $artist . '|' . $s['photo_hash']), 0, 16) . '.mp4';
 }
 
 /** One property from the player, decoded; null when it does not answer. */
@@ -1217,6 +1241,9 @@ function kar_intro_state(string $name): array {
 
 /** Start this singer's render in the background, unless it is ready or already running. */
 function kar_intro_spawn(string $name): void {
+    // Photo intros replaced the face-swap video (the owner, 2026-09-26: "the video is terrible,
+    // the people don't even look like themselves... let's go for a simple photo").
+    if (kar_photo_intros_on()) return;
     $s = kar_singer($name);
     $id = kar_intro_id_for($s);
     if (!$s || $id === '' || empty($s['photo_hash']) || !kar_fx_on()) return;
