@@ -208,8 +208,8 @@ json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
 PY
 
 # ------------------------------------------------------ 4 · the announcer voice
-# THE VOICE IS PART OF CANTORIA, NOT AN EXTRA (the owner, 2026-09-26: "That needs to be a complete
-# installation. Everything including the voice... From now on."). Every Mac gets: a photo intro
+# THE VOICE IS PART OF CANTORIA, NOT AN EXTRA — the whole install, not something added on later.
+# Every Mac gets: a photo intro
 # at Next singer (their photo, name, song and applause) spoken by Chatterbox (MIT), cloned from
 # klankbeeld's Freesound clip (CC BY 4.0 — credited in the Guide), plus a local speech check
 # (OpenAI Whisper) that confirms the name was actually said before it is used.
