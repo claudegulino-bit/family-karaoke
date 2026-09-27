@@ -1227,6 +1227,19 @@ function kar_cb_everyone_jobs(string $ref, int $batch = 2): array {
     return $jobs;
 }
 
+/** Whether this (singer, song) pair already has a ready render - the same shape of check
+ *  kar_cb_backlog_jobs() uses to decide what still needs doing, kept as its own function so
+ *  the progress panel below can answer "is it ready?" without duplicating a render job's
+ *  worth of setup. */
+function kar_cb_song_ready(string $person, string $filename, string $crowdv): bool {
+    $spoken = kar_singer_spoken($person);
+    [$artist, $title] = kar_title_artist($filename);
+    $photo = kar_singer_photo($person);
+    $pi = $photo !== '' && $crowdv !== '' ? kar_photo_intro_file($person, $filename) : '';
+    $out = $pi !== '' ? $pi : kar_cb_file($spoken, $title, $artist);
+    return is_file($out) && filesize($out) > 0;
+}
+
 /** THE BACKLOG (same ask as above): every song already on ANY singer's own list, worked
  *  through a little at a time, entirely between turns - never waited for, never blocking a
  *  live party. Resumes from where it left off across cycles (kept in karaoke_settings,

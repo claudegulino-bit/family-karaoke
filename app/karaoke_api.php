@@ -641,6 +641,52 @@ try {
         kj(['ok' => true]);
     }
 
+    // The same progress panel casAI already has (the owner, 2026-09-27: "can I get that on
+    // every computer?"). No separate snapshot to keep in step: computed live from the exact
+    // same readiness check the backlog job itself uses, every time this is asked - so it can
+    // never disagree with what is actually rendered, only report it a little late if a render
+    // finished in the last instant.
+    case 'karaoke_voice_progress': {
+        $crowdv = kar_mc_applause();
+        $rows = $db->query('SELECT person, filename FROM karaoke_best')->fetchAll(PDO::FETCH_NUM);
+        $by = [];
+        foreach ($rows as [$person, $filename]) {
+            if ($person === '' || $filename === '') continue;
+            if (!isset($by[$person])) $by[$person] = [0, 0];
+            $by[$person][1]++;
+            if (kar_cb_song_ready($person, $filename, $crowdv)) $by[$person][0]++;
+        }
+        kj(['ok' => true, 'at' => time(), 'by' => (object)$by]);
+    }
+
+    case 'karaoke_voice_progress_detail': {
+        $person = trim((string)($_POST['person'] ?? ''));
+        if ($person === '') kj(['ok' => false, 'error' => 'no singer given']);
+        $crowdv = kar_mc_applause();
+        $st = $db->prepare('SELECT filename FROM karaoke_best WHERE person = ? ORDER BY filename');
+        $st->execute([$person]);
+        $songs = [];
+        foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $f) {
+            $songs[] = ['f' => $f, 'ok' => kar_cb_song_ready($person, $f, $crowdv)];
+        }
+        kj(['ok' => true, 'person' => $person, 'songs' => $songs]);
+    }
+
+    // ▶ next to a ready song in the progress panel: play it for real, the same way Next
+    // singer would - photo, name, song, applause - WITHOUT touching who's actually up next
+    // (karaoke_sing_queue is untouched, matching casAI's own version of this button).
+    case 'karaoke_voice_test_play': {
+        $person = trim((string)($_POST['person'] ?? ''));
+        $file   = trim((string)($_POST['filename'] ?? ''));
+        if ($person === '' || $file === '') kj(['ok' => false, 'error' => 'missing singer or song']);
+        $st = $db->prepare('SELECT 1 FROM karaoke_best WHERE person = ? AND filename = ? LIMIT 1');
+        $st->execute([$person, $file]);
+        if (!$st->fetchColumn()) kj(['ok' => false, 'error' => "that song is not on this singer's list"]);
+        $pitch = kar_effective_pitch($db, $file);
+        [$ok, $note] = kar_play($file, $pitch, $person);
+        kj(['ok' => $ok, 'error' => $ok ? '' : $note]);
+    }
+
     // --------------------------------------------------- setup helpers (Guide)
     case 'karaoke_pick_folder': {
         // Two-phase, exactly as the server version: start queues the job, check polls it.

@@ -659,7 +659,7 @@ if (!$KAR_LOCAL) {
         $_karCards[] = ['downloads', $_num('YouTube Downloads'), 'Searching YouTube and adding songs.', 'At a party'];
         $_karCards[] = ['guestqr',   $_num('Guest QR'),  'Song requests from guests\' phones.', 'At a party'];
         $_karCards[] = ['credits',   $_num('Credits'),  'Where the announcer voice comes from.', 'Setting up'];
-        if (!$KAR_LOCAL) $_karCards[] = ['voiceprog', $_num('Announcer progress'), 'How many songs are ready per singer.', 'Setting up'];
+        $_karCards[] = ['voiceprog', $_num('Announcer progress'), 'How many songs are ready per singer.', 'Setting up'];
         // Grouped, because ten cards in one flat grid is a wall (the owner, 2026-09-13). The
         // heading spans the whole grid row; the numbers still run 1..N in reading order,
         // because he refers to cards by number out loud.
@@ -779,13 +779,16 @@ if (!$KAR_LOCAL) {
           </div>
         </div>
 
-        <?php if (!$KAR_LOCAL): ?>
         <div class="kar-gs" id="kar-gs-voiceprog" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Announcer progress</h3>
-          <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">The laptop makes each singer's announcement quietly in the background — between turns, not during one — so it's usually already done by the time they're called up. This is the real, live count, not a guess.</p>
+          <p style="margin:0 0 10px;color:#94a3b8;font-size:12.5px">This Mac makes each singer's announcement quietly in the background — between turns, not during one — so it's usually already done by the time they're called up. This is the real, live count, not a guess.</p>
           <div id="kar-vp-body" style="color:#cbd5e1">Loading…</div>
         </div>
-        <?php endif; ?>
+        <!-- No longer casAI-only (the owner, 2026-09-27: "can I get that on every computer?").
+             The card and its JS below are one shared copy; casAI answers karaoke_voice_progress
+             from the Python watcher's own snapshot (app.php), the standalone edition answers it
+             computed live from the same file-existence check the backlog job itself uses
+             (karaoke_api.php) - same three form_types, same JSON shape, different backend. -->
         <div class="kar-gs" id="kar-gs-credits" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Credits</h3>
           <p style="margin:0">The announcer's voice at <b>Next singer</b> is built from a recording by <b>klankbeeld</b> on
