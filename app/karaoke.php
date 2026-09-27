@@ -1282,7 +1282,14 @@ if (!$KAR_LOCAL) {
       karView = view;
       // Only the CLASS changes. karSwitch used to paint each chip inline, which made them
       // unstyleable from CSS - and on a white bar an inline dark background is simply wrong.
-      document.querySelectorAll('.kar-chip').forEach(function(b){ b.classList.remove('kar-on'); });
+      // ⚠ Excludes .kar-tier-chip (2026-09-27, found live: picking a NEW singer wiped every
+      // .kar-chip's "on" state including the tier filter's own, and nothing ever repainted it
+      // afterwards - so right after choosing a singer, none of ①②③ ever LOOKED selected, even
+      // though one genuinely was. The tier chips are their own independent selector, not one
+      // of the three views this line is meant to manage.
+      document.querySelectorAll('.kar-chip').forEach(function(b){
+        if (!b.classList.contains('kar-tier-chip')) b.classList.remove('kar-on');
+      });
       btn.classList.add('kar-on');
       // Picking a list means "show me my songs", so the SEARCH MODE follows the view. Without
       // this the list came back but the bar still said YouTube, and typing in it did nothing -
@@ -1292,6 +1299,7 @@ if (!$KAR_LOCAL) {
       // Switching views starts fresh. the owner, 2026-09-10: a search left in the box quietly
       // filtered the next view too, so 🆕 New would come up empty and the reason was invisible.
       karClearSearch(false);
+      karPaintTierFilter();  // keep ①②③ honest every time the view (or singer) changes
       karRender();
     }
     var karRenderedView = 'db';
