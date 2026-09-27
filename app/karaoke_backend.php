@@ -686,10 +686,18 @@ function kar_title_artist(string $file): array {
     // THE NAMING CONVENTION: "Artist - Title (Karaoke|Lyrics|Original) Singers (pitch)" - everything
     // after the type marker is singer codes and pitch, never words to say. Without this the
     // announcer said "Io per Lei Mike" wherever the singer list was not to hand (2026-09-26).
-    $s = preg_replace('/\((?:karaoke|lyrics?|original)\).*$/iu', ' ', $s);
+    // Everything after the type marker is singer codes and pitch, never words to say - and the
+    // marker itself sometimes carries a stray digit ("Karaoke1", "Karaoke2"), which the plain
+    // word missed entirely, leaving a singer code in the spoken title (the owner, 2026-09-26,
+    // "Volare Mike" - found on "Tulpen uit Amsterdam (Karaoke1) Jan").
+    $s = preg_replace('/\((?:karaoke|lyrics?|original)\d*\).*$/iu', ' ', $s);
+    // THE PARTY/DANCE FILES have their own taxonomy and are never renamed to the standard
+    // (hard rule) - but a "- Dance ..." segment is always singer codes and a dance style,
+    // never words to say, with or without a type marker at all.
+    $s = preg_replace('/\s*-\s*Dance\b.*$/iu', '', $s);
     $s = preg_replace('/\(\s*[+-]?\d{1,2}\s*\)/', ' ', $s);          // (0) (-3) pitch
     $s = preg_replace('/\bCSG\d*\b/i', ' ', $s);
-    foreach (kar_singer_names() as $p) {
+    foreach (array_unique(array_merge(kar_singer_names(), kar_family_singer_codes())) as $p) {
         $s = preg_replace('/\b' . preg_quote($p, '/') . '\b/iu', ' ', $s);
     }
     $s = preg_replace('/[\(\[\{][^()\[\]{}]*(?:' . $junk . ')[^()\[\]{}]*[\)\]\}]/iu', ' ', $s);
@@ -698,9 +706,14 @@ function kar_title_artist(string $file): array {
     }
     $s = preg_replace('/\[[^\]]{0,3}\]/', ' ', $s);                  // [C] [D] [+1] key tags
     $s = preg_replace('/^\s*party\s*[-–—]\s*/i', '', $s);            // compilation prefix
-    $s = trim(preg_replace('/\s{2,}/', ' ', $s), " -–—_@");
+    // trim() works on raw BYTES, not characters - and a dash's UTF-8 bytes can overlap with an
+    // accented letter's own bytes, corrupting whatever character sat at the very edge of the
+    // string ("PAPÀ" came back mangled and empty, 2026-09-26). preg_replace with /u is
+    // Unicode-safe and never eats into a real character.
+    $s = preg_replace('/\s{2,}/', ' ', $s);
+    $s = preg_replace('/^[\s\-–—_@]+|[\s\-–—_@]+$/u', '', $s);
 
-    $parts = preg_split('/\s+[-–—]\s*|\s*[-–—]\s+/u', $s, 2);
+    $parts = preg_split('/\s+[-–—]\s*|\s*[-–—]\s+/u', $s, 2) ?: [$s];
     $artist = (count($parts) === 2 && trim($parts[1]) !== '') ? $parts[0] : '';
     $title  = (count($parts) === 2 && trim($parts[1]) !== '') ? $parts[1] : $s;
 
@@ -711,7 +724,8 @@ function kar_title_artist(string $file): array {
         for ($i = 0; $i < 5; $i++) {
             $v = preg_replace('/\s+(?:' . $junk . ')\s*$/iu', '', $v);
         }
-        return trim(preg_replace('/\s{2,}/', ' ', $v), " -–—_.,&");
+        // Unicode-safe, same reason as the trim() above this function.
+        return preg_replace('/^[\s\-–—_.,&]+|[\s\-–—_.,&]+$/u', '', preg_replace('/\s{2,}/', ' ', $v));
     };
     $artist = $tidy($artist);
     $title  = preg_replace('/\s+\d$/', '', $tidy($title));           // trailing copy number
@@ -720,12 +734,60 @@ function kar_title_artist(string $file): array {
 }
 
 /** Every singer name Cantoria knows, so they can be stripped out of a filename. */
+/** Singer codes used anywhere in the family's shared song library, across every Mac - not just
+ *  this one's own roster (kar_singer_names() only knows that). A filename's singer codes are
+ *  data written by whichever Mac downloaded the song, so any of these can appear on any Mac's
+ *  copy. Best-effort and not exhaustive; add one the moment it's found leaking into a spoken
+ *  title (the owner, 2026-09-26: "Volare Mike... we've got to clean that up"). Checked in ADDITION
+ *  to kar_singer_names(), never instead of it.
+ *
+ *  ⚠ The names live in the database (karaoke_settings.family_singer_codes), NOT in this file -
+ *  same reason as rollout_chain above: this file is published to a public repository, so no
+ *  family member's name may sit in the source. A Mac with nothing set just gets [], which is
+ *  correct for a Mac outside the family - it only ever had its own kar_singer_names() anyway. */
+function kar_family_singer_codes(): array {
+    static $codes = null;
+    if ($codes !== null) return $codes;
+    $codes = [];
+    $db = kar_shared_db();
+    if (!$db) return $codes;
+    try {
+        $raw = (string)$db->query("SELECT v FROM karaoke_settings WHERE k='family_singer_codes'")->fetchColumn();
+        $j = json_decode($raw, true);
+        if (is_array($j)) $codes = $j;
+    } catch (Throwable $e) { /* not set, or a brand-new install */ }
+    return $codes;
+}
+
+/** The RIGHT database for whichever edition is running - the standalone edition's own SQLite
+ *  (kar_db()) for a Mac, or casAI's real MariaDB when running on the server. Found and fixed
+ *  2026-09-26: kar_singer_names() and kar_family_singer_codes() were both silently reading the
+ *  wrong (empty) database on casAI, always returning [] there and making every leak-check that
+ *  relied on them pass vacuously - it had nothing to check against, not a clean bill of health. */
+function kar_shared_db(): ?PDO {
+    static $pdo = 'unset';
+    if ($pdo !== 'unset') return $pdo;
+    if (kar_is_local()) { $pdo = kar_db(); return $pdo; }
+    $pdo = null;
+    $cfgFile = __DIR__ . '/../config/database.php';
+    if (is_file($cfgFile)) {
+        try {
+            $config = (require $cfgFile);
+            $dsn = sprintf('mysql:host=%s;dbname=%s;charset=%s', $config['host'], $config['database'], $config['charset'] ?? 'utf8mb4');
+            $pdo = new PDO($dsn, $config['username'], $config['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        } catch (Throwable $e) { $pdo = null; }
+    }
+    return $pdo;
+}
+
 function kar_singer_names(): array {
     static $names = null;
     if ($names !== null) return $names;
     $names = [];
+    $db = kar_shared_db();
+    if (!$db) return $names;
     try {
-        foreach (kar_db()->query('SELECT DISTINCT person FROM karaoke_best') as $r) {
+        foreach ($db->query('SELECT DISTINCT person FROM karaoke_best') as $r) {
             $n = trim((string)$r['person']);
             if ($n !== '' && mb_strlen($n) >= 3) $names[] = $n;
         }
