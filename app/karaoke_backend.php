@@ -511,11 +511,21 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     // The singer's own intro (their face on the singer), or the plain intro for their
     // Man/Woman choice, takes the crowd video's place. Never waits: only a READY file counts.
     $isIntro = false; $baked = false;
-    if ($mc && kar_photo_intros_on()) {
-        // The photo intro carries its own picture, words, applause and announcer. Not ready ->
-        // the crowd video with the live announcement, exactly as before. Never waits.
-        $pi = kar_photo_intro_file($singer, $song);
-        if ($pi !== '' && is_file($pi) && filesize($pi) > 0) { $crowd = $pi; $isIntro = true; $baked = true; }
+    // LIVE ASSEMBLY, never baked (ported from casAI's own design, 2026-09-27: the owner, testing
+    // a singer with a photo already on file - "we don't have to wait for rendering to show the
+    // picture of the person, which is already there... the photo should be there, and then if
+    // it's not rendered, I guess we don't get the voice"). Retires the old "bake photo+words+applause+voice into one video"
+    // approach entirely - that meant a singer's OWN photo, which needs no rendering at all,
+    // never showed until a render finished, sometimes minutes later. The photo now takes the
+    // crowd video's place exactly as the crowd video always did (same loop-file treatment,
+    // same everything below); the words overlay live and the voice plays separately - both
+    // already worked this way for the plain crowd-video case, in karaoke_worker.php's
+    // 'announce' job, completely unchanged by this. If the voice is not ready, that job's
+    // existing silent-fallback already handles it: the photo and the words still show, there
+    // is simply no announcement that turn.
+    $photo = $mc ? kar_singer_photo($singer) : '';
+    if ($mc && $photo !== '') {
+        $crowd = $photo;
     } elseif ($mc) {
         $own = kar_intro_for_play($singer);
         if ($own !== '' && is_file($own)) { $crowd = $own; $isIntro = true; }
@@ -541,6 +551,9 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         kar_mpv_send(['set_property', 'force-window', 'yes']);
         kar_mpv_send(['set_property', 'vid', ($mc && $crowd === '') ? 'no' : 'auto']);
         kar_mpv_send(['set_property', 'loop-file', $loopIt ? 'inf' : 'no']);
+        // A still photo has no natural end for mpv to reach, unlike the crowd video - without
+        // this it can behave as a zero-length clip and jump straight past the announcement.
+        kar_mpv_send(['set_property', 'image-display-duration', 'inf']);
         kar_mpv_send(['set_property', 'volume', 100]);
         // Re-assert the words window's on-top setting on EVERY song, not only at launch.
         // A running player keeps whatever it started with, so an instance that was already
@@ -594,6 +607,9 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     // window never went away.
     $args[] = '--idle=yes';
     $args[] = '--keep-open=always';
+    // Same reason as the set_property twin above: a still photo has no natural end for mpv
+    // to reach on its own.
+    $args[] = '--image-display-duration=inf';
     // ON by default since 2026-09-26 (the owner, on Mike's mini: the words "opened up at the
     // bottom, so I couldn't see it — make sure the text opens always on top above the Cantoria
     // page"). It used to be off to allow side-by-side windows; a party needs the words visible.
@@ -1232,11 +1248,13 @@ function kar_cb_everyone_jobs(string $ref, int $batch = 2): array {
  *  the progress panel below can answer "is it ready?" without duplicating a render job's
  *  worth of setup. */
 function kar_cb_song_ready(string $person, string $filename, string $crowdv): bool {
+    // $crowdv kept in the signature for every caller's sake, but no longer used: the old
+    // baked photo+words+applause+voice video is retired (2026-09-27) in favour of showing
+    // the photo live and playing the plain voice separately - so "ready" now means only the
+    // plain voice recording, exactly as it does for a singer with no photo at all.
     $spoken = kar_singer_spoken($person);
     [$artist, $title] = kar_title_artist($filename);
-    $photo = kar_singer_photo($person);
-    $pi = $photo !== '' && $crowdv !== '' ? kar_photo_intro_file($person, $filename) : '';
-    $out = $pi !== '' ? $pi : kar_cb_file($spoken, $title, $artist);
+    $out = kar_cb_file($spoken, $title, $artist);
     return is_file($out) && filesize($out) > 0;
 }
 
@@ -1263,18 +1281,15 @@ function kar_cb_backlog_jobs(string $ref, string $crowdv, int $batch = 1): array
         $checked++;
         $spoken = kar_singer_spoken($person);
         [$artist, $title] = kar_title_artist($filename);
-        $photo = kar_singer_photo($person);
-        $pi = $photo !== '' && $crowdv !== '' ? kar_photo_intro_file($person, $filename) : '';
-        $out = $pi !== '' ? $pi : kar_cb_file($spoken, $title, $artist);
+        // Always the plain voice now (2026-09-27) - the photo, if there is one, shows live at
+        // play time and needs no render of its own; see kar_cb_song_ready() above.
+        $out = kar_cb_file($spoken, $title, $artist);
         if (!(is_file($out) && filesize($out) > 0)) {
             $lang = kar_mc_lang($title, $artist);
-            $job = ['mode' => $pi !== '' ? 'intro' : 'voice', 'lang' => $lang,
+            $jobs[] = ['mode' => 'voice', 'lang' => $lang,
                     'template' => kar_mc_phrasing($lang, KAR_CB_PHRASINGS, 'cb_'),
                     'name' => $spoken, 'name_say' => kar_cb_say_as($spoken, $lang), 'song' => $title, 'artist' => $artist,
-                    'voice' => $ref, 'out' => $out,
-                    'who' => "$spoken / $title" . ($pi !== '' ? ' (photo intro, backlog)' : ' (backlog)')];
-            if ($pi !== '') $job += ['photo' => $photo, 'crowd' => $crowdv, 'will' => KAR_CB_WILL[$lang] ?? KAR_CB_WILL['en']];
-            $jobs[] = $job;
+                    'voice' => $ref, 'out' => $out, 'who' => "$spoken / $title (backlog)"];
         }
         if (count($jobs) >= $batch || $checked >= $lookahead) break;
     }

@@ -227,20 +227,17 @@ if ($job === 'mcvoice') {
             $who    = (string)$r['singer'];
             $spoken = function_exists('kar_singer_spoken') ? kar_singer_spoken($who) : kar_mc_name($who);
             [$artist, $title] = kar_title_artist((string)$r['filename']);
-            // With a photo: the whole PHOTO INTRO (photo + "X will sing" + song + applause + voice).
-            // Without one: the announcement alone, spoken over the crowd video.
-            $photo = kar_singer_photo($who);
-            $pi    = $photo !== '' && $crowdv !== '' ? kar_photo_intro_file($who, (string)$r['filename']) : '';
-            $out   = $pi !== '' ? $pi : kar_cb_file($spoken, $title, $artist);
+            // Always the plain voice now (2026-09-27, retiring the baked photo+words+applause+
+            // voice video): a photo, if there is one, shows live at play time via kar_play() -
+            // it needs no render of its own, so there is nothing to prepare for it here.
+            $out = kar_cb_file($spoken, $title, $artist);
             if (isset($seen[$out]) || (is_file($out) && filesize($out) > 0)) continue;
             $seen[$out] = 1;
             $lang = kar_mc_lang($title, $artist);
-            $job  = ['mode' => $pi !== '' ? 'intro' : 'voice', 'lang' => $lang,
+            $jobs[] = ['mode' => 'voice', 'lang' => $lang,
                      'template' => kar_mc_phrasing($lang, KAR_CB_PHRASINGS, 'cb_'),
                      'name' => $spoken, 'name_say' => kar_cb_say_as($spoken, $lang), 'song' => $title, 'artist' => $artist, 'voice' => $ref,
-                     'out' => $out, 'who' => "$spoken / $title" . ($pi !== '' ? ' (photo intro)' : '')];
-            if ($pi !== '') $job += ['photo' => $photo, 'crowd' => $crowdv, 'will' => KAR_CB_WILL[$lang] ?? KAR_CB_WILL['en']];
-            $jobs[] = $job;
+                     'out' => $out, 'who' => "$spoken / $title"];
         }
         if (!$jobs) {
             // Nothing live left to prepare. Same priority casAI's own backlog already uses
