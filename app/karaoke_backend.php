@@ -597,8 +597,15 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
             $args[] = '--vid=no';                         // and no picture until then either
             $args[] = '--force-window=yes';               // but keep a black window for the words
         }
+        // Lower-third, not centered on the singer's face — matches the same fix already made
+        // on casAI's own player. Found only tonight (2026-09-27) that this OTHER copy of the
+        // same setting, in the shared/published code every other Mac actually runs, never got
+        // it: casAI's text position lives in karaoke_watch.py, which is casAI-only and never
+        // published, so a fresh install elsewhere (Mike's mini) still centered the words
+        // right over the photo until this was found and fixed here too.
         $args[] = '--osd-align-x=center';
-        $args[] = '--osd-align-y=center';
+        $args[] = '--osd-align-y=bottom';
+        $args[] = '--osd-margin-y=70';
         $args[] = '--osd-duration=60000';
     }
     $args[] = $path;
