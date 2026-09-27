@@ -510,6 +510,11 @@ if (!$KAR_LOCAL) {
         <?php if ($KAR_LOCAL): ?>
         <!-- The singer window: full name for the announcer, Man/Woman, photo (2026-09-26). -->
         <button type="button" id="kar-singer-btn" class="kar-chip" onclick="karSingerOpen(karWho)" title="This singer: full name for the announcer, Man or Woman, and a photo for their personal intro" style="padding:0 11px;position:relative"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg><span id="kar-singer-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px"></span></button>
+        <?php else: ?>
+        <!-- casAI edition (2026-09-26, the owner: "this is where we do development... what if I want to
+             change a name"): the singer cards live in THIS MAC's own Cantoria, where the announcer and
+             the photo intros read them - so the camera opens that card there, in its own tab. -->
+        <button type="button" id="kar-singer-btn" class="kar-chip" onclick="window.open('http://localhost:8899/karaoke.php#singer=' + encodeURIComponent(karWho || ''), 'cantoria-local')" title="Open this singer's card (full name, Man or Woman, photo) in this Mac's own Cantoria" style="padding:0 11px"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg></button>
         <?php endif; ?>
       </div>
       <!-- ⚠ flex-basis, NOT min-width, decides where a flex row breaks a line. With a 320px
@@ -3591,6 +3596,12 @@ function karPickFolder(){
   var KAR_SW = {name:'', file:null, remove:false};
   var KAR_SW_WORDS = {ready:'✓ Their personal intro is ready.', pending:'⏳ Their personal intro is in line to be made. Intros are made one at a time, about 9 minutes each. You can keep using Cantoria.',
                       failed:'✕ The personal intro could not be made. The plain intro will play instead.', none:''};
+  // Opened from casAI's camera button: karaoke.php#singer=<name> opens that card on arrival.
+  if (KAR_LOCAL && /^#singer=/.test(location.hash)) {
+    var _swName = decodeURIComponent(location.hash.slice(8));
+    history.replaceState(null, '', location.pathname + location.search);
+    setTimeout(function(){ if (_swName) karSingerOpen(_swName); }, 600);
+  }
   function karSingerOpen(name){
     if (!name) { alert('Pick or add a singer first.'); return; }
     KAR_SW = {name:name, file:null, remove:false};
