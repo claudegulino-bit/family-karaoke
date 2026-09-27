@@ -376,12 +376,10 @@ if (!$KAR_LOCAL) {
                              font-size: 11px !important; }
   .kar-simple .kar-play    { width: 78px !important; font-size: 12.5px !important; padding: 3px 0 !important; }
   .kar-simple #kar-h-casai { width: 78px !important; font-size: 11px !important; }
-  .kar-simple .kar-star    { font-size: 28px !important; }   /* Doubled from 14px, 2026-09-27:
-     the circled tier numbers ①②③ - unlike the plain star this replaced - were "almost can't see it...
-     needs to be big enough so you can actually work with it". The original 14px was tuned down from
-     22px for a different reason, 2026-09-17: a plain star competed visually with Play - that concern
-     was about a SHAPE competing with Play's size, not about numerals being legible at all; this is the
-     current, explicit instruction and takes precedence for this glyph. */
+  .kar-simple .kar-star    { font-size: 22px !important; font-weight: 400 !important; }
+     /* 2026-09-27: doubled from 14px first (the circled tier numbers ①②③, unlike the plain star
+     this replaced, were "almost can't see it"), then brought back down about 20% ("now 2 big") and
+     made explicitly unbold - the numerals read heavier than a plain star at the same size. */
 
   /* The two list chips join the grey too, and selection is shown the way the Simple|Complete switch
      already shows it - BRIGHTER means selected - with a near-white ring instead of the gold one.
@@ -1311,6 +1309,10 @@ if (!$KAR_LOCAL) {
       karPaintTierFilter();
       karRender();
     }
+    // Songs mid-removal: name -> a timer that auto-cancels the warning after a few seconds
+    // (the owner, 2026-09-27 - see the ✕ warning built into the star, above). Never sent to the
+    // server; purely what the star currently shows.
+    var karPendingRemove = {};
     function karPaintTierFilter(){
       document.querySelectorAll('.kar-tier-chip').forEach(function(b){
         var t = parseInt(b.getAttribute('data-tier'), 10);
@@ -1470,15 +1472,30 @@ if (!$KAR_LOCAL) {
         var name = full.replace(/\.[a-z0-9]{2,4}$/i,'');
         // Three tiers, not just on/off (the owner, 2026-09-27): ① favorites, widening through
         // ② ③ - a 415-song search on his own singer code was "not reasonable" to pick a song
-        // from. Click cycles ☆ -> ① -> ② -> ③ -> ☆.
+        // from. One colour for all three, not per-tier (the owner: the tier filter already shows
+        // only one tier at a time, so a colour difference between them says nothing) - the same
+        // vivid, unbold green as ▶ Play's own text, #6ee7b7.
+        // Removal is a two-click confirm, not a silent fourth stop (the owner: "I wouldn't want
+        // to click on three with nothing" - i.e. going straight back to a blank star read as
+        // accidental, not deliberate). From ③, the first click shows a red ✕ warning and does
+        // NOT touch the server; a second click on that ✕ is what actually removes it. Walking
+        // away leaves it exactly as it was - karPendingRemove is purely local and never saved.
         var tierN = KAR_BEST_SET[name] || 0;
-        var KAR_TIER_ICON  = ['☆','①','②','③'];
-        var KAR_TIER_COLOR = ['#94a3b8','#FFD34D','#60A5FA','#f87171'];
-        var KAR_TIER_NEXT  = ['add it as ①', 'move it to ②', 'move it to ③', 'remove it'];
-        var star = '<button type="button" class="kar-star" data-i="' + i + '" data-tier="' + tierN + '" title="'
-          + (tierN ? ('Tier ' + tierN + ' on ') : 'Not on ') + karWho + '’s Best list — click to ' + KAR_TIER_NEXT[tierN] + '" '
-          + 'style="font-family:inherit;flex:0 0 auto;width:64px;background:none;border:none;cursor:pointer;font-size:34px;line-height:1;padding:0;text-align:center;'
-          + (tierN ? ('color:' + KAR_TIER_COLOR[tierN] + ';text-shadow:0 0 6px rgba(255,211,77,.3)') : 'color:#94a3b8') + '">' + KAR_TIER_ICON[tierN] + '</button>';
+        var pendingN = !!karPendingRemove[name];
+        var KAR_TIER_ICON = ['☆','①','②','③'];
+        var starIcon, starColor, starTitle;
+        if (pendingN) {
+          starIcon = '✕'; starColor = '#f87171';
+          starTitle = 'Click again to remove from ' + karWho + '’s list';
+        } else {
+          starIcon = KAR_TIER_ICON[tierN];
+          starColor = tierN ? '#6ee7b7' : '#94a3b8';
+          starTitle = (tierN ? ('Tier ' + tierN + ' on ') : 'Not on ') + karWho + '’s Best list — click to '
+            + (tierN === 0 ? 'add it as ①' : tierN === 3 ? 'start removing it' : 'move it to ' + KAR_TIER_ICON[tierN + 1]);
+        }
+        var star = '<button type="button" class="kar-star" data-i="' + i + '" data-tier="' + tierN + '" title="' + starTitle + '" '
+          + 'style="font-family:inherit;flex:0 0 auto;width:56px;background:none;border:none;cursor:pointer;font-size:27px;font-weight:400;line-height:1;padding:0;text-align:center;'
+          + 'color:' + starColor + '">' + starIcon + '</button>';
         var ovr = Object.prototype.hasOwnProperty.call(KAR_PITCH, full);
         var eff = ovr ? KAR_PITCH[full] : karFnPitch(full);
         if (eff === null) eff = 0;  // every song shows its real playing pitch — 0 by default
@@ -2024,14 +2041,32 @@ if (!$KAR_LOCAL) {
         return;
       }
       // ☆ / ① / ② / ③: cycle this song's tier on the selected person's Best list
-      // (the owner, 2026-09-27). ☆ -> ① -> ② -> ③ -> back to ☆ (off the list).
+      // (the owner, 2026-09-27). ☆ -> ① -> ② -> ③ -> a ✕ warning (see below) -> ☆.
       var stb = ev.target.closest ? ev.target.closest('.kar-star') : null;
       if (stb) {
         var songS = src[parseInt(stb.getAttribute('data-i'), 10)];
         if (!songS) return;
         var nameS = songS.replace(/\.[a-z0-9]{2,4}$/i,'');
         var curTierS = KAR_BEST_SET[nameS] || 0;
-        var nextTierS = (curTierS + 1) % 4;
+        var nextTierS;
+        if (karPendingRemove[nameS]) {
+          // Already showing the ✕ warning: THIS click is the confirm, not another cycle step.
+          clearTimeout(karPendingRemove[nameS]);
+          delete karPendingRemove[nameS];
+          nextTierS = 0;
+        } else if (curTierS === 3) {
+          // From ③, show the warning and stop - nothing is sent to the server until a
+          // second, confirming click. Auto-cancels itself after 4s if left alone, so
+          // walking away never turns into an accidental removal later.
+          karPendingRemove[nameS] = setTimeout(function(){
+            delete karPendingRemove[nameS];
+            karRender();
+          }, 4000);
+          karRender();
+          return;
+        } else {
+          nextTierS = curTierS + 1;   // 0->1, 1->2, 2->3
+        }
         var fdS = new FormData();
         fdS.append('form_type', 'karaoke_best_toggle');
         fdS.append('song', songS);
