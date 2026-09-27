@@ -1531,8 +1531,14 @@ if (!$KAR_LOCAL) {
                   : tierN === 3 ? ('Remove from ' + karWho + '’s list')
                   : ('Move to ' + KAR_TIER_ICON[tierN + 1]);
         }
-        var dnDisabled = pendingN || tierN <= 1;
-        var dnTitle = tierN <= 1 ? 'Already at the top tier' : ('Move to ' + KAR_TIER_ICON[tierN - 1]);
+        // − stays live even while the ✕ removal warning shows (the owner, 2026-09-27: "somehow
+        // you remove the minus from the left side... it's scary because it looks like you
+        // have no choice" - a disabled, near-invisible − was exactly the wrong moment to hide
+        // an escape route). While pending, − cancels the removal and goes straight back to
+        // showing ③ - a deliberate "never mind", not one more demotion.
+        var dnDisabled = !pendingN && tierN <= 1;
+        var dnTitle = pendingN ? 'Keep it — cancel removing it'
+                    : tierN <= 1 ? 'Already at the top tier' : ('Move to ' + KAR_TIER_ICON[tierN - 1]);
         var star = '<span class="kar-tiergrp" style="flex:0 0 auto;width:84px;display:inline-flex;align-items:center;justify-content:center;gap:1px">'
           + '<button type="button" class="kar-tier-dn" data-i="' + i + '" title="' + dnTitle + '"' + (dnDisabled ? ' disabled' : '')
           + ' style="flex:0 0 auto;width:20px;height:20px;font-size:15px;font-weight:700;line-height:1;background:transparent;border:0;font-family:inherit;padding:0;'
@@ -2096,9 +2102,17 @@ if (!$KAR_LOCAL) {
         var songD = src[parseInt(stbDn.getAttribute('data-i'), 10)];
         if (!songD) return;
         var nameD = songD.replace(/\.[a-z0-9]{2,4}$/i,'');
+        if (karPendingRemove[nameD]) {
+          // Changed their mind about removing it - cancel the warning and go straight back to
+          // ③, exactly as it was. Nothing was ever sent to the server, so there is nothing to
+          // undo, just a render to bring the number back.
+          clearTimeout(karPendingRemove[nameD]);
+          delete karPendingRemove[nameD];
+          karRender();
+          return;
+        }
         var curD = KAR_BEST_SET[nameD] || 0;
         if (curD <= 1) return;
-        if (karPendingRemove[nameD]) { clearTimeout(karPendingRemove[nameD]); delete karPendingRemove[nameD]; }
         karTierSend(songD, nameD, curD - 1);
         return;
       }
