@@ -1729,9 +1729,15 @@ function kar_name_strip_branding(string $s): string {
     return trim(preg_replace('/\s+/u', ' ', $s));
 }
 
-/** TWO types only, by his instruction. Karaoke wins when both words appear: a backing
- *  track is a karaoke whether or not the words are on screen. */
+/** THREE types (the owner, 2026-09-27, widened from two): Karaoke, Lyrics, and Original.
+ *  He never types the word "original" itself — a real (non-karaoke) recording is signalled
+ *  by phrasing like "sung by [artist]" or the Italian "cantato da/dal/dalla ..." instead, so
+ *  that is what this looks for. Checked FIRST: a deliberate phrase like that outranks an
+ *  incidental "karaoke"/"lyrics" keyword elsewhere in the title. Best-effort by design — he
+ *  said as much ("if you can figure that out; if not, a little bit open, and I'll do it
+ *  manually") — so a title that says neither still falls through to Karaoke/Lyrics below. */
 function kar_detect_type(string $raw): string {
+    if (preg_match('/\b(?:sung|sang|performed)\s+by\b|\bcantat[oa]\s+da\w*\b/iu', $raw)) return 'Original';
     if (preg_match('/karaoke|strumental|instrumental|\bbase\b|backing track/iu', $raw)) return 'Karaoke';
     if (preg_match('/\blyric|\btesto\b|\btesti\b/iu', $raw)) return 'Lyrics';
     return 'Karaoke';

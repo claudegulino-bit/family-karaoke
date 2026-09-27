@@ -535,8 +535,8 @@ if (!$KAR_LOCAL) {
            ⚠ The YouTube Downloads button was RETIRED here on 2026-09-18 — the owner: "we don't need
            the download button... downloads are being done with the buttons in the middle bar."
            Its panel, karDlToggle() and every handler are untouched and still work; only the way in
-           is gone. This does NOT hide a failed download: the arrival strip below the header
-           reports one in red with yt-dlp's own reason. -->
+           is gone. This does NOT hide a failed download: the activity banner (2026-09-27, once
+           the arrival strip was removed) reports one with yt-dlp's own reason. -->
       <!-- The right-hand group travels as ONE block. With margin-left:auto on the first button
            instead, Guide and Refresh wrapped onto a second row by themselves the moment the
            window narrowed — and on a wrapped line margin-left:auto applies per line, so they
@@ -1130,11 +1130,6 @@ if (!$KAR_LOCAL) {
       <span id="kar-h-chk" style="flex:0 0 auto;width:96px;display:none" title="Once you have checked a song, take it off this list. It stays in the song database — nothing is deleted.">Checked</span>
       </span>
     </div>
-    <!-- Songs that have just come down. A download must end in something you can press, not in
-           a hunt: the owner, 2026-09-18 — "I just want that song we download to show up as a simple
-           click and play". It is ALSO the only place a FAILED download is visible in simple mode,
-           where the Downloads panel is hidden; without it a song that never arrives fails silently. -->
-    <div id="kar-arrivals" style="display:none;margin:0 0 8px"></div>
     <div id="kar-list" style="margin-top:4px;background:#121620;border:1px solid #334155;border-radius:10px;padding:6px 16px;height:calc(100vh - 275px);min-height:300px;overflow-y:auto"></div>
     <p style="margin:10px 0 0;color:#64748b;font-size:11.5px">List updated <?= h($_kjGen ?: 'unknown') ?> from the Google Drive song folders on the Mac · how everything works is under <b style="color:#94a3b8">📖 Guide</b> at the top.</p>
     </div>
@@ -2927,11 +2922,10 @@ function karPickFolder(){
         KAR_SY_GOT[i] = 1;
         var l = document.getElementById('kar-list'), top = l ? l.scrollTop : 0;
         karSimpleYtRender(); if (l) l.scrollTop = top;
-        // It lands in the arrival strip under the search box, with a Play button on it.
-        // This used to set the search box to the file's own name instead. That worked, but it
-        // threw away whatever he was looking for, and a filtered list is not "click and play" -
-        // it is "look, it is the only one left". the owner, 2026-09-18: "I just want that song we
-        // download to show up as a simple click and play".
+        // It lands in 🆕 New Songs once it finishes — no card, no Play button (removed
+        // 2026-09-27: he wants to rename it and set its key before it's ever played, not
+        // have it offered "ready to play" the moment it arrives). karArrPoll below still
+        // tracks it silently, only to keep 🆕 New Songs current.
         karArrAdd(h.url, h.title);
         karDlGo().then(karArrPoll);
       }).catch(function(){ btn.disabled = false; btn.textContent = 'Get this one';
@@ -3022,60 +3016,15 @@ function karPickFolder(){
     }
 
     // ------------------------------------------------------- SONGS THAT HAVE JUST ARRIVED
-    // Keyed by url, because that is the one thing known at the moment of the click - the real
-    // filename does not exist until yt-dlp has made it (and sanitised it).
+    // the owner, 2026-09-27: removed the "ready to play" card this used to show the moment a
+    // download landed (his own request from 2026-09-18, reversed now that he actually has
+    // two due-diligence steps to do first — rename it, decide its key — before it should be
+    // played at all). 🆕 New Songs is the one place a fresh download shows up; this is now
+    // just a silent watcher that keeps that list's count current without drawing anything or
+    // offering to play it. No card, no Play button, nothing to dismiss.
     var KAR_ARR = {}, KAR_ARR_TIMER = null;
     function karArrAdd(url, title){
-      if (!KAR_ARR[url]) KAR_ARR[url] = { url: url, title: title || 'a song', status: 'Downloading', file: '' };
-      karArrRender();
-    }
-    function karArrDismiss(url){ delete KAR_ARR[url]; karArrRender(); }
-    function karArrRender(){
-      var box = document.getElementById('kar-arrivals');
-      if (!box) return;
-      var keys = Object.keys(KAR_ARR);
-      if (!keys.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
-      box.style.display = '';
-      box.innerHTML = keys.map(function(u){
-        var a = KAR_ARR[u], esc = karEsc(a.file ? a.file.replace(/\.[^.]+$/, '') : a.title);
-        if (a.status === 'Done'){
-          return '<div class="kar-arrow" style="background:rgba(22,163,74,.14);border:1px solid #16a34a">'
-            + '<span style="flex:0 0 auto;font-size:17px">🎵</span>'
-            + '<span style="flex:1;min-width:0;color:#d1fae5;font-weight:700;word-break:break-word">' + esc + '</span>'
-            + '<button type="button" onclick="karArrPlay(' + karEscA(JSON.stringify(u)) + ',this)" style="flex:0 0 auto;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;background:#16a34a;border:1px solid #6ee7b7;color:#fff;font-size:14px;font-weight:800;padding:8px 18px;border-radius:9px">▶ Play</button>'
-            + '<button type="button" onclick="karArrDismiss(' + karEscA(JSON.stringify(u)) + ')" title="Hide this" style="flex:0 0 auto;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;background:none;border:none;color:#94a3b8;font-size:16px;padding:2px 6px">✕</button>'
-            + '</div>';
-        }
-        if (a.status === 'Error'){
-          return '<div class="kar-arrow" style="background:rgba(239,68,68,.12);border:1px solid #EF4444">'
-            + '<span style="flex:0 0 auto;font-size:17px">✕</span>'
-            + '<span style="flex:1;min-width:0;color:#fca5a5"><b>That song did not download.</b> ' + karEsc(a.note || '') + '</span>'
-            + '<button type="button" onclick="karArrDismiss(' + karEscA(JSON.stringify(u)) + ')" style="flex:0 0 auto;appearance:none;-webkit-appearance:none;font-family:inherit;cursor:pointer;background:none;border:none;color:#94a3b8;font-size:16px;padding:2px 6px">✕</button>'
-            + '</div>';
-        }
-        return '<div class="kar-arrow" style="background:rgba(210,173,108,.12);border:1px solid #D2AD6C">'
-          + '<span style="flex:0 0 auto;font-size:17px">⬇</span>'
-          + '<span style="flex:1;min-width:0;color:#f3d9a4">Getting <b>' + esc + '</b>…</span>'
-          + '</div>';
-      }).join('');
-    }
-    // No autoplay, ever - a song starting by itself mid-party is the wrong kind of surprise.
-    function karArrPlay(url, btn){
-      var a = KAR_ARR[url]; if (!a || !a.file) return;
-      btn.disabled = true; btn.textContent = '…';
-      var fd = new FormData();
-      fd.append('form_type', 'karaoke_play'); fd.append('mac', karMac());
-      fd.append('song', a.file); fd.append('player', 'mpv');
-      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
-        btn.disabled = false; btn.innerHTML = '▶ Play';
-        if (!d.ok){ alert('Could not play that song. ' + karWhyFail(d.error)); return; }
-        karNowPlaying = a.file; karNowStarted(); karNowPlayingPlayer = 'mpv';
-        karLivePitch = karSavedPitch(a.file); karLiveTempo = 100;
-        karNowSave();
-        karTempoPaint(100);
-        karNowBar();
-        if (KAR_SMODE === 'list') karRender();
-      }).catch(function(){ btn.disabled = false; btn.innerHTML = '▶ Play'; alert('Network error — the play request was not sent.'); });
+      if (!KAR_ARR[url]) KAR_ARR[url] = { url: url, title: title || 'a song', status: 'Downloading' };
     }
     // One poll for every arrival at once, however they were started.
     function karArrPoll(){
@@ -3090,12 +3039,10 @@ function karPickFolder(){
           var landed = false;
           (st.rows || []).forEach(function(row){
             var a = KAR_ARR[row.url]; if (!a || a.status !== 'Downloading') return;
-            if (row.title) a.title = row.title;
-            if (row.status === 'Done'){ a.status = 'Done'; a.file = row.filename || ''; landed = true; }
-            else if (row.status === 'Error'){ a.status = 'Error'; a.note = row.note || ''; }
+            if (row.status === 'Done'){ a.status = 'Done'; landed = true; }
+            else if (row.status === 'Error'){ a.status = 'Error'; }
           });
-          // The song has to be in KAR_DATA before Play can find it.
-          if (landed) karNewRefresh().then(karArrRender); else karArrRender();
+          if (landed) karNewRefresh();   // keeps 🆕 New Songs current — nothing rendered here
         }).catch(function(){});
       }, 2500);
     }
@@ -3586,9 +3533,14 @@ function karPickFolder(){
                 ? '✅ <b>' + karEsc(name) + '</b> is ready — <b>' + karEsc(r.requested_by) + '</b> is in line to sing it. It is under 🆕 New Songs.'
                 : '✅ <b>' + karEsc(name) + '</b> is in the Song Database and under 🆕 New Songs.' };
               if (r.requested_by) queueChanged = true;
-            } else if (r.status === 'Error' && r.requested_by) {
-              karActDone[r.id] = { until: now + 120000,
-                msg: '✕ <b>' + karEsc(r.requested_by) + '</b>\'s song didn\'t work out — ' + karEsc(r.note || 'ask them to try a different YouTube version') + '.' };
+            } else if (r.status === 'Error') {
+              // Not requested_by-gated any more (2026-09-27): this used to be the ONLY
+              // failure notice in Simple mode when the arrivals card still existed — the
+              // Downloads panel is hidden there, so a host's own failed download must still
+              // say so somewhere, not vanish silently.
+              karActDone[r.id] = { until: now + 120000, msg: r.requested_by
+                ? '✕ <b>' + karEsc(r.requested_by) + '</b>\'s song didn\'t work out — ' + karEsc(r.note || 'ask them to try a different YouTube version') + '.'
+                : '✕ <b>' + karEsc(name) + '</b> did not download — ' + karEsc(r.note || 'try a different YouTube version') + '.' };
             }
           }
         });
