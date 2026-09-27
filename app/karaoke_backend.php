@@ -1218,8 +1218,14 @@ function kar_cb_kick(): void {
  *  otherwise this feature is useless"): the moment a name goes on a list, its greeting is
  *  made in all three languages - a few at a time, so a newly queued song is never kept
  *  waiting behind this. Returns [] once everyone already has theirs, so the caller knows to
- *  move on to the backlog. */
-function kar_cb_everyone_jobs(string $ref, int $batch = 2): array {
+ *  move on to the backlog.
+ *  Batch raised 2 -> 6 the same day, on a library of 7 singers / 362 songs: each render pays
+ *  a fixed ~75s model-load cost before it even starts on the actual line, so a small batch
+ *  spends most of its time paying that cost over and over. Confirmed acceptable on a Mac
+ *  "dedicated to this, nothing else running" - the real cost is a newly-queued song's own
+ *  announcement waiting for the CURRENT batch to finish rather than jumping the queue
+ *  instantly; worth revisiting if that's ever felt live at a party. */
+function kar_cb_everyone_jobs(string $ref, int $batch = 6): array {
     $db = kar_db();
     $names = [];
     foreach ($db->query('SELECT DISTINCT person FROM karaoke_best') as $r) {
@@ -1266,7 +1272,7 @@ function kar_cb_song_ready(string $person, string $filename, string $crowdv): bo
  *  from casAI's own cantoria_photo_intros.py::_prepare_backlog() - same priority order,
  *  same resumable position, same look-ahead so an all-ready stretch of the list doesn't
  *  stall progress each cycle. */
-function kar_cb_backlog_jobs(string $ref, string $crowdv, int $batch = 1): array {
+function kar_cb_backlog_jobs(string $ref, string $crowdv, int $batch = 6): array {
     $db = kar_db();
     $rows = array_values(array_filter(
         $db->query('SELECT person, filename FROM karaoke_best ORDER BY person, filename')->fetchAll(PDO::FETCH_NUM),
