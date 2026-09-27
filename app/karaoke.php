@@ -512,15 +512,19 @@ if (!$KAR_LOCAL) {
         <!-- The singer window: full name for the announcer, Man/Woman, photo (2026-09-26). -->
         <button type="button" id="kar-singer-btn" class="kar-chip" onclick="karSingerOpen(karWho)" title="This singer: full name for the announcer, Man or Woman, and the photo shown when they are called up" style="padding:0 11px;position:relative"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg><span id="kar-singer-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px"></span></button>
         <?php endif; ?>
-        <!-- Tier filter, Singer view only (the owner, 2026-09-27): a 415-song search on his own
-             singer code was "not reasonable" to pick from. Defaults to ① only - the whole
-             point is opening small, not showing everything and asking you to narrow it. -->
-        <div id="kar-tierbar" style="display:none;align-items:center;gap:5px">
-          <span style="color:#64748b;font-size:11.5px;font-weight:700">Show:</span>
-          <button type="button" class="kar-chip kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show tier ① songs">①</button>
-          <button type="button" class="kar-chip kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show tier ② songs">②</button>
-          <button type="button" class="kar-chip kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show tier ③ songs">③</button>
-        </div>
+      </div>
+      <!-- Tier filter, Singer view only (the owner, 2026-09-27): a 415-song search on his own
+           singer code was "not reasonable" to pick from. Defaults to ① only - the whole point
+           is opening small, not showing everything and asking you to narrow it.
+           ⚠ MUST be a SIBLING of #kar-listbar, not nested inside it (2026-09-27, found from a
+           screenshot: the label showed as "Sho…" cut off at the window edge and nothing after
+           it - #kar-listbar has no wrap of its own, so anything nested inside it just overflows
+           off-screen instead of dropping to its own line the way this outer row already does). -->
+      <div id="kar-tierbar" style="display:none;align-items:center;gap:5px">
+        <span style="color:#64748b;font-size:11.5px;font-weight:700">Show:</span>
+        <button type="button" class="kar-chip kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show tier ① songs">①</button>
+        <button type="button" class="kar-chip kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show tier ② songs">②</button>
+        <button type="button" class="kar-chip kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show tier ③ songs">③</button>
       </div>
       <!-- ⚠ flex-basis, NOT min-width, decides where a flex row breaks a line. With a 320px
            basis the row wrapped at 1440px even though the field could legally shrink to 255 —
