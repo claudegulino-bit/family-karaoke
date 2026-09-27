@@ -1072,7 +1072,8 @@ function kar_cb_dir(): string {
  *  changing someone's full name makes a new announcement rather than reusing the old one. */
 function kar_cb_file(string $spoken, string $title, string $artist): string {
     // "v2" = the presenter treatment (stretched name, stadium FX); v1 files were the plain voice.
-    return kar_data_dir() . '/mc/cb/' . substr(sha1('v3|' . $spoken . '|' . $title . '|' . $artist), 0, 16) . '.wav';
+    $say = kar_cb_say_as($spoken, kar_mc_lang($title, $artist));
+    return kar_data_dir() . '/mc/cb/' . substr(sha1('v5|' . $spoken . '|' . $say . '|' . $title . '|' . $artist), 0, 16) . '.wav';
 }
 
 /** The singer's short greeting in voice B, per language — the fallback when a song's own
@@ -1081,7 +1082,19 @@ const KAR_CB_GREETING = ['en' => 'Ladies and gentlemen... please welcome... [NAM
                          'it' => 'Signore e signori... un grande applauso per... [NAME]!',
                          'es' => 'Señoras y señores... un aplauso para... [NAME]!'];
 function kar_cb_greeting_file(string $spoken, string $lang): string {
-    return kar_data_dir() . '/mc/cb/' . substr(sha1('greet2|' . $lang . '|' . $spoken), 0, 16) . '.wav';
+    return kar_data_dir() . '/mc/cb/' . substr(sha1('greet3|' . $lang . '|' . $spoken . '|' . kar_cb_say_as($spoken, $lang)), 0, 16) . '.wav';
+}
+
+/** How the VOICE should say a name, per language — the screen still shows the real name.
+ *  From "announce_pronounce" in karaoke_standalone.json (kept on the Mac, never in the public
+ *  code), e.g. {"Maria Rossi": {"it": "Marìa, Rossi"}}. Found by listening with Whisper: the Italian
+ *  voice said "Cloud" for Claude until it was given "Clod" (2026-09-26). */
+function kar_cb_say_as(string $spoken, string $lang): string {
+    $map = kar_cfg()['announce_pronounce'] ?? [];
+    $e = is_array($map) ? ($map[$spoken] ?? null) : null;
+    if (is_string($e) && $e !== '') return $e;
+    if (is_array($e) && !empty($e[$lang])) return (string)$e[$lang];
+    return $spoken;
 }
 
 function kar_cb_kick(): void {
@@ -1103,7 +1116,8 @@ function kar_photo_intro_file(string $singer, string $song): string {
     if (!$s || empty($s['photo_hash'])) return '';
     [$artist, $title] = kar_title_artist($song);
     $spoken = kar_singer_spoken($singer);
-    return kar_data_dir() . '/mc/cb/' . substr(sha1('v4|' . $spoken . '|' . $title . '|' . $artist . '|' . $s['photo_hash']), 0, 16) . '.mp4';
+    $say = kar_cb_say_as($spoken, kar_mc_lang($title, $artist));
+    return kar_data_dir() . '/mc/cb/' . substr(sha1('v6|' . $spoken . '|' . $say . '|' . $title . '|' . $artist . '|' . $s['photo_hash']), 0, 16) . '.mp4';
 }
 
 /** One property from the player, decoded; null when it does not answer. */

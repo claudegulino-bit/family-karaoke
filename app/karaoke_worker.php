@@ -211,7 +211,7 @@ if ($job === 'mcvoice') {
             if (isset($seen[$g]) || (is_file($g) && filesize($g) > 0)) continue;
             $seen[$g] = 1;
             $jobs[] = ['mode' => 'voice', 'lang' => $lang, 'template' => KAR_CB_GREETING[$lang] ?? KAR_CB_GREETING['en'],
-                       'name' => $spoken, 'song' => '', 'artist' => '', 'voice' => $ref, 'out' => $g,
+                       'name' => $spoken, 'name_say' => kar_cb_say_as($spoken, $lang), 'song' => '', 'artist' => '', 'voice' => $ref, 'out' => $g,
                        'who' => "$spoken (greeting, $lang)"];
         }
         foreach ($rows as $r) {
@@ -228,7 +228,7 @@ if ($job === 'mcvoice') {
             $lang = kar_mc_lang($title, $artist);
             $job  = ['mode' => $pi !== '' ? 'intro' : 'voice', 'lang' => $lang,
                      'template' => kar_mc_phrasing($lang, KAR_CB_PHRASINGS, 'cb_'),
-                     'name' => $spoken, 'song' => $title, 'artist' => $artist, 'voice' => $ref,
+                     'name' => $spoken, 'name_say' => kar_cb_say_as($spoken, $lang), 'song' => $title, 'artist' => $artist, 'voice' => $ref,
                      'out' => $out, 'who' => "$spoken / $title" . ($pi !== '' ? ' (photo intro)' : '')];
             if ($pi !== '') $job += ['photo' => $photo, 'crowd' => $crowdv, 'will' => KAR_CB_WILL[$lang] ?? KAR_CB_WILL['en']];
             $jobs[] = $job;
@@ -242,6 +242,7 @@ if ($job === 'mcvoice') {
         $ff = kar_tool('ffmpeg');
         @exec('FFMPEG=' . escapeshellarg($ff !== '' ? $ff : 'ffmpeg') . ' ' . escapeshellarg($dir . '/.venv/bin/python') . ' '
             . escapeshellarg($dir . '/cantoria_mc_intro.py') . ' ' . escapeshellarg($jf) . ' 2>/dev/null', $log);
+        foreach ($log as $line) if (strpos($line, 'heard') === 0 || strpos($line, 'WARNING: the name') === 0) kar_log('mcvoice', $line);
         foreach ($jobs as $j) {
             $ok = is_file($j['out']) && filesize($j['out']) > 0;
             kar_log('mcvoice', ($ok ? 'ready: ' : 'FAILED: ') . $j['who']);
