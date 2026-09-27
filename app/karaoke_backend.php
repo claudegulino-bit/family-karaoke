@@ -552,7 +552,18 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         kar_mpv_send(['set_property', 'speed', 1.0]);
         // Through the lua script so the on-screen UP/DOWN counter stays in step.
         kar_mpv_send(['script-message', 'casai-set-pitch', (string)$pitch]);
-        if ($mc) { kar_mc_spawn($song, $singer, $pitch, $crowd, $isIntro, $baked); }
+        if ($mc) {
+            // Same reassertion as every other property above, and for the same reason: a
+            // player kept alive across songs (--idle=yes) keeps whatever OSD position it
+            // started with. Missing here meant the lower-third fix below only applied to a
+            // freshly-spawned mpv - found 2026-09-27 on Mike's mini, where mpv had been open
+            // since before the fix was installed, so the words kept appearing centered on
+            // the singer's face until this branch reasserted it too.
+            kar_mpv_send(['set_property', 'osd-align-x', 'center']);
+            kar_mpv_send(['set_property', 'osd-align-y', 'bottom']);
+            kar_mpv_send(['set_property', 'osd-margin-y', 70]);
+            kar_mc_spawn($song, $singer, $pitch, $crowd, $isIntro, $baked);
+        }
         else     { kar_mpv_send(['show-text', sprintf('casAI player · pitch %+d · UP/DOWN arrows change it', $pitch), 5000]); }
         return [true, sprintf('pitch %+d applied%s', $pitch, $mc ? ', announcing ' . $singer : '')];
     }
