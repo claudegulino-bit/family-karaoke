@@ -1,0 +1,4 @@
+Announcer voice reference: klankbeeld, freesound.org, CC BY 4.0
+  "Boxing announcement Ladies and Gentleman" — https://freesound.org/people/klankbeeld/sounds/387839/
+  Licence: https://creativecommons.org/licenses/by/4.0/
+  ref_klankbeeld_dry.wav = the first dry take (0-12.1 s) of the public HQ preview, mono 24 kHz, peak -3 dBFS.

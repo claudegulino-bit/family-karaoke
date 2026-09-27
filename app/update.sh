@@ -33,11 +33,69 @@ mkdir -p "$DEST"
 for f in "$SRC"/*; do
   b="$(basename "$f")"
   [ "$b" = "karaoke_standalone.example.json" ] && continue
+  [ -d "$f" ] && continue   # folders are handled explicitly below (see "announcer/")
   cp "$f" "$DEST/$b"
 done
+# THE ANNOUNCER FOLDER (2026-09-26): copied as CONTENTS-INTO, not as a directory, because
+# `cp -R "$f" "$DEST/$b"` NESTS instead of merging when $DEST/announcer already exists — which
+# is exactly the case on an update, and it would have buried the shipped files a level deep
+# under the multi-gigabyte .venv this preserves. This form works whether $DEST/announcer is
+# fresh or already has a working voice installed in it.
+if [ -d "$SRC/announcer" ]; then
+  mkdir -p "$DEST/announcer/assets"
+  cp -R "$SRC/announcer/." "$DEST/announcer/"
+fi
 # The settings file is yours. It is only ever created, never overwritten.
 [ -f "$DEST/karaoke_standalone.json" ] || cp "$SRC/karaoke_standalone.example.json" "$DEST/karaoke_standalone.json"
 chmod +x "$DEST/start.command" "$DEST/update.sh" 2>/dev/null || true
+
+# THE ANNOUNCER VOICE, added to an already-installed Mac by its own next update (2026-09-26).
+# Runs ONCE — the moment the voice engine is already working, this whole block is a single
+# fast check and does nothing else. Never fatal: a Mac that cannot get it keeps working with
+# its own built-in voice.
+# ⚠ KEEP IN STEP WITH install.sh's OWN COPY OF THIS BLOCK (karaoke_install_template.sh) —
+# two implementations of the one setup drift exactly like the pitch reader has (hard rule 9).
+EXISTING_VOICE="$(/usr/bin/python3 -c 'import json,sys
+try: print(json.load(open(sys.argv[1])).get("announce_chatterbox",""))
+except Exception: print("")' "$DEST/karaoke_standalone.json" 2>/dev/null || true)"
+if [ "$(uname -m)" = "arm64" ] && [ ! -x "$DEST/announcer/.venv/bin/python" ] \
+   && { [ -z "$EXISTING_VOICE" ] || [ "$EXISTING_VOICE" = "$DEST/announcer" ]; }; then
+  echo "Setting up the announcer voice (once) — a few gigabytes, several minutes…"
+  BREW="$(command -v brew || true)"
+  [ -z "$BREW" ] && [ -x /opt/homebrew/bin/brew ] && BREW=/opt/homebrew/bin/brew
+  [ -z "$BREW" ] && [ -x /usr/local/bin/brew ]    && BREW=/usr/local/bin/brew
+  PY312="$(command -v python3.12 || true)"
+  [ -z "$PY312" ] && [ -x /opt/homebrew/opt/python@3.12/bin/python3.12 ] && PY312=/opt/homebrew/opt/python@3.12/bin/python3.12
+  if [ -z "$PY312" ] && [ -n "$BREW" ]; then
+    NONINTERACTIVE=1 HOMEBREW_NO_ENV_HINTS=1 "$BREW" install python@3.12 >/tmp/cantoria-voice.log 2>&1 </dev/null || true
+    PY312="/opt/homebrew/opt/python@3.12/bin/python3.12"; [ -x "$PY312" ] || PY312="$(command -v python3.12 || true)"
+  fi
+  if [ -n "$PY312" ] && [ -x "$PY312" ]; then
+    # TWO pip calls, not one - see install.sh's copy of this same block for why.
+    if "$PY312" -m venv "$DEST/announcer/.venv" >/tmp/cantoria-voice.log 2>&1 && \
+       "$DEST/announcer/.venv/bin/pip" install -q --upgrade pip >>/tmp/cantoria-voice.log 2>&1 && \
+       "$DEST/announcer/.venv/bin/pip" install -q "setuptools<81" numpy soundfile librosa pillow torch torchaudio >>/tmp/cantoria-voice.log 2>&1 && \
+       "$DEST/announcer/.venv/bin/pip" install -q openai-whisper chatterbox-tts >>/tmp/cantoria-voice.log 2>&1; then
+      echo "The announcer voice is set up."
+    else
+      echo "The announcer voice could not be fully set up — Cantoria still works with this"
+      echo "Mac's own voice. Log: /tmp/cantoria-voice.log"
+      rm -rf "$DEST/announcer/.venv"
+    fi
+  else
+    echo "python@3.12 is not available — the announcer voice was skipped for now."
+  fi
+fi
+/usr/bin/python3 - "$DEST/karaoke_standalone.json" "$DEST/announcer" <<'PYINNER'
+import json, sys
+path, announcer = sys.argv[1:3]
+cfg = json.load(open(path))
+# NEVER overwrite an existing pointer (this Mac may deliberately point elsewhere - the
+# dev laptop keeps its own private voice folder this way). Only ever filled when unset.
+cfg.setdefault("announce_chatterbox", announcer)
+json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
+PYINNER
+
 # The Desktop icon follows the shipped one, so every Mac gets the Cantoria icon with its next
 # update — not only a fresh install. Only the picture changes; the launcher inside is left alone.
 APP="$HOME/Desktop/Cantoria.app"

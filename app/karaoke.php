@@ -658,6 +658,7 @@ if (!$KAR_LOCAL) {
         $_karCards[] = ['upnext',    $_num('Singing Queue'), 'Who sings next, and scheduling fairness.', 'At a party'];
         $_karCards[] = ['downloads', $_num('YouTube Downloads'), 'Searching YouTube and adding songs.', 'At a party'];
         $_karCards[] = ['guestqr',   $_num('Guest QR'),  'Song requests from guests\' phones.', 'At a party'];
+        $_karCards[] = ['credits',   $_num('Credits'),  'Where the announcer voice comes from.', 'Setting up'];
         // Grouped, because ten cards in one flat grid is a wall (the owner, 2026-09-13). The
         // heading spans the whole grid row; the numbers still run 1..N in reading order,
         // because he refers to cards by number out loud.
@@ -775,6 +776,14 @@ if (!$KAR_LOCAL) {
         <div><b style="color:#c084fc">What a guest cannot do</b> — play, stop, rename or delete anything.</div>
         <div><b style="color:#c084fc">🔄 New code</b> — invalidates every code previously displayed. Use it after a party.</div>
           </div>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-credits" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Credits</h3>
+          <p style="margin:0">The announcer's voice at <b>Next singer</b> is built from a recording by <b>klankbeeld</b> on
+            <a href="https://freesound.org/people/klankbeeld/sounds/387839/" target="_blank" rel="noopener" style="color:#D2AD6C">freesound.org</a>,
+            used under a <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:#D2AD6C">Creative Commons Attribution 4.0</a> licence.
+            The voice itself is generated locally on this Mac by <b>Chatterbox</b> (Resemble AI, MIT licence) — nothing is sent anywhere to make it.</p>
         </div>
         <?php if (!$KAR_LOCAL): ?>
         <div class="kar-gs" id="kar-gs-config" style="display:none">

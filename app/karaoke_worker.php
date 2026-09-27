@@ -192,7 +192,11 @@ if ($job === 'mcvoice') {
     $lk = @fopen(kar_data_dir() . '/mcvoice.lock', 'c');
     if (!$lk || !flock($lk, LOCK_EX | LOCK_NB)) exit;           // one at a time
     // The voice to clone: the owner's chosen sample B unless the config names another.
-    $ref   = trim((string)(kar_cfg()['announce_voice_ref'] ?? '')) ?: $dir . '/voice-sample-B.wav';
+    // Every Mac ships klankbeeld (CC BY 4.0, cleared for public/commercial use) as the default
+    // voice. A Mac can be pointed at a different reference recording with "announce_voice_ref"
+    // in karaoke_standalone.json - this laptop's own dev copy uses its private sample-B this way.
+    $ref = trim((string)(kar_cfg()['announce_voice_ref'] ?? ''));
+    if ($ref === '' || !is_file($ref)) $ref = $dir . '/assets/ref_klankbeeld_dry.wav';
     // The applause and cheering under a photo intro: the crowd video's own soundtrack.
     $crowdv = kar_mc_applause();
     $tmp   = kar_data_dir() . '/mc/cb/tmp';

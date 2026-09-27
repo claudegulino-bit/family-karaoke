@@ -74,7 +74,7 @@ if [ -n "$PREBREW" ]; then
   ok "Homebrew — yours, good"
 fi
 
-say "1 of 5 · The player"
+say "1 of 6 · The player"
 BREW="$(command -v brew || true)"
 [ -z "$BREW" ] && [ -x /opt/homebrew/bin/brew ] && BREW=/opt/homebrew/bin/brew
 [ -z "$BREW" ] && [ -x /usr/local/bin/brew ] && BREW=/usr/local/bin/brew
@@ -135,7 +135,7 @@ fi
 [ -n "$FAILED" ] && ok "still missing:$FAILED — say so and it can be finished in a minute"
 
 # ------------------------------------------------------------- 2 · the program
-say "2 of 5 · Cantoria itself"
+say "2 of 6 · Cantoria itself"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 SHA="$(curl -fsSL "https://api.github.com/repos/$REPO/commits/main?_=$(date +%s)" 2>/dev/null \
         | sed -n 's/.*"sha"[[:space:]]*:[[:space:]]*"\([0-9a-f]\{40\}\)".*/\1/p' | head -1)"
@@ -148,13 +148,23 @@ mkdir -p "$DEST/logs"
 for f in "$SRC"/*; do
   b="$(basename "$f")"
   [ "$b" = "karaoke_standalone.example.json" ] && continue
+  [ -d "$f" ] && continue   # folders are handled explicitly below (see "announcer/")
   cp "$f" "$DEST/$b"
 done
+# THE ANNOUNCER FOLDER (2026-09-26): copied as CONTENTS-INTO, not as a directory, because
+# `cp -R "$f" "$DEST/$b"` NESTS instead of merging when $DEST/announcer already exists — which
+# is exactly the case on an update, and it would have buried the shipped files a level deep
+# under the multi-gigabyte .venv this preserves. This form works whether $DEST/announcer is
+# fresh or already has a working voice installed in it.
+if [ -d "$SRC/announcer" ]; then
+  mkdir -p "$DEST/announcer/assets"
+  cp -R "$SRC/announcer/." "$DEST/announcer/"
+fi
 chmod +x "$DEST/start.command" "$DEST/update.sh" 2>/dev/null || true
 ok "version $(cat "$DEST/VERSION" 2>/dev/null) — in $DEST"
 
 # ---------------------------------------------------------------- 3 · the songs
-say "3 of 5 · Your songs"
+say "3 of 6 · Your songs"
 if [ -z "$SONGS" ] && [ -f "$DEST/karaoke_standalone.json" ]; then
   SONGS="$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("songs_folder",""))' "$DEST/karaoke_standalone.json" 2>/dev/null || true)"
 fi
@@ -197,8 +207,88 @@ if sync: cfg["sync_folder"] = sync
 json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
 PY
 
-# -------------------------------------------------------------- 4 · the icon
-say "4 of 5 · The Desktop icon"
+# ------------------------------------------------------ 4 · the announcer voice
+# THE VOICE IS PART OF CANTORIA, NOT AN EXTRA (the owner, 2026-09-26: "That needs to be a complete
+# installation. Everything including the voice... From now on."). Every Mac gets: a photo intro
+# at Next singer (their photo, name, song and applause) spoken by Chatterbox (MIT), cloned from
+# klankbeeld's Freesound clip (CC BY 4.0 — credited in the Guide), plus a local speech check
+# (OpenAI Whisper) that confirms the name was actually said before it is used.
+#
+# This is a few GB and several minutes — real, and unlike php/mpv/yt-dlp/ffmpeg. It is NEVER
+# fatal: if any step here fails, Cantoria falls back to the Mac's own built-in voice and says so.
+# Do not exit non-zero over anything in this block.
+say "4 of 6 · The announcer voice"
+ok "This downloads a few gigabytes and can take several minutes. Cantoria works either way —"
+ok "without it, the Mac's own voice announces instead."
+ANNOUNCER="$DEST/announcer"
+VOICE_OK="no"
+# A Mac already pointed at a voice folder of its own (the dev laptop keeps a private one)
+# skips this entirely - nothing to gain from building a second, unused engine here.
+EXISTING="$(/usr/bin/python3 -c 'import json,sys
+try: print(json.load(open(sys.argv[1])).get("announce_chatterbox",""))
+except Exception: print("")' "$DEST/karaoke_standalone.json" 2>/dev/null || true)"
+if [ -n "$EXISTING" ] && [ "$EXISTING" != "$ANNOUNCER" ]; then
+  ok "this Mac already points its voice at $EXISTING — leaving it alone"
+  VOICE_OK="yes"
+else
+PY312="$(command -v python3.12 || true)"
+[ -z "$PY312" ] && [ -x /opt/homebrew/opt/python@3.12/bin/python3.12 ] && PY312=/opt/homebrew/opt/python@3.12/bin/python3.12
+if [ -z "$PY312" ]; then
+  ok "installing python@3.12…"
+  if NONINTERACTIVE=1 HOMEBREW_NO_ENV_HINTS=1 "$BREW" install python@3.12 > "$TOOLLOG" 2>&1 </dev/null; then
+    PY312="/opt/homebrew/opt/python@3.12/bin/python3.12"
+    [ -x "$PY312" ] || PY312="$(command -v python3.12 || true)"
+  else
+    ok "python@3.12 — FAILED. Homebrew said:"; sed 's/^/        /' "$TOOLLOG" | tail -12
+  fi
+fi
+if [ -n "$PY312" ] && [ -x "$PY312" ]; then
+  if [ ! -x "$ANNOUNCER/.venv/bin/python" ]; then
+    ok "setting up the voice (this is the several-minute part)…"
+    mkdir -p "$ANNOUNCER"
+    # TWO pip calls, not one (2026-09-26): numpy has to be fully installed BEFORE
+    # openai-whisper/chatterbox-tts are, or one of their own dependencies (pkuseg) fails to
+    # build - it imports numpy directly in its own setup.py, and pip's build isolation does
+    # not see a package installed in the SAME command. Found by testing this exact line.
+    if "$PY312" -m venv "$ANNOUNCER/.venv" > "$TOOLLOG" 2>&1 && \
+       "$ANNOUNCER/.venv/bin/pip" install -q --upgrade pip >> "$TOOLLOG" 2>&1 && \
+       "$ANNOUNCER/.venv/bin/pip" install -q "setuptools<81" numpy soundfile librosa pillow torch torchaudio >> "$TOOLLOG" 2>&1 && \
+       "$ANNOUNCER/.venv/bin/pip" install -q openai-whisper chatterbox-tts >> "$TOOLLOG" 2>&1; then
+      ok "voice engine installed"
+    else
+      ok "the voice engine could not be fully installed. Log:"
+      sed 's/^/        /' "$TOOLLOG" | tail -15
+      rm -rf "$ANNOUNCER/.venv"
+    fi
+  else
+    ok "voice engine — already here"
+  fi
+else
+  ok "python@3.12 is not available — skipping the voice for now (Cantoria still works)."
+fi
+if [ -x "$ANNOUNCER/.venv/bin/python" ] && [ -f "$ANNOUNCER/cantoria_mc_intro.py" ]; then
+  VOICE_OK="yes"
+fi
+fi   # closes "already pointed elsewhere" above
+/usr/bin/python3 - "$DEST/karaoke_standalone.json" "$ANNOUNCER" <<'PY'
+import json, sys
+path, announcer = sys.argv[1:3]
+cfg = json.load(open(path))
+# Always recorded, even if setup failed above — kar_cb_dir() checks the files itself and
+# falls back cleanly, so this never breaks anything, it only tells Cantoria where to look.
+# NEVER overwrite an existing pointer (see update.sh's copy of this same guard).
+cfg.setdefault("announce_chatterbox", announcer)
+json.dump(cfg, open(path, "w"), indent=4, ensure_ascii=False)
+PY
+if [ "$VOICE_OK" = "yes" ]; then
+  ok "the voice is ready — the first announcement will take a little longer while its"
+  ok "models download once."
+else
+  ok "the voice was not set up — Cantoria will use this Mac's own voice instead."
+fi
+
+# -------------------------------------------------------------- 5 · the icon
+say "5 of 6 · The Desktop icon"
 # ⚠ ORDER MATTERS. osacompile SEALS the bundle, so the icon goes in BEFORE signing and the
 # signature is applied LAST — otherwise macOS refuses to open it as "damaged or incomplete".
 PORT="$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("port","8899"))' "$DEST/karaoke_standalone.json")"
@@ -251,7 +341,7 @@ else
 fi
 
 # ----------------------------------------------------- 5 · running, and staying up
-say "5 of 5 · Starting it"
+say "6 of 6 · Starting it"
 MODEL="$(sysctl -n hw.model 2>/dev/null || echo unknown)"
 if [ "$AUTOSTART" = "auto" ]; then
   case "$MODEL" in MacBook*) AUTOSTART="no" ;; *) AUTOSTART="yes" ;; esac
