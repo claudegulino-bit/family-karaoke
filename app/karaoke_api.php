@@ -630,6 +630,17 @@ try {
         kj(['ok' => true, 'local' => $local, 'latest' => $latest, 'available' => $avail]);
     }
 
+    // Kicks the backlog forward a little at a time (the owner, 2026-09-27: "each computer
+    // needs to render the songs in advance, otherwise this feature is useless"). Polled
+    // periodically from the open page - there is no persistent background process on the
+    // standalone edition, unlike casAI's own watcher, so nothing else keeps this moving.
+    // kar_cb_kick() already guards against piling up (one worker at a time via its own
+    // lock file), so calling this often is harmless.
+    case 'karaoke_cb_kick': {
+        try { kar_cb_kick(); } catch (Throwable $e) { }
+        kj(['ok' => true]);
+    }
+
     // --------------------------------------------------- setup helpers (Guide)
     case 'karaoke_pick_folder': {
         // Two-phase, exactly as the server version: start queues the job, check polls it.

@@ -1197,6 +1197,78 @@ function kar_cb_kick(): void {
         . escapeshellarg(kar_marker_path() ?: '') . ' mcvoice >/dev/null 2>&1 &');
 }
 
+/** VOICE B FOR EVERYONE, AHEAD OF TIME (the owner, 2026-09-27, extending the design already
+ *  built for casAI to every Mac: "each computer needs to render the songs in advance,
+ *  otherwise this feature is useless"): the moment a name goes on a list, its greeting is
+ *  made in all three languages - a few at a time, so a newly queued song is never kept
+ *  waiting behind this. Returns [] once everyone already has theirs, so the caller knows to
+ *  move on to the backlog. */
+function kar_cb_everyone_jobs(string $ref, int $batch = 2): array {
+    $db = kar_db();
+    $names = [];
+    foreach ($db->query('SELECT DISTINCT person FROM karaoke_best') as $r) {
+        if (trim((string)$r['person']) !== '') $names[(string)$r['person']] = 1;
+    }
+    foreach ($db->query('SELECT name FROM karaoke_singers') as $r) {
+        if (trim((string)$r['name']) !== '') $names[(string)$r['name']] = 1;
+    }
+    $jobs = [];
+    foreach (array_keys($names) as $nm) {
+        $spoken = kar_singer_spoken($nm);
+        foreach (['en', 'it', 'es'] as $lang) {
+            $g = kar_cb_greeting_file($spoken, $lang);
+            if (is_file($g) && filesize($g) > 0) continue;
+            $jobs[] = ['mode' => 'voice', 'lang' => $lang, 'template' => KAR_CB_GREETING[$lang],
+                       'name' => $spoken, 'name_say' => kar_cb_say_as($spoken, $lang), 'song' => '', 'artist' => '',
+                       'voice' => $ref, 'out' => $g, 'who' => "$spoken (greeting, $lang)"];
+            if (count($jobs) >= $batch) return $jobs;
+        }
+    }
+    return $jobs;
+}
+
+/** THE BACKLOG (same ask as above): every song already on ANY singer's own list, worked
+ *  through a little at a time, entirely between turns - never waited for, never blocking a
+ *  live party. Resumes from where it left off across cycles (kept in karaoke_settings,
+ *  since each worker run is a fresh process with no memory of the last one) rather than
+ *  restarting at the top every time, so a long list still makes steady progress. Ported
+ *  from casAI's own cantoria_photo_intros.py::_prepare_backlog() - same priority order,
+ *  same resumable position, same look-ahead so an all-ready stretch of the list doesn't
+ *  stall progress each cycle. */
+function kar_cb_backlog_jobs(string $ref, string $crowdv, int $batch = 1): array {
+    $db = kar_db();
+    $rows = array_values(array_filter(
+        $db->query('SELECT person, filename FROM karaoke_best ORDER BY person, filename')->fetchAll(PDO::FETCH_NUM),
+        fn($r) => trim((string)$r[0]) !== '' && trim((string)$r[1]) !== ''
+    ));
+    $n = count($rows);
+    if ($n === 0) return [];
+    $pos = ((int)kar_get_setting('cb_backlog_pos')) % $n;
+    $order = array_merge(array_slice($rows, $pos), array_slice($rows, 0, $pos));
+    $jobs = []; $checked = 0; $lookahead = $batch * 6;
+    foreach ($order as [$person, $filename]) {
+        $checked++;
+        $spoken = kar_singer_spoken($person);
+        [$artist, $title] = kar_title_artist($filename);
+        $photo = kar_singer_photo($person);
+        $pi = $photo !== '' && $crowdv !== '' ? kar_photo_intro_file($person, $filename) : '';
+        $out = $pi !== '' ? $pi : kar_cb_file($spoken, $title, $artist);
+        if (!(is_file($out) && filesize($out) > 0)) {
+            $lang = kar_mc_lang($title, $artist);
+            $job = ['mode' => $pi !== '' ? 'intro' : 'voice', 'lang' => $lang,
+                    'template' => kar_mc_phrasing($lang, KAR_CB_PHRASINGS, 'cb_'),
+                    'name' => $spoken, 'name_say' => kar_cb_say_as($spoken, $lang), 'song' => $title, 'artist' => $artist,
+                    'voice' => $ref, 'out' => $out,
+                    'who' => "$spoken / $title" . ($pi !== '' ? ' (photo intro, backlog)' : ' (backlog)')];
+            if ($pi !== '') $job += ['photo' => $photo, 'crowd' => $crowdv, 'will' => KAR_CB_WILL[$lang] ?? KAR_CB_WILL['en']];
+            $jobs[] = $job;
+        }
+        if (count($jobs) >= $batch || $checked >= $lookahead) break;
+    }
+    kar_set_setting('cb_backlog_pos', (string)(($pos + $checked) % $n));
+    return $jobs;
+}
+
 /** PHOTO INTROS (the owner, 2026-09-26): at Next singer the screen shows the singer's own PHOTO,
  *  "Maria Rossi will sing" and the song, over applause and cheering taken from the crowd
  *  video, with the announcer on top — all one file, made in advance when the song is queued

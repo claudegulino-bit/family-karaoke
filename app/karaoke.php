@@ -3557,6 +3557,17 @@ function karPickFolder(){
     }
     karActivityPoll();
     setInterval(karActivityPoll, 12000);
+    <?php if ($KAR_LOCAL && function_exists('kar_photo_intros_on') && kar_photo_intros_on()): ?>
+    // Nudges the backlog forward while this page is open (the owner, 2026-09-27: "each
+    // computer needs to render the songs in advance"). The standalone edition has no
+    // persistent background process like casAI's own watcher, so this open tab is what
+    // keeps it moving - a party with the page up the whole night makes steady progress;
+    // a Mac with nobody looking does not, which is the honest limit of this approach.
+    setInterval(function(){
+      var fd = new FormData(); fd.append('form_type', 'karaoke_cb_kick');
+      fetch(KAR_API, {method:'POST', body: fd}).catch(function(){});
+    }, 20000);
+    <?php endif; ?>
     // First render on page load — without this, ⟳ Refresh (a plain reload) left the
     // list empty until a chip was clicked (the owner, 2026-09-06). The Song Database
     // chip is already marked active in the HTML, and karView starts as 'db' to match.

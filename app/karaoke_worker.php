@@ -242,7 +242,19 @@ if ($job === 'mcvoice') {
             if ($pi !== '') $job += ['photo' => $photo, 'crowd' => $crowdv, 'will' => KAR_CB_WILL[$lang] ?? KAR_CB_WILL['en']];
             $jobs[] = $job;
         }
-        if (!$jobs) break;
+        if (!$jobs) {
+            // Nothing live left to prepare. Same priority casAI's own backlog already uses
+            // (the owner, 2026-09-27: "each computer needs to render the songs in advance,
+            // otherwise this feature is useless") - everyone's own greeting first, a few at
+            // a time, then work through each singer's own song list. NEVER while a real
+            // song is playing: the rendering is heavy enough on a Mac mini's processor to
+            // make the player itself stumble.
+            $singing = (int)kar_db()->query("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Singing'")->fetchColumn();
+            if ($singing > 0) break;
+            $jobs = kar_cb_everyone_jobs($ref);
+            if (!$jobs) $jobs = kar_cb_backlog_jobs($ref, $crowdv);
+            if (!$jobs) break;
+        }
         $jf = $tmp . '/jobs.json';
         file_put_contents($jf, json_encode($jobs));
         $t0 = microtime(true);
