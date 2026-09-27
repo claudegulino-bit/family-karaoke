@@ -1306,10 +1306,12 @@ if (!$KAR_LOCAL) {
       var _tf = JSON.parse(localStorage.getItem('kar_tier_filter') || 'null');
       if (_tf && typeof _tf === 'object') karTierFilter = _tf;
     } catch(e){}
+    // Single-select, like the Song Database / New Songs / Singer chips elsewhere on this same
+    // header already are (the owner, 2026-09-27: "I want to select only the ones of the twos" -
+    // one click on ② should show only twos, not require turning ① off separately first).
     function karTierFilterToggle(t){
-      karTierFilter[t] = !karTierFilter[t];
-      // Never let every tier end up off - that would silently show nothing at all.
-      if (!karTierFilter[1] && !karTierFilter[2] && !karTierFilter[3]) karTierFilter[t] = true;
+      karTierFilter = { 1: false, 2: false, 3: false };
+      karTierFilter[t] = true;
       try { localStorage.setItem('kar_tier_filter', JSON.stringify(karTierFilter)); } catch(e){}
       karPaintTierFilter();
       karRender();
@@ -1338,6 +1340,9 @@ if (!$KAR_LOCAL) {
           a.splice(ix, 1);
         }
         if (nextTier > 0 && !karTierFilter[nextTier]) {
+          // Single-select, same as the chips themselves - reveal ONLY the tier just set,
+          // not add it alongside whatever was already showing.
+          karTierFilter = { 1: false, 2: false, 3: false };
           karTierFilter[nextTier] = true;
           try { localStorage.setItem('kar_tier_filter', JSON.stringify(karTierFilter)); } catch(e){}
           karPaintTierFilter();
