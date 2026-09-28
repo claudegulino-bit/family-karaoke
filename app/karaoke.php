@@ -134,21 +134,15 @@ if (!$KAR_LOCAL) {
   .kar-sect-a { flex: 0 0 auto; }
   .kar-sect-b { flex: 1; min-width: 0; }
   .kar-sectgap { flex: 0 0 auto; width: 28px; }
-  .kar-pgrp { display: inline-flex; align-items: center; flex: 0 0 auto; width: 114px;
+  .kar-pgrp { display: inline-flex; align-items: center; flex: 0 0 auto; width: 84px;
     background: #121620; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
-  /* The ⟲ is HIDDEN, not dimmed, on a song already at 0 — nothing to reset, so nothing to see.
-     Its space is still reserved (visibility, not display) because collapsing it would make the
-     rows ragged: every column after Pitch would shift left on those rows only. */
-  .kar-preset.is-idle { visibility: hidden; }
   .kar-pgrp.is-saved { border-color: #D2AD6C; }
   .kar-pgrp.is-temp  { border-style: dashed; border-color: #60A5FA; }
   .kar-pstep { flex: 0 0 auto; width: 24px; height: 20px; font-size: 16px; font-weight: 700; line-height: 1;
     background: transparent; border: 0; color: #94a3b8; border-radius: 0; cursor: pointer;
     font-family: inherit; padding: 0; }
-  .kar-preset { flex: 0 0 auto; width: 26px; height: 24px; font-size: 19px; font-weight: 400; line-height: 1;
-    background: transparent; border: 0; border-radius: 0; cursor: pointer; font-family: inherit; padding: 0; }
-  .kar-pstep:hover, .kar-preset:hover { background: rgba(96,165,250,.18); color: #e2e8f0; }
-  .kar-pstep:active, .kar-preset:active { background: rgba(96,165,250,.30); }
+  .kar-pstep:hover { background: rgba(96,165,250,.18); color: #e2e8f0; }
+  .kar-pstep:active { background: rgba(96,165,250,.30); }
   .kar-pgrp .kar-pitch { background: transparent; border: 0; border-radius: 0; }
   /* WHICH PANEL IS OPEN, readable at a glance (the owner, 2026-09-13: "sometimes you forget
      where you are… a button needs to be lit up telling me that that is what's active").
@@ -743,8 +737,7 @@ if (!$KAR_LOCAL) {
             <li><b>Search</b> — filters the list on screen by title, artist or singer's name. Esc clears it.</li>
             <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Best list renumbers it from 1.</li>
             <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> or a <b>double-click</b> switches full screen on and off; <b>Q</b> or the window's red <b>✕</b> closes the player.</li>
-            <li><b>Pitch</b> — the key the song starts in. Use − and + to transpose by semitones. The value is saved.</li>
-            <li><b>Reset</b> — plays the song once in its original key, then restores the saved pitch. Use it when another singer performs the song.</li>
+            <li><b>Pitch</b> — the key the song starts in. Use − and + to transpose by semitones. On <b>Song Database</b> and <b>New Songs</b> it always starts at 0 and is never saved — a one-time change for whatever gets played or queued next. On a <b>singer's own list</b>, it saves as that singer's own pitch for the song.</li>
             <li><b>⭐</b> adds the song to the Best list of the person named in the dropdown; clicking it again removes it.</li>
           </ul>
         </div>
@@ -1157,7 +1150,7 @@ if (!$KAR_LOCAL) {
     </div>
     <div style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px 0 23px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
       <span class="kar-sect kar-sect-a">
-      <span style="flex:0 0 auto;width:114px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number — it saves by itself (gold = your saved pitch). ⟲ drops it to 0 for one play only, for a guest singer, then your pitch comes back.">Pitch</span>
+      <span style="flex:0 0 auto;width:84px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number. On Song Database and New Songs it always starts at 0 and is never saved — a one-time change for whatever gets played or queued next. On a singer's own list, it saves (gold = your saved pitch).">Pitch</span>
       <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
       <span id="kar-h-del" style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
       </span>
@@ -1304,19 +1297,30 @@ if (!$KAR_LOCAL) {
     var karView = 'db';
     // Personal pitch resolution (the owner, 2026-09-28: "can the pitch be associated with a
     // singer only and not all of them" - different voices, different keys, same song). Only
-    // a singer's OWN list (karView === 'best') ever looks at their personal override; Song
-    // Database and New Songs have no singer picked, so they always show the shared default -
-    // exactly the split the owner asked for: "global default pitch stays for the shared views."
+    // a singer's OWN list (karView === 'best') ever looks at their personal override.
     function karPitchPersonalOn(){ return karView === 'best' && !!karWho; }
+    // Song Database and New Songs always show 0 - no saved override, no filename number either
+    // (the owner, 2026-09-28: "always zero, ignore the filename" - there is no singer there to
+    // own a saved pitch, so nothing should look saved or special-cased there at all; any edit
+    // is a one-time thing for whatever gets played or queued right now, never remembered).
+    function karPitchNeutral(){ return karView === 'db' || karView === 'new'; }
     // Resolves to {val, personal:true} if this singer set their own pitch for this song, else
-    // {val, personal:false} if there's a shared override, else null (falls back to karFnPitch).
+    // {val, personal:false} if there's a shared override, else null (falls back to the baseline).
     function karPitchOvr(song){
+      if (karPitchNeutral()) return null;
       if (karPitchPersonalOn()) {
         var m = KAR_PITCH_BY[karWho];
         if (m && Object.prototype.hasOwnProperty.call(m, song)) return { val: m[song], personal: true };
       }
       if (Object.prototype.hasOwnProperty.call(KAR_PITCH, song)) return { val: KAR_PITCH[song], personal: false };
       return null;
+    }
+    // What the box falls back to with no override: 0 on Song Database/New Songs, else the
+    // filename's own number (or 0 if it has none).
+    function karPitchBaseline(song){
+      if (karPitchNeutral()) return 0;
+      var fp = karFnPitch(song);
+      return fp === null ? 0 : fp;
     }
     // One place that empties the search box. render=true when the caller is not about to
     // re-render anyway (the ✕ Show all button); karSwitch passes false and renders itself.
@@ -1655,8 +1659,7 @@ if (!$KAR_LOCAL) {
           + '</span>';
         var pOvr = karPitchOvr(full);
         var ovr = !!pOvr;
-        var eff = ovr ? pOvr.val : karFnPitch(full);
-        if (eff === null) eff = 0;  // every song shows its real playing pitch — 0 by default
+        var eff = ovr ? pOvr.val : karPitchBaseline(full);
         var playing = (full === karNowPlaying);
         var pQm = playing && karNowPlayingPlayer === 'qmidi';
         var pMv = playing && karNowPlayingPlayer === 'mpv';
@@ -1664,18 +1667,13 @@ if (!$KAR_LOCAL) {
           + (playing ? ';background:rgba(210,173,108,.16)' : '') + '">'
           + '<span class="kar-sect kar-sect-a">'
           + '<span class="kar-pgrp' + (ovr ? ' is-saved' : '') + '">'
-          + '<button type="button" class="kar-pstep kar-pdn" data-i="' + i + '" title="Pitch DOWN one semitone — saves right away">−</button>'
+          + '<button type="button" class="kar-pstep kar-pdn" data-i="' + i + '" title="' + (karPitchNeutral() ? 'Pitch DOWN one semitone — one-time, not saved' : 'Pitch DOWN one semitone — saves right away') + '">−</button>'
           + '<input type="number" class="kar-pitch" data-i="' + i + '" min="-12" max="12" step="1" value="' + (eff === null ? '' : eff) + '" '
-          + 'title="Pitch this song plays at. Use − / + or type a number — blank goes back to the filename pitch." '
+          + 'title="' + (karPitchNeutral()
+              ? 'Pitch this song plays at — always starts at 0 here. A one-time change for the next Play or Queue, never saved.'
+              : 'Pitch this song plays at. Use − / + or type a number — blank goes back to the default.') + '" '
           + 'style="font-family:inherit;flex:0 0 auto;width:34px;color:' + (ovr ? '#D2AD6C' : '#94a3b8') + ';font-size:13px;padding:2px 2px;text-align:center">'
-          + '<button type="button" class="kar-pstep kar-pup" data-i="' + i + '" title="Pitch UP one semitone — saves right away">+</button>'
-          // Guest reset lives INSIDE the pitch control now, not in a column of its own — it is a
-          // thing you do TO the pitch, so it belongs beside it (the owner, 2026-09-10: too many columns).
-          + '<button type="button" class="kar-preset kar-reset' + (eff === 0 ? ' is-idle' : '') + '" data-i="' + i + '" title="'
-          + (eff === 0
-              ? 'Already at the original key — nothing to reset'
-              : 'Guest singer: drops the pitch to 0 for the NEXT PLAY ONLY — your saved pitch comes back by itself afterwards')
-          + '" style="color:#D2AD6C">⟲</button>'
+          + '<button type="button" class="kar-pstep kar-pup" data-i="' + i + '" title="' + (karPitchNeutral() ? 'Pitch UP one semitone — one-time, not saved' : 'Pitch UP one semitone — saves right away') + '">+</button>'
           + '</span>'
           + star
           + '<button type="button" class="kar-del" data-i="' + i + '" title="Remove this song from the database — the file is moved to the 09-Deleted by casAI folder (recoverable), not destroyed" '
@@ -2068,29 +2066,13 @@ if (!$KAR_LOCAL) {
     }
     function karSavedPitch(song){
       var o = karPitchOvr(song);
-      if (o) return o.val;
-      var fp = karFnPitch(song);
-      return fp === null ? 0 : fp;
+      return o ? o.val : karPitchBaseline(song);
     }
     function karStylePitchBox(inp, song){
       var ovr = !!karPitchOvr(song);
       var grp = inp.closest ? inp.closest('.kar-pgrp') : inp.parentElement;
       if (grp) { grp.classList.remove('is-temp'); grp.classList.toggle('is-saved', ovr); }
       inp.style.color = ovr ? '#D2AD6C' : '#94a3b8';
-      karStyleReset(inp);
-    }
-    // The ⟲ only means something when there is a pitch to come back FROM. At 0 there is nothing
-    // to reset, so it is dimmed and does nothing — otherwise it drew a "temporary" border round a
-    // number that was not going to change (the owner spotted this, 2026-09-10).
-    function karStyleReset(inp){
-      var rb = inp.parentElement ? inp.parentElement.querySelector('.kar-reset') : null;
-      if (!rb) return;
-      var v = parseInt(inp.value, 10);
-      var idle = (isNaN(v) || v === 0) && inp.dataset.temp !== '1';
-      rb.classList.toggle('is-idle', idle);
-      rb.title = idle
-        ? 'Already at the original key — nothing to reset'
-        : 'Guest singer: drops the pitch to 0 for the NEXT PLAY ONLY — your saved pitch comes back by itself afterwards';
     }
     // Delete confirmation: a small popover NEXT TO the clicked ✕, at the same level —
     // not the browser's confirm() box, which always lands top-center far from the row.
@@ -2196,6 +2178,16 @@ if (!$KAR_LOCAL) {
           if (!d.ok) { qb.textContent = '➕'; alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
           qb.textContent = '✓'; qb.style.color = '#6ee7b7';
           setTimeout(function(){ qb.textContent = '➕'; qb.style.color = '#93c5fd'; }, 1500);
+          // Song Database and New Songs never remember a pitch bump - it was only ever for
+          // this one add, now used, so the box goes back to 0 right away (the owner, 2026-09-28:
+          // "if they sing the song, that should be reset back to zero"). Play resets by way of
+          // its own re-render; Queue has none, so it resets the row directly here.
+          if (karPitchNeutral() && inpQ) {
+            inpQ.value = 0;
+            karStylePitchBox(inpQ, songQ);
+            var grpQ = inpQ.closest ? inpQ.closest('.kar-pgrp') : inpQ.parentElement;
+            if (grpQ) grpQ.classList.remove('is-temp');
+          }
         }).catch(function(){ qb.textContent = '➕'; alert('Network error — the request was not added.'); });
         return;
       }
@@ -2250,23 +2242,6 @@ if (!$KAR_LOCAL) {
           nextU = curU + 1;   // 0->1, 1->2, 2->3
         }
         karTierSend(songU, nameU, nextU);
-        return;
-      }
-      var rb = ev.target.closest ? ev.target.closest('.kar-reset') : null;
-      if (rb) {
-        // Reset = set the Pitch box to 0 for the NEXT play only. Nothing plays, nothing is saved.
-        var song0 = src[parseInt(rb.getAttribute('data-i'), 10)];
-        var inp0 = rb.parentElement.querySelector('.kar-pitch');
-        if (!song0 || !inp0) return;
-        var cur0 = parseInt(inp0.value, 10);
-        if (isNaN(cur0) || cur0 === 0) return;   // already the original key — nothing to reset
-        inp0.value = 0;
-        inp0.dataset.temp = '1';
-        var grp0 = inp0.closest ? inp0.closest('.kar-pgrp') : inp0.parentElement;
-        if (grp0) { grp0.classList.remove('is-saved'); grp0.classList.add('is-temp'); }
-        inp0.style.color = '#60A5FA';
-        inp0.title = 'Temporary 0 for a guest — after Play, this goes back to the saved pitch (' + karSavedPitch(song0) + ')';
-        karStyleReset(inp0);
         return;
       }
       var dl = ev.target.closest ? ev.target.closest('.kar-del') : null;
@@ -2343,7 +2318,6 @@ if (!$KAR_LOCAL) {
       var inp = rowP ? rowP.querySelector('.kar-pitch') : null;
       var boxVal = inp ? parseInt(inp.value, 10) : NaN;
       var pitch = isNaN(boxVal) ? karSavedPitch(song) : Math.max(-12, Math.min(12, boxVal));
-      var temp = inp && inp.dataset.temp === '1';
       b.disabled = true; b.textContent = '…';
       var fd = new FormData();
       fd.append('form_type', 'karaoke_play'); fd.append('mac', karMac());
@@ -2392,10 +2366,6 @@ if (!$KAR_LOCAL) {
     document.getElementById('kar-list').addEventListener('click', function(ev){
       var b = ev.target.closest ? ev.target.closest('.kar-pstep') : null;
       if (!b) return;
-      // ⚠ The guest-reset button sits inside this same group and once carried .kar-pstep for its
-      // looks — which made THIS listener fire too, stepping the pitch down and SAVING it. Styling
-      // and behaviour must never share a class here.
-      if (b.classList.contains('kar-reset')) return;
       var inp = b.parentElement.querySelector('.kar-pitch');
       if (!inp) return;
       var v = parseInt(inp.value, 10);
@@ -2413,15 +2383,26 @@ if (!$KAR_LOCAL) {
       var src = KAR_DATA[karRenderedView] || [];
       var song = src[parseInt(inp.getAttribute('data-i'), 10)];
       if (!song) return;
-      delete inp.dataset.temp;  // typing a number is a real change — it saves, it is not the guest reset
       var val = inp.value.trim();
       if (val !== '' && (isNaN(parseInt(val, 10)) || parseInt(val, 10) < -12 || parseInt(val, 10) > 12)) {
         alert('Pitch must be a whole number between -12 and +12.');
         return;
       }
-      // A singer's own list saves to THEIR pitch, on top of the shared default; Song Database
-      // and New Songs (no singer picked) still save the shared default itself, exactly as
-      // before (the owner, 2026-09-28: "global default pitch stays for the shared views").
+      // Song Database and New Songs never save anything - always zero, and a typed number is
+      // strictly for whatever gets played or queued right now (the owner, 2026-09-28: "always
+      // zero... if they sing the song, that should be reset back to zero"). The dashed border
+      // marks it as a one-time change, never the gold "saved" one - it never was saved. Play
+      // already re-renders on success, which alone puts it back to 0; Queue has no such
+      // re-render, so it resets the box itself right after a successful add.
+      if (karPitchNeutral()) {
+        var vTemp = val === '' ? 0 : parseInt(val, 10);
+        inp.value = vTemp;
+        karStylePitchBox(inp, song);
+        var grpN = inp.closest ? inp.closest('.kar-pgrp') : inp.parentElement;
+        if (grpN) grpN.classList.toggle('is-temp', vTemp !== 0);
+        return;
+      }
+      // A singer's own list saves to THEIR pitch, on top of the shared default.
       var personal = karPitchPersonalOn();
       var fd = new FormData();
       fd.append('form_type', 'karaoke_set_pitch');
