@@ -561,8 +561,6 @@ if (!$KAR_LOCAL) {
            window narrowed — and on a wrapped line margin-left:auto applies per line, so they
            landed hard left. Keeping them in one flex child means the whole group drops together. -->
       <div style="flex:0 0 auto;margin-left:auto;display:flex;align-items:center;gap:7px">
-      <button type="button" onclick="karQToggle()" id="kar-q-btn" class="kar-tool kar-tile" title="The singing queue — who sings next, in order"><span style="font-size:15px">&#x1F3A4;</span>Queue <span id="kar-q-count" class="kar-cnt">0</span></button>
-      <button type="button" onclick="karQrToggle()" id="kar-qr-btn" class="kar-tool kar-tile" title="The code guests scan to request or bring songs from their own phones"><span style="font-size:15px">&#x1F4F1;</span>Guest QR</button>
       <!-- Simple / Complete. Hidden by KAR_MODE_SWITCH=false, and sized to the pills so that it
            fits the row on the day it is switched back on. -->
       <span id="kar-mode-sw" title="Simple shows only what you need to sing. Complete shows everything." style="display:inline-flex;align-items:stretch;border:1px solid #475569;border-radius:9px;overflow:hidden">
@@ -623,6 +621,14 @@ if (!$KAR_LOCAL) {
             <button type="button" id="kar-start-btn" onclick="karPlayAgain()" title="Restart from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏮ Restart</button>
             <button type="button" onclick="karPauseToggle(this)" id="kar-stop-btn" title="Stop the song where it is. Press again to resume. To end a song, close the lyrics screen (Q)." style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏹ Stop</button>
           </span>
+        </span>
+        <!-- Queue and Guest QR live DOWN HERE too now (the owner, 2026-09-27: "we're running out
+             of space... move the queue and the guest QR to the bar below... right before the
+             guide, after we start and stop") — same reasoning as the Guide/Refresh move below:
+             free up the crowded top bar, land them where there's room. -->
+        <span style="display:flex;align-items:center;gap:7px;padding:0 0 0 16px;border-left:1px solid rgba(210,173,108,.28)">
+          <button type="button" onclick="karQToggle()" id="kar-q-btn" class="kar-tool kar-tile" title="The singing queue — who sings next, in order"><span style="font-size:15px">&#x1F3A4;</span>Queue <span id="kar-q-count" class="kar-cnt">0</span></button>
+          <button type="button" onclick="karQrToggle()" id="kar-qr-btn" class="kar-tool kar-tile" title="The code guests scan to request or bring songs from their own phones"><span style="font-size:15px">&#x1F4F1;</span>Guest QR</button>
         </span>
         <!-- Guide and Refresh live DOWN HERE, not in the top row. the owner, 2026-09-18: "we
              don't have enough space on the top bar... the song database, the YouTube, a link
