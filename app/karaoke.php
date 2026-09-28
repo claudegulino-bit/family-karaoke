@@ -1509,8 +1509,11 @@ if (!$KAR_LOCAL) {
         if (q && full.toLowerCase().indexOf(q) === -1) continue;
         // Tier filter, Singer view only (the owner, 2026-09-27): this is the actual fix for
         // "415 songs is not a reasonable search" - narrows what shows, same as the search
-        // box does, just by tier instead of by text.
-        if (karView === 'best') {
+        // box does, just by tier instead of by text. Only when there's NO text query - once
+        // you're actually searching (the owner, 2026-09-27: "we got to make sure that we get
+        // all three of them"), the search itself is the narrowing, so it must see every tier,
+        // not just whichever one the chip currently shows.
+        if (karView === 'best' && !q) {
           var nameF = full.replace(/\.[a-z0-9]{2,4}$/i,'');
           if (!karTierFilter[KAR_BEST_SET[nameF] || 1]) continue;
         }
