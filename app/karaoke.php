@@ -370,14 +370,18 @@ if (!$KAR_LOCAL) {
   .kar-simple .kar-play    { width: 78px !important; font-size: 12.5px !important; padding: 3px 0 !important; }
   .kar-simple #kar-h-casai { width: 78px !important; font-size: 11px !important; }
   .kar-simple .kar-star    { font-size: 22px !important; font-weight: 400 !important; }
-     /* 2026-09-27: doubled from 14px first (the circled tier numbers ①②③, unlike the plain star
-     this replaced, were "almost can't see it"), then brought back down about 20% ("now 2 big") and
-     made explicitly unbold - the numerals read heavier than a plain star at the same size. */
-  .kar-tier-chip { font-size: 22px !important; font-weight: 400 !important; padding: 0 9px !important; }
-     /* The "Show:" filter chips, 2026-09-27: "the numbers are so small... a big box, a very small
-     number inside" - these inherit the ordinary .kar-chip text size (14px) meant for a whole word
-     like "New Songs", not one lone circled digit sitting in a 36px-tall button. Matches .kar-star's
-     own size above, for the same reason. */
+  /* #kar-tierbar rebuilt 2026-09-28 as one compressed joined button (Show/A/B/C/Clear list),
+     replacing the old separate .kar-chip-styled pills - see the HTML comment above the markup. */
+  #kar-tierbar .kar-tb-label { color:#64748b; font-size:10.5px; font-weight:700; padding:0 7px;
+    display:flex; align-items:center; border-right:1px solid #334155; }
+  #kar-tierbar .kar-tier-chip { font-family:inherit; background:none; border:none;
+    border-right:1px solid #334155; color:#e2e8f0; padding:0 8px; font-size:11.5px;
+    cursor:pointer; }
+  #kar-tierbar .kar-tier-chip span { color:#94a3b8; font-weight:700; }
+  #kar-tierbar .kar-tier-chip.kar-on { background:rgba(134,202,250,.08); color:#CDE8FF; font-weight:700; }
+  #kar-tierbar .kar-tier-chip.kar-on span { color:#CDE8FF; }
+  #kar-tierbar .kar-tierclear-btn { font-family:inherit; background:none; border:none;
+    color:#f87171; padding:0 9px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
 
   /* The two list chips join the grey too, and selection is shown the way the Simple|Complete switch
      already shows it - BRIGHTER means selected - with a near-white ring instead of the gold one.
@@ -510,10 +514,6 @@ if (!$KAR_LOCAL) {
           <option value="__remove__">− Remove a person…</option>
           </select>
         </select>
-        <?php if (true): /* the singer window is in BOTH editions (2026-09-26) */ ?>
-        <!-- The singer window: full name for the announcer, Man/Woman, photo (2026-09-26). -->
-        <button type="button" id="kar-singer-btn" class="kar-chip" onclick="karSingerOpen(karWho)" title="This singer: full name for the announcer, Man or Woman, and the photo shown when they are called up" style="padding:0 11px;position:relative"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg><span id="kar-singer-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px"></span></button>
-        <?php endif; ?>
       </div>
       <!-- Tier filter, Singer view only (the owner, 2026-09-27): a 415-song search on his own
            singer code was "not reasonable" to pick from. Defaults to ① only - the whole point
@@ -521,25 +521,33 @@ if (!$KAR_LOCAL) {
            ⚠ MUST be a SIBLING of #kar-listbar, not nested inside it (2026-09-27, found from a
            screenshot: the label showed as "Sho…" cut off at the window edge and nothing after
            it - #kar-listbar has no wrap of its own, so anything nested inside it just overflows
-           off-screen instead of dropping to its own line the way this outer row already does). -->
-      <!-- A/B/C, not ①②③ (the owner, 2026-09-27: "B is above A, C is above B... it's obvious"),
-           each with its own live count now that moving Queue/Guest QR down freed the room for
-           it (2026-09-27) - counts are filled in by karRebuildBest(), never by PHP, since they
-           depend on which singer is picked. -->
-      <div id="kar-tierbar" style="display:none;align-items:center;gap:5px">
-        <span style="color:#64748b;font-size:11.5px;font-weight:700">Show:</span>
-        <button type="button" class="kar-chip kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show list A songs">A <span id="kar-tier-cnt-1" class="kar-cnt">0</span></button>
-        <button type="button" class="kar-chip kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show list B songs">B <span id="kar-tier-cnt-2" class="kar-cnt">0</span></button>
-        <button type="button" class="kar-chip kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show list C songs">C <span id="kar-tier-cnt-3" class="kar-cnt">0</span></button>
-        <!-- Clear a whole list (the owner, 2026-09-27: "270 songs in this C, that's
-             unmanageable... remove them from my list... I don't mean delete the songs"). Does
-             NOT act on whichever of A/B/C the Show: chips happen to be on (the owner, 2026-09-28:
-             "a little dangerous... whatever number is selected at the time will disappear") -
-             clicking it opens a popover asking WHICH list, by name, with its real count, so the
-             choice is always deliberate and never inherited from the filter's current state.
-             Song files are never touched; this only removes the Best-list rows, with the same
-             snapshot-before-delete safety as removing a whole person already has. -->
-        <button type="button" class="kar-tierclear-btn" onclick="karTierClearShow(this)" title="Choose a list (A, B or C) to empty — song files are never touched, only taken off that list" style="font-family:inherit;background:none;border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:11.5px;font-weight:700;padding:0 10px;height:30px;border-radius:8px;margin-left:4px">🗑 Clear list</button>
+           off-screen instead of dropping to its own line the way this outer row already does).
+           Rebuilt 2026-09-28 as ONE joined button (the owner: "I like this all button to be part
+           of this single button... make it as compressed as possible, it takes space we need
+           for the search") - Show/A/B/C/Clear list all share one border, no gaps between them,
+           a soft wash (not a bright fill) marks whichever tier is selected. The 📷 singer/photo
+           button moved here too (the owner: "the camera icon should be to the right of this
+           button") - it now shares this row's Best-list-only visibility, which is a real change
+           from before (it used to show on every view); that's deliberate, since editing a
+           singer's photo/name only makes sense while looking at their own list anyway. -->
+      <div id="kar-tierbar" style="display:none;align-items:center;gap:6px">
+        <span style="display:flex;align-items:stretch;height:26px;background:#121620;border:1px solid #475569;border-radius:7px;overflow:hidden">
+          <span class="kar-tb-label">Show</span>
+          <button type="button" class="kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show list A songs">A <span id="kar-tier-cnt-1">0</span></button>
+          <button type="button" class="kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show list B songs">B <span id="kar-tier-cnt-2">0</span></button>
+          <button type="button" class="kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show list C songs">C <span id="kar-tier-cnt-3">0</span></button>
+          <!-- Clear a whole list (the owner, 2026-09-27: "270 songs in this C, that's
+               unmanageable... remove them from my list... I don't mean delete the songs"). Does
+               NOT act on whichever of A/B/C the Show: chips happen to be on (the owner, 2026-09-28:
+               "a little dangerous... whatever number is selected at the time will disappear") -
+               clicking it opens a popover asking WHICH list, by name, with its real count, so the
+               choice is always deliberate and never inherited from the filter's current state.
+               Song files are never touched; this only removes the Best-list rows, with the same
+               snapshot-before-delete safety as removing a whole person already has. -->
+          <button type="button" class="kar-tierclear-btn" onclick="karTierClearShow(this)" title="Choose a list (A, B or C) to empty — song files are never touched, only taken off that list">🗑 Clear</button>
+        </span>
+        <!-- The singer window: full name for the announcer, Man/Woman, photo (2026-09-26). -->
+        <button type="button" id="kar-singer-btn" class="kar-chip" onclick="karSingerOpen(karWho)" title="This singer: full name for the announcer, Man or Woman, and the photo shown when they are called up" style="padding:0 11px;position:relative"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg><span id="kar-singer-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px"></span></button>
       </div>
       <!-- ⚠ flex-basis, NOT min-width, decides where a flex row breaks a line. With a 320px
            basis the row wrapped at 1440px even though the field could legally shrink to 255 —
