@@ -525,11 +525,15 @@ if (!$KAR_LOCAL) {
            screenshot: the label showed as "Sho…" cut off at the window edge and nothing after
            it - #kar-listbar has no wrap of its own, so anything nested inside it just overflows
            off-screen instead of dropping to its own line the way this outer row already does). -->
+      <!-- A/B/C, not ①②③ (the owner, 2026-09-27: "B is above A, C is above B... it's obvious"),
+           each with its own live count now that moving Queue/Guest QR down freed the room for
+           it (2026-09-27) - counts are filled in by karRebuildBest(), never by PHP, since they
+           depend on which singer is picked. -->
       <div id="kar-tierbar" style="display:none;align-items:center;gap:5px">
         <span style="color:#64748b;font-size:11.5px;font-weight:700">Show:</span>
-        <button type="button" class="kar-chip kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show tier ① songs">①</button>
-        <button type="button" class="kar-chip kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show tier ② songs">②</button>
-        <button type="button" class="kar-chip kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show tier ③ songs">③</button>
+        <button type="button" class="kar-chip kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show list A songs">A <span id="kar-tier-cnt-1" class="kar-cnt">0</span></button>
+        <button type="button" class="kar-chip kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show list B songs">B <span id="kar-tier-cnt-2" class="kar-cnt">0</span></button>
+        <button type="button" class="kar-chip kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show list C songs">C <span id="kar-tier-cnt-3" class="kar-cnt">0</span></button>
       </div>
       <!-- ⚠ flex-basis, NOT min-width, decides where a flex row breaks a line. With a 320px
            basis the row wrapped at 1440px even though the field could legally shrink to 255 —
@@ -1200,6 +1204,14 @@ if (!$KAR_LOCAL) {
         if (o) o.textContent = 'Singer: ' + karWho + ' - ' + KAR_DATA.best.length;
         if (sel.value !== karWho) sel.value = karWho;
       }
+      // Counts on the A/B/C "Show:" chips (2026-09-27) - how many of this singer's songs sit
+      // in each list, so the chip itself answers "how many" before you even click it.
+      var tierCounts = { 1: 0, 2: 0, 3: 0 };
+      pairs.forEach(function(pair){ if (tierCounts[pair[1]] !== undefined) tierCounts[pair[1]]++; });
+      [1, 2, 3].forEach(function(t){
+        var c = document.getElementById('kar-tier-cnt-' + t);
+        if (c) c.textContent = tierCounts[t];
+      });
     }
     // Re-picking the SAME name fires no change event, so without this you could never get
     // back to the Best list from Song Database or 🆕 New once the chip was gone. Touching the
@@ -1542,7 +1554,12 @@ if (!$KAR_LOCAL) {
         // + moves up, and past ③ is where the same two-click removal confirm still lives.
         var tierN = KAR_BEST_SET[name] || 0;
         var pendingN = !!karPendingRemove[name];
+        // Letters, not circled numerals (the owner, 2026-09-27): "B is above A, C is above B" -
+        // the same rank order as before, A/B/C instead of ①②③. KAR_TIER_ICON keeps the old
+        // glyphs only for the ☆ (not on the list) and tooltip prose; KAR_TIER_LETTER is what
+        // actually renders and reads out loud.
         var KAR_TIER_ICON = ['☆','①','②','③'];
+        var KAR_TIER_LETTER = ['','A','B','C'];
         var starIcon, starColor, upTitle;
         if (pendingN) {
           starIcon = '✕'; starColor = '#f87171';
@@ -1550,34 +1567,37 @@ if (!$KAR_LOCAL) {
         } else {
           starIcon = KAR_TIER_ICON[tierN];
           starColor = tierN ? '#6ee7b7' : '#94a3b8';
-          upTitle = tierN === 0 ? ('Add to ' + karWho + '’s list as ①')
+          upTitle = tierN === 0 ? ('Add to ' + karWho + '’s list as A')
                   : tierN === 3 ? ('Remove from ' + karWho + '’s list')
-                  : ('Move to ' + KAR_TIER_ICON[tierN + 1]);
+                  : ('Move up to ' + KAR_TIER_LETTER[tierN + 1]);
         }
-        // − stays live even while the ✕ removal warning shows (the owner, 2026-09-27: "somehow
+        // ↓ stays live even while the ✕ removal warning shows (the owner, 2026-09-27: "somehow
         // you remove the minus from the left side... it's scary because it looks like you
-        // have no choice" - a disabled, near-invisible − was exactly the wrong moment to hide
-        // an escape route). While pending, − cancels the removal and goes straight back to
-        // showing ③ - a deliberate "never mind", not one more demotion.
+        // have no choice" - a disabled, near-invisible button was exactly the wrong moment to
+        // hide an escape route). While pending, ↓ cancels the removal and goes straight back
+        // to showing C - a deliberate "never mind", not one more demotion.
+        // Arrows, not +/− (the owner, 2026-09-27: "instead of the plus we can use the arrow...
+        // it's obvious... B is above A" - up/down reads as "which way in the list" in a way a
+        // bare + never did, and it already matches these buttons' own class names).
         var dnDisabled = !pendingN && tierN <= 1;
         var dnTitle = pendingN ? 'Keep it — cancel removing it'
-                    : tierN <= 1 ? 'Already at the top tier' : ('Move to ' + KAR_TIER_ICON[tierN - 1]);
-        // Badge itself: a plain glyph for ☆/✕, but for tiers ①②③ draw the ring ourselves
-        // (thin border, digit inside) instead of the Unicode circled-digit character — that
+                    : tierN <= 1 ? 'Already at the bottom tier' : ('Move down to ' + KAR_TIER_LETTER[tierN - 1]);
+        // Badge itself: a plain glyph for ☆/✕, but for tiers A/B/C draw the ring ourselves
+        // (thin border, letter inside) instead of the Unicode circled-digit character — that
         // glyph is one solid shape per font, so font-weight can't thin the ring without also
         // thinning the digit (the owner, 2026-09-27: "the circle... too bold... the number is
         // okay that way... make the circle not bold").
         var starBadge = (!pendingN && tierN > 0)
           ? '<span style="flex:0 0 auto;width:32px;text-align:center;display:inline-flex;align-items:center;justify-content:center">'
-            + '<span style="display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:50%;border:1px solid ' + starColor + ';font-size:14px;font-weight:400;line-height:1;color:' + starColor + '">' + tierN + '</span></span>'
+            + '<span style="display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:50%;border:1px solid ' + starColor + ';font-size:14px;font-weight:400;line-height:1;color:' + starColor + '">' + KAR_TIER_LETTER[tierN] + '</span></span>'
           : '<span style="flex:0 0 auto;width:32px;text-align:center;font-size:27px;font-weight:400;line-height:1;color:' + starColor + '">' + starIcon + '</span>';
         var star = '<span class="kar-tiergrp" style="flex:0 0 auto;width:84px;display:inline-flex;align-items:center;justify-content:center;gap:1px">'
           + '<button type="button" class="kar-tier-dn" data-i="' + i + '" title="' + dnTitle + '"' + (dnDisabled ? ' disabled' : '')
-          + ' style="flex:0 0 auto;width:20px;height:20px;font-size:15px;font-weight:700;line-height:1;background:transparent;border:0;font-family:inherit;padding:0;'
-          + (dnDisabled ? 'color:#3a4353;cursor:default' : 'color:#94a3b8;cursor:pointer') + '">−</button>'
+          + ' style="flex:0 0 auto;width:20px;height:20px;font-size:14px;font-weight:700;line-height:1;background:transparent;border:0;font-family:inherit;padding:0;'
+          + (dnDisabled ? 'color:#3a4353;cursor:default' : 'color:#94a3b8;cursor:pointer') + '">↓</button>'
           + starBadge
           + '<button type="button" class="kar-tier-up" data-i="' + i + '" title="' + upTitle + '" '
-          + 'style="flex:0 0 auto;width:20px;height:20px;font-size:15px;font-weight:700;line-height:1;background:transparent;border:0;color:#94a3b8;cursor:pointer;font-family:inherit;padding:0">+</button>'
+          + 'style="flex:0 0 auto;width:20px;height:20px;font-size:14px;font-weight:700;line-height:1;background:transparent;border:0;color:#94a3b8;cursor:pointer;font-family:inherit;padding:0">↑</button>'
           + '</span>';
         var ovr = Object.prototype.hasOwnProperty.call(KAR_PITCH, full);
         var eff = ovr ? KAR_PITCH[full] : karFnPitch(full);
