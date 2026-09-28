@@ -534,6 +534,12 @@ if (!$KAR_LOCAL) {
         <button type="button" class="kar-chip kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show list A songs">A <span id="kar-tier-cnt-1" class="kar-cnt">0</span></button>
         <button type="button" class="kar-chip kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show list B songs">B <span id="kar-tier-cnt-2" class="kar-cnt">0</span></button>
         <button type="button" class="kar-chip kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show list C songs">C <span id="kar-tier-cnt-3" class="kar-cnt">0</span></button>
+        <!-- Clear the whole list currently shown (the owner, 2026-09-27: "270 songs in this C,
+             that's unmanageable... remove them from my list... I don't mean delete the songs")
+             - bulk-empties whichever of A/B/C the Show: chips are on right now. Song files are
+             never touched; this only removes the Best-list rows, with the same snapshot-before-
+             delete safety as removing a whole person already has. -->
+        <button type="button" onclick="karTierClearAll()" title="Remove every song from the list currently shown (A, B or C) — song files are never touched, only taken off this list" style="font-family:inherit;background:none;border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:11.5px;font-weight:700;padding:0 10px;height:30px;border-radius:8px;margin-left:4px">🗑 Clear list</button>
       </div>
       <!-- ⚠ flex-basis, NOT min-width, decides where a flex row breaks a line. With a 320px
            basis the row wrapped at 1440px even though the field could legally shrink to 255 —
@@ -1376,6 +1382,30 @@ if (!$KAR_LOCAL) {
         karRender();
         listEl.scrollTop = st;
       }).catch(function(){ alert('Network error — the change was not saved.'); });
+    }
+    // Bulk-empty the list currently shown (the owner, 2026-09-27: "270 songs in this C, that's
+    // unmanageable... remove them from my list... I don't mean delete the songs, remove them
+    // from my C list"). Acts on whichever tier the "Show:" chips are on right now, since that
+    // is what he is actually looking at when he asks to clear it.
+    function karTierClearAll(){
+      var t = 1;
+      for (var tt = 1; tt <= 3; tt++) { if (karTierFilter[tt]) { t = tt; break; } }
+      var letter = ['', 'A', 'B', 'C'][t];
+      var pairs = KAR_BEST_BY[karWho] || [];
+      var cnt = 0;
+      for (var p = 0; p < pairs.length; p++) if (pairs[p][1] === t) cnt++;
+      if (cnt === 0) { alert('List ' + letter + ' is already empty for ' + karWho + '.'); return; }
+      if (!confirm('Remove all ' + cnt + ' of ' + karWho + '’s list ' + letter + ' songs from the list?\n\nThe song files are NOT touched — this only takes them off list ' + letter + '. They can be added back one at a time from Song Database or New Songs.')) return;
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_best_clear_tier');
+      fd.append('person', karWho);
+      fd.append('tier', String(t));
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) { alert('Not cleared. ' + karWhyFail(d.error)); return; }
+        KAR_BEST_BY[karWho] = pairs.filter(function(pair){ return pair[1] !== t; });
+        karRebuildBest();
+        karRender();
+      }).catch(function(){ alert('Network error — nothing was cleared.'); });
     }
     function karPaintTierFilter(){
       document.querySelectorAll('.kar-tier-chip').forEach(function(b){

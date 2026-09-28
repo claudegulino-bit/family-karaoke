@@ -250,6 +250,27 @@ try {
         kj(['ok'=>true, 'error'=>'', 'tier'=>$tier]);
     }
 
+    case 'karaoke_best_clear_tier': {
+        // Bulk-empty one tier of one singer's list (the owner, 2026-09-27: "270 songs in this
+        // C, that's unmanageable... remove them from my list... I don't mean delete the
+        // songs" - takes them off the Best list only; the song files themselves are untouched.
+        // Same recoverability + sync-removal pattern as karaoke_best_remove_person below, just
+        // scoped to one tier instead of the whole person.
+        $person = trim((string)($_POST['person'] ?? ''));
+        $tier   = max(1, min(3, (int)($_POST['tier'] ?? 0)));
+        if ($person === '' || mb_strlen($person) > 40 || strpbrk($person, '/\\') !== false) kj(['ok'=>false,'error'=>'bad person name']);
+        $st = $db->prepare('SELECT filename FROM karaoke_best WHERE person = ? AND tier = ? ORDER BY filename');
+        $st->execute([$person, $tier]);
+        $songs = $st->fetchAll(PDO::FETCH_COLUMN);
+        if ($songs) {
+            kar_log('delete', 'Best list tier ' . $tier . ' cleared: ' . $person . ' (' . count($songs) . ') ' . json_encode($songs, JSON_UNESCAPED_UNICODE));
+            $db->prepare('DELETE FROM karaoke_best WHERE person = ? AND tier = ?')->execute([$person, $tier]);
+            foreach ($songs as $s) { kar_sync_record_removal($db, 'best', $person, $s); }
+            try { kar_sync($db, true); } catch (Throwable $e) { }
+        }
+        kj(['ok'=>true, 'error'=>'', 'removed'=>count($songs)]);
+    }
+
     case 'karaoke_best_remove_person': {
         $person = trim((string)($_POST['person'] ?? ''));
         if ($person === '' || mb_strlen($person) > 40 || strpbrk($person, '/\\') !== false) kj(['ok'=>false,'error'=>'bad person name']);
