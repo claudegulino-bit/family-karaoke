@@ -484,6 +484,10 @@ if (!$KAR_LOCAL) {
   $_kjWho     = kar_best_default($_kjBestBy, $pdo);   // whose list opens first — never a hardcoded name
   // Stored working pitches (the editable pitch box) — override the filename pitch on ▶ plays.
   $_kjPitch = $pdo ? kar_pitch_map($pdo) : [];
+  // Per-singer pitch overrides (the owner, 2026-09-28): each singer's OWN saved pitch, on top of
+  // the shared default above — only meaningful on a singer's own list, never on Song Database
+  // or New Songs, which have no singer to personalize for.
+  $_kjPitchBy = $pdo ? kar_pitch_map_by_singer($pdo) : [];
   // 🆕 New — everything downloaded in the last 30 days, newest first (the owner, 2026-09-07:
   // "you don't remember what you downloaded last night... a temporary place, a simple click"),
   // each with the duplicate finding made at download time so the review list can still flag
@@ -1186,6 +1190,10 @@ if (!$KAR_LOCAL) {
     // Per-person Best lists — editable via the ⭐ on each row; person picked in the dropdown.
     var KAR_BEST_BY = <?= json_encode((object)$_kjBestBy, JSON_UNESCAPED_UNICODE) ?>;
     var KAR_PITCH = <?= json_encode((object)$_kjPitch, JSON_UNESCAPED_UNICODE) ?>;
+    // Per-singer pitch overrides, nested by person (2026-09-28) - only consulted while a
+    // specific singer's own list (karView === 'best') is showing; Song Database and New Songs
+    // always use the shared KAR_PITCH above, since there is no singer there to personalize for.
+    var KAR_PITCH_BY = <?= json_encode((object)$_kjPitchBy, JSON_UNESCAPED_UNICODE) ?>;
     // Songs the download-time check thought you might already own → shown in 🆕 New only.
     var KAR_DUP = <?= json_encode((object)$_kjDup, JSON_UNESCAPED_UNICODE) ?>;
     var karWho = <?= json_encode($_kjWho) ?>;
@@ -1294,6 +1302,22 @@ if (!$KAR_LOCAL) {
       return m ? parseInt(m[1], 10) : null;
     }
     var karView = 'db';
+    // Personal pitch resolution (the owner, 2026-09-28: "can the pitch be associated with a
+    // singer only and not all of them" - different voices, different keys, same song). Only
+    // a singer's OWN list (karView === 'best') ever looks at their personal override; Song
+    // Database and New Songs have no singer picked, so they always show the shared default -
+    // exactly the split the owner asked for: "global default pitch stays for the shared views."
+    function karPitchPersonalOn(){ return karView === 'best' && !!karWho; }
+    // Resolves to {val, personal:true} if this singer set their own pitch for this song, else
+    // {val, personal:false} if there's a shared override, else null (falls back to karFnPitch).
+    function karPitchOvr(song){
+      if (karPitchPersonalOn()) {
+        var m = KAR_PITCH_BY[karWho];
+        if (m && Object.prototype.hasOwnProperty.call(m, song)) return { val: m[song], personal: true };
+      }
+      if (Object.prototype.hasOwnProperty.call(KAR_PITCH, song)) return { val: KAR_PITCH[song], personal: false };
+      return null;
+    }
     // One place that empties the search box. render=true when the caller is not about to
     // re-render anyway (the ✕ Show all button); karSwitch passes false and renders itself.
     function karClearSearch(render){
@@ -1629,8 +1653,9 @@ if (!$KAR_LOCAL) {
           + '<button type="button" class="kar-tier-up" data-i="' + i + '" title="' + upTitle + '" '
           + 'style="flex:0 0 auto;width:20px;height:20px;font-size:14px;font-weight:700;line-height:1;background:transparent;border:0;color:#94a3b8;cursor:pointer;font-family:inherit;padding:0">↑</button>'
           + '</span>';
-        var ovr = Object.prototype.hasOwnProperty.call(KAR_PITCH, full);
-        var eff = ovr ? KAR_PITCH[full] : karFnPitch(full);
+        var pOvr = karPitchOvr(full);
+        var ovr = !!pOvr;
+        var eff = ovr ? pOvr.val : karFnPitch(full);
         if (eff === null) eff = 0;  // every song shows its real playing pitch — 0 by default
         var playing = (full === karNowPlaying);
         var pQm = playing && karNowPlayingPlayer === 'qmidi';
@@ -2042,12 +2067,13 @@ if (!$KAR_LOCAL) {
       });
     }
     function karSavedPitch(song){
-      if (Object.prototype.hasOwnProperty.call(KAR_PITCH, song)) return KAR_PITCH[song];
+      var o = karPitchOvr(song);
+      if (o) return o.val;
       var fp = karFnPitch(song);
       return fp === null ? 0 : fp;
     }
     function karStylePitchBox(inp, song){
-      var ovr = Object.prototype.hasOwnProperty.call(KAR_PITCH, song);
+      var ovr = !!karPitchOvr(song);
       var grp = inp.closest ? inp.closest('.kar-pgrp') : inp.parentElement;
       if (grp) { grp.classList.remove('is-temp'); grp.classList.toggle('is-saved', ovr); }
       inp.style.color = ovr ? '#D2AD6C' : '#94a3b8';
@@ -2393,24 +2419,29 @@ if (!$KAR_LOCAL) {
         alert('Pitch must be a whole number between -12 and +12.');
         return;
       }
+      // A singer's own list saves to THEIR pitch, on top of the shared default; Song Database
+      // and New Songs (no singer picked) still save the shared default itself, exactly as
+      // before (the owner, 2026-09-28: "global default pitch stays for the shared views").
+      var personal = karPitchPersonalOn();
       var fd = new FormData();
       fd.append('form_type', 'karaoke_set_pitch');
       fd.append('song', song);
       fd.append('pitch', val);
+      if (personal) fd.append('person', karWho);
       inp.disabled = true;
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         inp.disabled = false;
         if (!d.ok) { alert('The pitch was NOT saved. ' + karWhyFail(d.error)); return; }
+        var store = personal ? (KAR_PITCH_BY[karWho] || (KAR_PITCH_BY[karWho] = {})) : KAR_PITCH;
         if (val === '' || !d.stored) {
-          // cleared, or the typed value equals the song's own default — no override kept, box stays grey
-          delete KAR_PITCH[song];
-          if (val === '') {
-            var fp = karFnPitch(song);
-            inp.value = (fp === null ? 0 : fp);
-          }
+          // cleared, or the typed value equals whatever it would fall back to anyway - no
+          // override kept at this level, box drops to the next layer down (still resolved
+          // through karPitchOvr, so a personal clear can land back on a SHARED override).
+          delete store[song];
+          if (val === '') inp.value = karSavedPitch(song);
           karStylePitchBox(inp, song);
         } else {
-          KAR_PITCH[song] = parseInt(val, 10);
+          store[song] = parseInt(val, 10);
           karStylePitchBox(inp, song);
         }
       }).catch(function(){ inp.disabled = false; alert('Network error — the pitch was NOT saved.'); });

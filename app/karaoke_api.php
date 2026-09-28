@@ -35,8 +35,16 @@ $db = kar_db();
 
 function kj($a) { echo json_encode($a, JSON_UNESCAPED_UNICODE); exit; }
 
-/** The pitch a request should actually play at: one-time value → stored → filename → 0. */
-function kar_effective_pitch(PDO $db, string $song): int {
+/** The pitch a request should actually play at: one-time value → this singer's own saved
+ *  pitch (if $person is given) → the shared stored pitch → filename → 0 (2026-09-28: "can
+ *  the pitch be associated with a singer only and not all of them"). */
+function kar_effective_pitch(PDO $db, string $song, string $person = ''): int {
+    if ($person !== '') {
+        $st = $db->prepare('SELECT pitch FROM karaoke_pitches_singer WHERE person = ? AND filename = ?');
+        $st->execute([$person, $song]);
+        $p = $st->fetchColumn();
+        if ($p !== false) return (int)$p;
+    }
     $st = $db->prepare('SELECT pitch FROM karaoke_pitches WHERE filename = ?');
     $st->execute([$song]);
     $p = $st->fetchColumn();
@@ -198,30 +206,50 @@ try {
 
     // ---------------------------------------------------------------- pitches
     case 'karaoke_set_pitch': {
-        $song = trim((string)($_POST['song'] ?? ''));
-        $raw  = trim((string)($_POST['pitch'] ?? ''));
+        $song   = trim((string)($_POST['song'] ?? ''));
+        $raw    = trim((string)($_POST['pitch'] ?? ''));
+        // A singer, if given, saves to THEIR OWN pitch instead of the shared one (the owner,
+        // 2026-09-28: "can the pitch be associated with a singer only and not all of them").
+        // Only the singer's own list ever sends this; Song Database/New Songs never do, so
+        // they keep touching the shared table exactly as before.
+        $person = trim((string)($_POST['person'] ?? ''));
+        if ($person !== '' && (mb_strlen($person) > 40 || strpbrk($person, '/\\') !== false)) {
+            kj(['ok'=>false,'error'=>'bad person name']);
+        }
         if (!kar_ok_name($song) || !kar_known($song)) kj(['ok'=>false,'error'=>'unknown song']);
+        // The baseline this value is being compared against: this singer's personal save is
+        // only "an override" if it differs from what they'd see anyway — the shared pitch if
+        // one is set, else the filename's own pitch. Not zero: pretending zero is universal
+        // has burned this feature before (0 is a real, common intentional key).
+        $default = $person !== '' ? kar_effective_pitch($db, $song) : (kar_filename_pitch($song) ?? 0);
+        $table = $person !== '' ? 'karaoke_pitches_singer' : 'karaoke_pitches';
+        $where = $person !== '' ? 'person = ? AND filename = ?' : 'filename = ?';
+        $args  = $person !== '' ? [$person, $song] : [$song];
         if ($raw === '') {
-            $db->prepare('DELETE FROM karaoke_pitches WHERE filename = ?')->execute([$song]);
-            kar_sync_record_removal($db, 'pitch', $song);
+            $db->prepare("DELETE FROM $table WHERE $where")->execute($args);
+            kar_sync_record_removal($db, $person !== '' ? 'pitch_singer' : 'pitch', $person !== '' ? $person : $song, $person !== '' ? $song : '');
             try { kar_sync($db, true); } catch (Throwable $e) { }
             kj(['ok'=>true, 'error'=>'', 'stored'=>false]);
         }
         if (!preg_match('/^[+-]?\d{1,2}$/', $raw) || (int)$raw < -12 || (int)$raw > 12) {
             kj(['ok'=>false, 'error'=>'pitch must be a whole number from -12 to +12']);
         }
-        // A value equal to the song's own default is not an override — store nothing, so
-        // the gold border never appears on a number that changes nothing.
-        $default = kar_filename_pitch($song) ?? 0;
+        // A value equal to what this singer would see anyway is not an override — store
+        // nothing, so the gold border never appears on a number that changes nothing.
         if ((int)$raw === $default) {
-            $db->prepare('DELETE FROM karaoke_pitches WHERE filename = ?')->execute([$song]);
-            kar_sync_record_removal($db, 'pitch', $song);
+            $db->prepare("DELETE FROM $table WHERE $where")->execute($args);
+            kar_sync_record_removal($db, $person !== '' ? 'pitch_singer' : 'pitch', $person !== '' ? $person : $song, $person !== '' ? $song : '');
             try { kar_sync($db, true); } catch (Throwable $e) { }
             kj(['ok'=>true, 'error'=>'', 'stored'=>false]);
         }
-        $db->prepare("INSERT INTO karaoke_pitches (filename, pitch, updated_at) VALUES (?,?,datetime('now','localtime'))
-                      ON CONFLICT(filename) DO UPDATE SET pitch = excluded.pitch, updated_at = excluded.updated_at")->execute([$song, (int)$raw]);
-        $db->prepare('DELETE FROM karaoke_removals WHERE kind=? AND k1=? AND k2=?')->execute(['pitch', $song, '']);
+        if ($person !== '') {
+            $db->prepare("INSERT INTO karaoke_pitches_singer (person, filename, pitch, updated_at) VALUES (?,?,?,datetime('now','localtime'))
+                          ON CONFLICT(person, filename) DO UPDATE SET pitch = excluded.pitch, updated_at = excluded.updated_at")->execute([$person, $song, (int)$raw]);
+        } else {
+            $db->prepare("INSERT INTO karaoke_pitches (filename, pitch, updated_at) VALUES (?,?,datetime('now','localtime'))
+                          ON CONFLICT(filename) DO UPDATE SET pitch = excluded.pitch, updated_at = excluded.updated_at")->execute([$song, (int)$raw]);
+        }
+        $db->prepare('DELETE FROM karaoke_removals WHERE kind=? AND k1=? AND k2=?')->execute([$person !== '' ? 'pitch_singer' : 'pitch', $person !== '' ? $person : $song, $person !== '' ? $song : '']);
         try { kar_sync($db, true); } catch (Throwable $e) { }
         kj(['ok'=>true, 'error'=>'', 'stored'=>true]);
     }
@@ -442,6 +470,7 @@ try {
         // its place on someone's Best list, and its row under 🆕 New.
         foreach ([
             'UPDATE karaoke_pitches   SET filename = ? WHERE filename = ?',
+            'UPDATE karaoke_pitches_singer SET filename = ? WHERE filename = ?',
             'UPDATE karaoke_best      SET filename = ? WHERE filename = ?',
             'UPDATE karaoke_downloads SET filename = ? WHERE filename = ?',
             'UPDATE karaoke_sing_queue SET filename = ? WHERE filename = ?',
@@ -478,6 +507,7 @@ try {
         }
         if (!@rename($dir . '/' . $song, $target)) kj(['ok'=>false,'error'=>'the file could not be moved']);
         foreach (['DELETE FROM karaoke_pitches WHERE filename = ?',
+                  'DELETE FROM karaoke_pitches_singer WHERE filename = ?',
                   'DELETE FROM karaoke_best WHERE filename = ?'] as $sql) {
             try { $db->prepare($sql)->execute([$song]); } catch (Throwable $e) { }
         }
@@ -708,7 +738,7 @@ try {
         $st = $db->prepare('SELECT 1 FROM karaoke_best WHERE person = ? AND filename = ? LIMIT 1');
         $st->execute([$person, $file]);
         if (!$st->fetchColumn()) kj(['ok' => false, 'error' => "that song is not on this singer's list"]);
-        $pitch = kar_effective_pitch($db, $file);
+        $pitch = kar_effective_pitch($db, $file, $person);
         [$ok, $note] = kar_play($file, $pitch, $person);
         kj(['ok' => $ok, 'error' => $ok ? '' : $note]);
     }

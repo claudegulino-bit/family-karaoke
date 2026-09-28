@@ -177,6 +177,16 @@ const KAR_SCHEMA = [
         filename TEXT PRIMARY KEY,
         pitch    INTEGER NOT NULL,
         updated_at TEXT DEFAULT (datetime('now','localtime')))",
+    // Per-singer pitch overrides (the owner, 2026-09-28: "can the pitch be associated with a
+    // singer only and not all of them" - different voices, different keys, on the same song).
+    // karaoke_pitches above stays the shared default shown on Song Database/New Songs, where
+    // there is no singer to personalize for; this table only matters on a singer's own list.
+    "CREATE TABLE IF NOT EXISTS karaoke_pitches_singer (
+        person   TEXT NOT NULL,
+        filename TEXT NOT NULL,
+        pitch    INTEGER NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now','localtime')),
+        PRIMARY KEY (person, filename))",
     "CREATE TABLE IF NOT EXISTS karaoke_best (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         person   TEXT NOT NULL,
@@ -2353,6 +2363,19 @@ function kar_pitch_map(PDO $db): array {
     try {
         foreach ($db->query("SELECT filename, pitch FROM karaoke_pitches") as $r) {
             $out[$r['filename']] = (int)$r['pitch'];
+        }
+    } catch (Throwable $e) { $out = []; }
+    return $out;
+}
+
+/** Every singer's own pitch overrides, nested by person - same shape idea as kar_best_lists(),
+ *  loaded once at page load so switching singers needs no round trip (the owner, 2026-09-28:
+ *  "the pitch be associated with a singer only and not all of them"). */
+function kar_pitch_map_by_singer(PDO $db): array {
+    $out = [];
+    try {
+        foreach ($db->query("SELECT person, filename, pitch FROM karaoke_pitches_singer") as $r) {
+            $out[$r['person']][$r['filename']] = (int)$r['pitch'];
         }
     } catch (Throwable $e) { $out = []; }
     return $out;
