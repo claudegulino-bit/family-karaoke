@@ -136,7 +136,6 @@ if (!$KAR_LOCAL) {
   .kar-sectgap { flex: 0 0 auto; width: 28px; }
   .kar-pgrp { display: inline-flex; align-items: center; flex: 0 0 auto; width: 84px;
     background: #121620; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
-  .kar-pgrp.is-saved { border-color: #D2AD6C; }
   .kar-pgrp.is-temp  { border-style: dashed; border-color: #60A5FA; }
   .kar-pstep { flex: 0 0 auto; width: 24px; height: 20px; font-size: 16px; font-weight: 700; line-height: 1;
     background: transparent; border: 0; color: #94a3b8; border-radius: 0; cursor: pointer;
@@ -1658,7 +1657,7 @@ if (!$KAR_LOCAL) {
         out.push('<div class="kar-row' + (playing ? ' kar-row-playing' : '') + '" style="display:flex;align-items:center;gap:12px;padding:4px 6px;border-top:1px solid #1e293b;border-radius:6px'
           + (playing ? ';background:rgba(210,173,108,.16)' : '') + '">'
           + '<span class="kar-sect kar-sect-a">'
-          + '<span class="kar-pgrp' + (ovr ? ' is-saved' : '') + '">'
+          + '<span class="kar-pgrp">'
           + '<button type="button" class="kar-pstep kar-pdn" data-i="' + i + '" title="' + (karPitchNeutral() ? 'Pitch DOWN one semitone — one-time, not saved' : 'Pitch DOWN one semitone — saves right away') + '">−</button>'
           + '<input type="number" class="kar-pitch" data-i="' + i + '" min="-12" max="12" step="1" value="' + (eff === null ? '' : eff) + '" '
           + 'title="' + (karPitchNeutral()
@@ -2063,7 +2062,10 @@ if (!$KAR_LOCAL) {
     function karStylePitchBox(inp, song){
       var ovr = !!karPitchOvr(song);
       var grp = inp.closest ? inp.closest('.kar-pgrp') : inp.parentElement;
-      if (grp) { grp.classList.remove('is-temp'); grp.classList.toggle('is-saved', ovr); }
+      // No border for "saved" (the owner, 2026-09-28: "let's drop the border" - the gold NUMBER
+      // already says it's saved; only the dashed temp border, for a one-time neutral-view
+      // change, still carries information the number alone doesn't).
+      if (grp) grp.classList.remove('is-temp');
       inp.style.color = ovr ? '#D2AD6C' : '#94a3b8';
     }
     // Delete confirmation: a small popover NEXT TO the clicked ✕, at the same level —
