@@ -531,12 +531,15 @@ if (!$KAR_LOCAL) {
         <button type="button" class="kar-chip kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show list A songs">A <span id="kar-tier-cnt-1" class="kar-cnt">0</span></button>
         <button type="button" class="kar-chip kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show list B songs">B <span id="kar-tier-cnt-2" class="kar-cnt">0</span></button>
         <button type="button" class="kar-chip kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show list C songs">C <span id="kar-tier-cnt-3" class="kar-cnt">0</span></button>
-        <!-- Clear the whole list currently shown (the owner, 2026-09-27: "270 songs in this C,
-             that's unmanageable... remove them from my list... I don't mean delete the songs")
-             - bulk-empties whichever of A/B/C the Show: chips are on right now. Song files are
-             never touched; this only removes the Best-list rows, with the same snapshot-before-
-             delete safety as removing a whole person already has. -->
-        <button type="button" onclick="karTierClearAll()" title="Remove every song from the list currently shown (A, B or C) — song files are never touched, only taken off this list" style="font-family:inherit;background:none;border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:11.5px;font-weight:700;padding:0 10px;height:30px;border-radius:8px;margin-left:4px">🗑 Clear list</button>
+        <!-- Clear a whole list (the owner, 2026-09-27: "270 songs in this C, that's
+             unmanageable... remove them from my list... I don't mean delete the songs"). Does
+             NOT act on whichever of A/B/C the Show: chips happen to be on (the owner, 2026-09-28:
+             "a little dangerous... whatever number is selected at the time will disappear") -
+             clicking it opens a popover asking WHICH list, by name, with its real count, so the
+             choice is always deliberate and never inherited from the filter's current state.
+             Song files are never touched; this only removes the Best-list rows, with the same
+             snapshot-before-delete safety as removing a whole person already has. -->
+        <button type="button" class="kar-tierclear-btn" onclick="karTierClearShow(this)" title="Choose a list (A, B or C) to empty — song files are never touched, only taken off that list" style="font-family:inherit;background:none;border:1px solid #7f1d1d;color:#f87171;cursor:pointer;font-size:11.5px;font-weight:700;padding:0 10px;height:30px;border-radius:8px;margin-left:4px">🗑 Clear list</button>
       </div>
       <!-- ⚠ flex-basis, NOT min-width, decides where a flex row breaks a line. With a 320px
            basis the row wrapped at 1440px even though the field could legally shrink to 255 —
@@ -1133,6 +1136,20 @@ if (!$KAR_LOCAL) {
         <button type="button" onclick="karDelDo()" id="kar-del-yes" style="font-family:inherit;background:#7f1d1d;border:1px solid #ef4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 14px;border-radius:8px">✕ Remove</button>
       </div>
     </div>
+    <!-- Which list to clear — a deliberate choice every time (the owner, 2026-09-28: never inherit
+         it from whatever the Show: chips happen to be on). Counts are filled in live so the
+         choice is informed, not a guess. -->
+    <div id="kar-tierclear-pop" style="display:none;position:fixed;z-index:60;background:#1c2331;border:1px solid #7f1d1d;border-radius:10px;padding:12px 14px;max-width:280px;box-shadow:0 6px 24px rgba(0,0,0,.65)">
+      <div style="color:#f87171;font-size:12px;font-weight:700;margin-bottom:8px">Clear which list?</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
+        <button type="button" onclick="karTierClearPick(1)" style="font-family:inherit;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 10px;border-radius:8px;text-align:left">List A — <span id="kar-tierclear-n1">0</span> songs</button>
+        <button type="button" onclick="karTierClearPick(2)" style="font-family:inherit;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 10px;border-radius:8px;text-align:left">List B — <span id="kar-tierclear-n2">0</span> songs</button>
+        <button type="button" onclick="karTierClearPick(3)" style="font-family:inherit;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 10px;border-radius:8px;text-align:left">List C — <span id="kar-tierclear-n3">0</span> songs</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end">
+        <button type="button" onclick="karTierClearHide()" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:6px 14px;border-radius:8px">Cancel</button>
+      </div>
+    </div>
     <div id="kar-songs-area">
     <div id="kar-count" style="margin-top:10px;color:#64748b;font-size:11.5px"></div>
     <!-- Two group headings over the row: the left half is about setting a song up, the right half
@@ -1402,13 +1419,40 @@ if (!$KAR_LOCAL) {
         listEl.scrollTop = st;
       }).catch(function(){ alert('Network error — the change was not saved.'); });
     }
-    // Bulk-empty the list currently shown (the owner, 2026-09-27: "270 songs in this C, that's
-    // unmanageable... remove them from my list... I don't mean delete the songs, remove them
-    // from my C list"). Acts on whichever tier the "Show:" chips are on right now, since that
-    // is what he is actually looking at when he asks to clear it.
-    function karTierClearAll(){
-      var t = 1;
-      for (var tt = 1; tt <= 3; tt++) { if (karTierFilter[tt]) { t = tt; break; } }
+    // Bulk-empty a list (the owner, 2026-09-27: "270 songs in this C, that's unmanageable...
+    // remove them from my list... I don't mean delete the songs, remove them from my C list").
+    // Deliberately does NOT act on whichever tier the "Show:" chips happen to be on (the owner,
+    // 2026-09-28: "a little dangerous... whatever number is selected at the time will
+    // disappear") — clicking 🗑 opens a popover naming all three lists with their real counts,
+    // so which one gets cleared is always an explicit choice, never inherited from filter state.
+    function karTierClearShow(btn){
+      var pairs = KAR_BEST_BY[karWho] || [];
+      var cnt = { 1: 0, 2: 0, 3: 0 };
+      for (var p = 0; p < pairs.length; p++) if (cnt[pairs[p][1]] !== undefined) cnt[pairs[p][1]]++;
+      [1, 2, 3].forEach(function(t){ document.getElementById('kar-tierclear-n' + t).textContent = cnt[t]; });
+      var pop = document.getElementById('kar-tierclear-pop');
+      pop.style.display = 'block';
+      var r = btn.getBoundingClientRect();
+      var pw = pop.offsetWidth, ph = pop.offsetHeight;
+      var left = Math.min(r.left, window.innerWidth - pw - 8);
+      if (left < 8) left = 8;
+      var top = r.bottom + 8;
+      if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 8);
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+    }
+    function karTierClearHide(){
+      document.getElementById('kar-tierclear-pop').style.display = 'none';
+    }
+    document.addEventListener('click', function(ev){
+      var pop = document.getElementById('kar-tierclear-pop');
+      if (pop.style.display === 'none') return;
+      if (pop.contains(ev.target)) return;
+      if (ev.target.closest && ev.target.closest('.kar-tierclear-btn')) return;
+      karTierClearHide();
+    });
+    function karTierClearPick(t){
+      karTierClearHide();
       var letter = ['', 'A', 'B', 'C'][t];
       var pairs = KAR_BEST_BY[karWho] || [];
       var cnt = 0;
