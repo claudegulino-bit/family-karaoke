@@ -1352,14 +1352,6 @@ if (!$KAR_LOCAL) {
         } else if (ix !== -1) {
           a.splice(ix, 1);
         }
-        if (nextTier > 0 && !karTierFilter[nextTier]) {
-          // Single-select, same as the chips themselves - reveal ONLY the tier just set,
-          // not add it alongside whatever was already showing.
-          karTierFilter = { 1: false, 2: false, 3: false };
-          karTierFilter[nextTier] = true;
-          try { localStorage.setItem('kar_tier_filter', JSON.stringify(karTierFilter)); } catch(e){}
-          karPaintTierFilter();
-        }
         karRebuildBest();
         var listEl = document.getElementById('kar-list');
         var st = listEl.scrollTop;
