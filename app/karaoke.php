@@ -1553,11 +1553,20 @@ if (!$KAR_LOCAL) {
         var dnDisabled = !pendingN && tierN <= 1;
         var dnTitle = pendingN ? 'Keep it — cancel removing it'
                     : tierN <= 1 ? 'Already at the top tier' : ('Move to ' + KAR_TIER_ICON[tierN - 1]);
+        // Badge itself: a plain glyph for ☆/✕, but for tiers ①②③ draw the ring ourselves
+        // (thin border, digit inside) instead of the Unicode circled-digit character — that
+        // glyph is one solid shape per font, so font-weight can't thin the ring without also
+        // thinning the digit (the owner, 2026-09-27: "the circle... too bold... the number is
+        // okay that way... make the circle not bold").
+        var starBadge = (!pendingN && tierN > 0)
+          ? '<span style="flex:0 0 auto;width:32px;text-align:center;display:inline-flex;align-items:center;justify-content:center">'
+            + '<span style="display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:50%;border:1px solid ' + starColor + ';font-size:14px;font-weight:400;line-height:1;color:' + starColor + '">' + tierN + '</span></span>'
+          : '<span style="flex:0 0 auto;width:32px;text-align:center;font-size:27px;font-weight:400;line-height:1;color:' + starColor + '">' + starIcon + '</span>';
         var star = '<span class="kar-tiergrp" style="flex:0 0 auto;width:84px;display:inline-flex;align-items:center;justify-content:center;gap:1px">'
           + '<button type="button" class="kar-tier-dn" data-i="' + i + '" title="' + dnTitle + '"' + (dnDisabled ? ' disabled' : '')
           + ' style="flex:0 0 auto;width:20px;height:20px;font-size:15px;font-weight:700;line-height:1;background:transparent;border:0;font-family:inherit;padding:0;'
           + (dnDisabled ? 'color:#3a4353;cursor:default' : 'color:#94a3b8;cursor:pointer') + '">−</button>'
-          + '<span style="flex:0 0 auto;width:32px;text-align:center;font-size:27px;font-weight:400;line-height:1;color:' + starColor + '">' + starIcon + '</span>'
+          + starBadge
           + '<button type="button" class="kar-tier-up" data-i="' + i + '" title="' + upTitle + '" '
           + 'style="flex:0 0 auto;width:20px;height:20px;font-size:15px;font-weight:700;line-height:1;background:transparent;border:0;color:#94a3b8;cursor:pointer;font-family:inherit;padding:0">+</button>'
           + '</span>';
