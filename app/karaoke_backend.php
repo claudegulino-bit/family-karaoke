@@ -401,15 +401,6 @@ function kar_ok_name(string $n): bool {
     return true;
 }
 
-function kar_filename_pitch(string $name): ?int {
-    // (0) (-3) is the usual notation; [-2] [+1] appears on some older files. Parentheses win.
-    // Signed only inside brackets — a bare [2] probably means "version 2", and [C] [Am] in those
-    // same names are chord tags. Must stay in step with karFnPitch() in karaoke.php.
-    if (preg_match('/\(([+-]?\d{1,2})\)/', $name, $m)) return (int)$m[1];
-    if (preg_match('/\[([+-]\d{1,2})\]/', $name, $m))  return (int)$m[1];
-    return null;
-}
-
 // ---------------------------------------------------------------------------
 // The player — mpv, driven straight from PHP (no queue, no SSH, no watcher)
 // ---------------------------------------------------------------------------

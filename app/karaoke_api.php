@@ -36,8 +36,11 @@ $db = kar_db();
 function kj($a) { echo json_encode($a, JSON_UNESCAPED_UNICODE); exit; }
 
 /** The pitch a request should actually play at: one-time value → this singer's own saved
- *  pitch (if $person is given) → the shared stored pitch → filename → 0 (2026-09-28: "can
- *  the pitch be associated with a singer only and not all of them"). */
+ *  pitch (if $person is given) → the shared stored pitch → 0 (2026-09-28: "can the pitch be
+ *  associated with a singer only and not all of them"). The filename's own number is
+ *  deliberately never consulted (the owner, same day: "the pitch in the file name was only
+ *  something to remind me personally... do not use the file name pitch for anything" - it was
+ *  his own pre-Cantoria memory aid, not app logic). */
 function kar_effective_pitch(PDO $db, string $song, string $person = ''): int {
     if ($person !== '') {
         $st = $db->prepare('SELECT pitch FROM karaoke_pitches_singer WHERE person = ? AND filename = ?');
@@ -49,7 +52,7 @@ function kar_effective_pitch(PDO $db, string $song, string $person = ''): int {
     $st->execute([$song]);
     $p = $st->fetchColumn();
     if ($p !== false) return (int)$p;
-    return kar_filename_pitch($song) ?? 0;
+    return 0;
 }
 
 try {
@@ -219,9 +222,9 @@ try {
         if (!kar_ok_name($song) || !kar_known($song)) kj(['ok'=>false,'error'=>'unknown song']);
         // The baseline this value is being compared against: this singer's personal save is
         // only "an override" if it differs from what they'd see anyway — the shared pitch if
-        // one is set, else the filename's own pitch. Not zero: pretending zero is universal
-        // has burned this feature before (0 is a real, common intentional key).
-        $default = $person !== '' ? kar_effective_pitch($db, $song) : (kar_filename_pitch($song) ?? 0);
+        // one is set, else 0. The filename's own number is never consulted (the owner,
+        // 2026-09-28: "do not use the file name pitch for anything").
+        $default = $person !== '' ? kar_effective_pitch($db, $song) : 0;
         $table = $person !== '' ? 'karaoke_pitches_singer' : 'karaoke_pitches';
         $where = $person !== '' ? 'person = ? AND filename = ?' : 'filename = ?';
         $args  = $person !== '' ? [$person, $song] : [$song];

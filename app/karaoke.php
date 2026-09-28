@@ -1286,14 +1286,6 @@ if (!$KAR_LOCAL) {
       // which read as random). karSwitch re-renders, so no separate karRender needed.
       karSwitch('best', document.getElementById('kar-who'));
     }
-    // The pitch written into the file name. Two notations are in real use: (0) (-3) on most of
-    // the library, and [-2] [+1] on a couple of dozen older files. Parentheses win when both are
-    // present. Brackets are accepted ONLY when signed — a bare [2] is far more likely to mean
-    // "version 2" than a pitch, and [C] [Am] in those same names are chord tags, not numbers.
-    function karFnPitch(n){
-      var m = n.match(/\(([+-]?\d{1,2})\)/) || n.match(/\[([+-]\d{1,2})\]/);
-      return m ? parseInt(m[1], 10) : null;
-    }
     var karView = 'db';
     // Personal pitch resolution (the owner, 2026-09-28: "can the pitch be associated with a
     // singer only and not all of them" - different voices, different keys, same song). Only
@@ -1315,12 +1307,12 @@ if (!$KAR_LOCAL) {
       if (Object.prototype.hasOwnProperty.call(KAR_PITCH, song)) return { val: KAR_PITCH[song], personal: false };
       return null;
     }
-    // What the box falls back to with no override: 0 on Song Database/New Songs, else the
-    // filename's own number (or 0 if it has none).
+    // What the box falls back to with no override: always 0. The filename's own number is
+    // deliberately never consulted (the owner, 2026-09-28: "the pitch in the file name was only
+    // something to remind me personally... now that we have Cantoria... do not use the file
+    // name pitch for anything") - it was his own pre-Cantoria memory aid, not app logic.
     function karPitchBaseline(song){
-      if (karPitchNeutral()) return 0;
-      var fp = karFnPitch(song);
-      return fp === null ? 0 : fp;
+      return 0;
     }
     // One place that empties the search box. render=true when the caller is not about to
     // re-render anyway (the ✕ Show all button); karSwitch passes false and renders itself.
