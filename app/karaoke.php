@@ -377,6 +377,14 @@ if (!$KAR_LOCAL) {
     background:transparent; border:1px solid #334155; color:#64748b; }
   .kar-abc:hover { border-color:#6ee7b7; color:#a7f3d0; }
   .kar-abc.is-on { background:rgba(16,185,129,.18); border-color:#10B981; color:#6ee7b7; }
+  /* ✕ = off this singer's list. Dim and inert when the song isn't on it. */
+  .kar-off { flex:0 0 auto; width:48px; padding:0; background:none; border:none; font-family:inherit;
+    font-size:13px; text-align:center; color:#94a3b8; cursor:pointer; }
+  .kar-off:hover { color:#fbbf24; }
+  .kar-off.is-idle { color:#2b3445; cursor:default; }
+  .kar-delfile { flex:0 0 auto; font-family:inherit; font-size:11.5px; font-weight:700; white-space:nowrap;
+    padding:3px 9px; border-radius:6px; cursor:pointer; background:none; border:1px solid #7f1d1d; color:#f87171; }
+  .kar-delfile:hover { background:rgba(127,29,29,.35); }
   /* Singer box + list dropdown joined into one shape (2026-09-28): square the touching
      corners, drop the shared border, and cancel #kar-listbar's 7px gap between them. */
   #kar-who.kar-joined { border-top-right-radius:0; border-bottom-right-radius:0; }
@@ -776,7 +784,7 @@ if (!$KAR_LOCAL) {
             <li><b>⭐ Best lists</b> — one per person. The dropdown at the top is that list: its menu names every person with the number of songs they have, and selecting a name opens their list. <b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu.</li>
             <li><b>Adding to a list</b> — with the person selected, click <b>⭐</b> on a song's row to add it, and again to remove it. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
             <li><b>🆕 New Songs</b> — every song added in the last 30 days. The <b>Duplicate</b> column flags songs that appear to match one already in the library.</li>
-            <li><b>✎</b> renames a song. <b>✕</b> removes it: the file is moved to a Deleted folder, not destroyed, and can be restored.</li>
+            <li><b>Click a song’s name</b> to rename it. The same box has <b>🗑 Delete file</b>, which removes the song from Cantoria after asking: the file is moved to a Deleted folder, not destroyed, and can be restored. The <b>✕</b> beside A B C only takes a song off the selected singer’s list.</li>
             <li><b>Licensing.</b> These songs are for private use at home. For commercial use — a restaurant, a hall, a ticketed event — point Cantoria at a licensed song library. The songs folder is a setting — see <a href="#" onclick="karGuideOpen('setup');return false" style="color:#D2AD6C">Installing Cantoria</a>.</li>
           </ul>
         </div>
@@ -1128,12 +1136,12 @@ if (!$KAR_LOCAL) {
       </div>
     </div>
     <div id="kar-del-pop" style="display:none;position:fixed;z-index:60;background:#1c2331;border:1px solid #7f1d1d;border-radius:10px;padding:12px 14px;max-width:360px;box-shadow:0 6px 24px rgba(0,0,0,.65)">
-      <div style="color:#f87171;font-size:12px;font-weight:700;margin-bottom:4px">Remove this song?</div>
+      <div style="color:#f87171;font-size:12px;font-weight:700;margin-bottom:4px">Delete this song from Cantoria?</div>
       <div id="kar-del-song" style="color:#e2e8f0;font-size:12.5px;font-weight:600;margin-bottom:6px;word-break:break-word"></div>
-      <div style="color:#94a3b8;font-size:11.5px;margin-bottom:10px">The file is <b>moved</b> to the "09-Deleted by casAI" folder — not destroyed. You can get it back.</div>
+      <div style="color:#94a3b8;font-size:11.5px;margin-bottom:10px">It leaves the library and every singer’s list. The file is <b>moved</b> to the "09-Deleted by casAI" folder — not destroyed. You can get it back.</div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button type="button" onclick="karDelHide()" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:6px 14px;border-radius:8px">Cancel</button>
-        <button type="button" onclick="karDelDo()" id="kar-del-yes" style="font-family:inherit;background:#7f1d1d;border:1px solid #ef4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 14px;border-radius:8px">✕ Remove</button>
+        <button type="button" onclick="karDelDo()" id="kar-del-yes" style="font-family:inherit;background:#7f1d1d;border:1px solid #ef4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 14px;border-radius:8px">🗑 Delete file</button>
       </div>
     </div>
     <!-- Which list to clear — a deliberate choice every time (the owner, 2026-09-28: never inherit
@@ -1168,7 +1176,7 @@ if (!$KAR_LOCAL) {
       <span class="kar-sect kar-sect-a">
       <span style="flex:0 0 auto;width:84px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number. On Song Database and New Songs it always starts at 0 and is never saved — a one-time change for whatever gets played or queued next. On a singer's own list, it saves (gold = your saved pitch).">Pitch</span>
       <span style="flex:0 0 auto;width:84px;text-align:center" title="A / B / C = which of the selected singer's lists the song is on. Click a letter to put it there; click the lit one again to take it off.">Best<br>List</span>
-      <span id="kar-h-del" style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
+      <span id="kar-h-del" style="flex:0 0 auto;width:48px;text-align:center" title="✕ takes the song off the selected singer's list. The file itself is not touched — to delete a file, click the song's name and use 🗑 Delete file.">Off<br>list</span>
       </span>
       <span class="kar-sectgap"></span>
       <span class="kar-sect kar-sect-b">
@@ -1176,7 +1184,7 @@ if (!$KAR_LOCAL) {
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
       <span id="kar-h-seq" style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Seq<br>Number</span>
-      <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it. Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
+      <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it (or delete the file, with 🗑 in the same box). Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
       <span id="kar-h-chk" style="flex:0 0 auto;width:96px;display:none" title="Once you have checked a song, take it off this list. It stays in the song database — nothing is deleted.">Checked</span>
       </span>
@@ -1406,6 +1414,9 @@ if (!$KAR_LOCAL) {
       grp.querySelectorAll('.kar-abc').forEach(function(b){
         b.classList.toggle('is-on', parseInt(b.getAttribute('data-tier'), 10) === tier);
       });
+      var row = grp.closest ? grp.closest('.kar-row') : null;
+      var offB = row ? row.querySelector('.kar-off') : null;
+      if (offB) offB.classList.toggle('is-idle', !tier);
     }
     // Send the new tier (0 = off every list) and update the local copy. Only the clicked row's
     // buttons and the counts change - the list is never re-rendered or re-filtered here
@@ -1671,8 +1682,10 @@ if (!$KAR_LOCAL) {
           + '<button type="button" class="kar-pstep kar-pup" data-i="' + i + '" title="' + (karPitchNeutral() ? 'Pitch UP one semitone — one-time, not saved' : 'Pitch UP one semitone — saves right away') + '">+</button>'
           + '</span>'
           + star
-          + '<button type="button" class="kar-del" data-i="' + i + '" title="Remove this song from the database — the file is moved to the 09-Deleted by casAI folder (recoverable), not destroyed" '
-          + 'style="font-family:inherit;flex:0 0 auto;width:48px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:13px;padding:0;text-align:center">✕</button>'
+          // ✕ = take it off this singer's list (the owner, 2026-09-28: removing from a list is
+          // far more common than deleting a file, so the handy spot next to A/B/C does that).
+          // Deleting the file itself moved into the rename box - click the song's name.
+          + '<button type="button" class="kar-off' + ((KAR_BEST_SET[name] || 0) ? '' : ' is-idle') + '" data-i="' + i + '" title="Take off ' + karEsc(karWho) + '’s list">✕</button>'
           + '</span>'                                   // end SET UP
           + '<span class="kar-sectgap"></span>'
           + '<span class="kar-sect kar-sect-b">'       // begin SING
@@ -2101,7 +2114,7 @@ if (!$KAR_LOCAL) {
       var pop = document.getElementById('kar-del-pop');
       if (pop.style.display === 'none') return;
       if (pop.contains(ev.target)) return;
-      if (ev.target.closest && ev.target.closest('.kar-del')) return;
+      if (ev.target.closest && ev.target.closest('.kar-delfile')) return;
       karDelHide();
     });
     document.getElementById('kar-list').addEventListener('scroll', function(){
@@ -2121,10 +2134,10 @@ if (!$KAR_LOCAL) {
         var ixNw = KAR_DATA.new.indexOf(songD);
         if (ixNw !== -1) KAR_DATA.new.splice(ixNw, 1);
         Object.keys(KAR_BEST_BY).forEach(function(p){
-          var a = KAR_BEST_BY[p]; var ix = a.indexOf(songD);
-          if (ix !== -1) a.splice(ix, 1);
+          KAR_BEST_BY[p] = KAR_BEST_BY[p].filter(function(pair){ return pair[0] !== songD; });
         });
         delete KAR_PITCH[songD];
+        Object.keys(KAR_PITCH_BY).forEach(function(p){ delete KAR_PITCH_BY[p][songD]; });
         karRebuildBest();
         karChipCounts();
         karRender();
@@ -2202,11 +2215,13 @@ if (!$KAR_LOCAL) {
         karTierSend(songT, nameT, next, abc.parentElement);
         return;
       }
-      var dl = ev.target.closest ? ev.target.closest('.kar-del') : null;
-      if (dl) {
-        var songD = src[parseInt(dl.getAttribute('data-i'), 10)];
-        if (!songD) return;
-        karDelShow(dl, songD);
+      var off = ev.target.closest ? ev.target.closest('.kar-off') : null;
+      if (off) {
+        if (off.classList.contains('is-idle') || !karWho) return;   // not on this list - nothing to take off
+        var songO = src[parseInt(off.getAttribute('data-i'), 10)];
+        if (!songO) return;
+        var rowO = off.closest('.kar-row');
+        karTierSend(songO, songO.replace(/\.[a-z0-9]{2,4}$/i, ''), 0, rowO ? rowO.querySelector('.kar-abc-grp') : null);
         return;
       }
       // Rename by clicking the song's own name — it turns into a text box in place.
@@ -2225,7 +2240,25 @@ if (!$KAR_LOCAL) {
         box.style.cssText = 'width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #60A5FA;'
           + 'border-radius:6px;color:#e2e8f0;font-size:13px;font-family:inherit;padding:3px 7px';
         box.title = 'Enter to save · Esc to cancel. The extension (' + (ext || 'none') + ') is kept.';
-        nm.textContent = ''; nm.appendChild(box);
+        // Deleting the file lives here, not on the row (the owner, 2026-09-28: the row's ✕ now
+        // takes a song off a list; a rare, permanent-looking action belongs behind a click).
+        // mousedown is cancelled so the box keeps focus - otherwise its blur saves and closes
+        // the box, taking this button away before the click can land.
+        var delF = document.createElement('button');
+        delF.type = 'button'; delF.className = 'kar-delfile';
+        delF.textContent = '🗑 Delete file';
+        delF.title = 'Delete this song from Cantoria — the file moves to the 09-Deleted by casAI folder (recoverable) and it leaves every singer’s list. Asks first.';
+        delF.addEventListener('mousedown', function(e){ e.preventDefault(); });
+        delF.addEventListener('click', function(e){
+          e.stopPropagation();
+          karDelShow(delF, songR);   // position the confirm while the button is still on screen
+          finish(false);
+        });
+        var wrapR = document.createElement('span');
+        wrapR.style.cssText = 'display:flex;align-items:center;gap:6px';
+        box.style.flex = '1'; box.style.minWidth = '0';
+        wrapR.appendChild(box); wrapR.appendChild(delF);
+        nm.textContent = ''; nm.appendChild(wrapR);
         box.focus(); box.select();
         var settled = false;
         function finish(save) {
@@ -2245,13 +2278,19 @@ if (!$KAR_LOCAL) {
             if (ixDbR !== -1) KAR_DATA.db[ixDbR] = d.new_name;
             var ixNwR = KAR_DATA.new.indexOf(songR);
             if (ixNwR !== -1) KAR_DATA.new[ixNwR] = d.new_name;
+            // Lists hold [filename, tier] pairs - match on the filename, or the renamed song
+            // keeps its old name here and every A/B/C click on it fails as "unknown song".
             Object.keys(KAR_BEST_BY).forEach(function(p){
-              var a = KAR_BEST_BY[p]; var ix = a.indexOf(songR);
-              if (ix !== -1) a[ix] = d.new_name;
+              KAR_BEST_BY[p].forEach(function(pair){ if (pair[0] === songR) pair[0] = d.new_name; });
             });
             if (Object.prototype.hasOwnProperty.call(KAR_PITCH, songR)) {
               KAR_PITCH[d.new_name] = KAR_PITCH[songR]; delete KAR_PITCH[songR];
             }
+            Object.keys(KAR_PITCH_BY).forEach(function(p){
+              if (Object.prototype.hasOwnProperty.call(KAR_PITCH_BY[p], songR)) {
+                KAR_PITCH_BY[p][d.new_name] = KAR_PITCH_BY[p][songR]; delete KAR_PITCH_BY[p][songR];
+              }
+            });
             karRebuildBest();
             karRender();
           }).catch(function(){ nm.innerHTML = prevHtml; alert('Network error — the rename was not sent.'); });
