@@ -79,6 +79,11 @@ if ($job === 'announce') {
             $ap    = kar_mc_applause();
             $crowd = ($ap !== '' && kar_mc_applause_has_video($ap));
         }
+        // A singer's PHOTO on screen is a still picture with no soundtrack, so the applause that
+        // rides in the crowd video's audio is gone with it - it must be played on its own,
+        // underneath (the owner, 2026-09-29, Mike's Mac: "everything is working except that there
+        // is no applause" - every singer with a photo walked up in silence).
+        $still = $crowd && preg_match('/\.(jpe?g|png|gif|heic|webp)$/i', $ap);
 
         if (!empty($spec['baked'])) {
             // The PHOTO INTRO already holds the photo, the words, the applause and the voice.
@@ -116,7 +121,9 @@ if ($job === 'announce') {
         $mclog(sprintf('%s / %s%s — voice %s (%.1fs), applause %s',
             $singer, $title, ($artist !== '' ? ' / ' . $artist : ''),
             $voiceNote, $spent,
-            ($ap === '' ? 'NONE FOUND — silent walk-up' : ($crowd ? 'ON SCREEN: ' : 'sound only: ') . $ap)));
+            ($ap === '' ? 'NONE FOUND — silent walk-up'
+                : ($still ? 'photo on screen, applause as sound: ' . kar_mc_applause()
+                : ($crowd ? 'ON SCREEN: ' : 'sound only: ') . $ap))));
 
         // Time already spent building counts towards the reading pause, so a cached
         // announcement still gets its full beat and a slow one does not wait twice.
@@ -133,9 +140,10 @@ if ($job === 'announce') {
             return (int)($out[0] ?? 0);
         };
         $kill = function (int $pid) { if ($pid > 0) @exec('kill ' . $pid . ' >/dev/null 2>&1'); };
-        $loop = (!$crowd && $ap !== '') ? kar_mc_applause_loop() : '';
+        $sound = !$crowd || $still;                  // applause comes from a separate player
+        $loop = ($sound && ($still || $ap !== '')) ? kar_mc_applause_loop() : '';
 
-        $soft = $crowd ? 0 : $play($loop, 0.30);
+        $soft = $sound ? $play($loop, 0.30) : 0;
         if ($wav !== '') {
             @exec('afplay ' . escapeshellarg($wav) . ' >/dev/null 2>&1');   // blocks until spoken
         }
@@ -143,7 +151,7 @@ if ($job === 'announce') {
 
         // And now the room lets go, while they stand, cross the floor and take the microphone.
         if ($crowd) kar_mpv_send(['set_property', 'volume', 100]);
-        $loud = $crowd ? 0 : $play($loop, 1.0);
+        $loud = $sound ? $play($loop, 1.0) : 0;
         // An intro plays ONCE: the walk-up lasts as long as the intro has left, so the song
         // starts as it ends (never less than 3 s, never more than the usual walk-up).
         $walk = KAR_MC_WALK_UP;
