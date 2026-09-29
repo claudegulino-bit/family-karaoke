@@ -1241,7 +1241,8 @@ if (!$KAR_LOCAL) {
         var lbl = { 0: 'All', 1: 'A', 2: 'B', 3: 'C' };
         for (var oi = 0; oi < ts.options.length; oi++) {
           var tv = parseInt(ts.options[oi].value, 10);
-          ts.options[oi].textContent = lbl[tv] + ' – ' + tierCounts[tv];
+          // No spaces (the owner, 2026-09-28: "All:188, A64, B12, C31").
+          ts.options[oi].textContent = lbl[tv] + (tv === 0 ? ':' : '') + tierCounts[tv];
         }
       }
     }
