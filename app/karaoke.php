@@ -3864,11 +3864,16 @@ function karPickFolder(){
     </div>
     <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px">Photo — shown on screen with their name when they are called up to sing</label>
     <div style="display:flex;gap:14px;align-items:center;margin-bottom:8px">
-      <div id="kar-sw-prev" style="width:84px;height:84px;border-radius:10px;background:#111827 center/cover no-repeat;border:1px solid #3b4a63;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#475569;font-size:11px">no photo</div>
+      <!-- A photo can also be DROPPED here from Finder - no file window involved at all. -->
+      <div id="kar-sw-prev" title="Drop a photo here, or use Choose photo…" style="width:84px;height:84px;border-radius:10px;background:#111827 center/cover no-repeat;border:1px solid #3b4a63;flex:0 0 auto;display:flex;align-items:center;justify-content:center;text-align:center;color:#475569;font-size:11px">no photo<br>(drop one here)</div>
       <div style="display:flex;flex-direction:column;gap:7px;align-items:flex-start">
-        <button type="button" onclick="document.getElementById('kar-sw-file').click()" style="background:#2A384C;border:1px solid #86CAFA;color:#86CAFA;border-radius:8px;height:32px;padding:0 12px;cursor:pointer;font-size:13px">Choose photo…</button>
+        <!-- A <label> the browser opens by itself, not a script calling .click() on a hidden
+             input: the Mac mini NJ's browser silently ignored the scripted click (2026-09-28,
+             the same code opened the chooser elsewhere). The input is hidden by size and
+             opacity, NOT display:none, which some browsers also refuse to open. -->
+        <label for="kar-sw-file" style="display:inline-flex;align-items:center;background:#2A384C;border:1px solid #86CAFA;color:#86CAFA;border-radius:8px;height:32px;padding:0 12px;cursor:pointer;font-size:13px">Choose photo…</label>
         <button type="button" id="kar-sw-rm" onclick="karSingerRemovePhoto()" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:12.5px;padding:0">Remove photo</button>
-        <input id="kar-sw-file" type="file" accept="image/*" style="display:none" onchange="karSingerPicked(this)">
+        <input id="kar-sw-file" type="file" accept="image/*" onchange="karSingerPicked(this)" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden">
       </div>
     </div>
     <div id="kar-sw-status" style="font-size:12.5px;color:#94a3b8;min-height:18px;margin-bottom:14px"></div>
@@ -3906,6 +3911,8 @@ function karPickFolder(){
       document.querySelectorAll('input[name="kar-sw-var"]').forEach(function(r){ r.checked = (r.value === (d.variant||'')); });
       karSingerPreview(d.has_photo ? ((KAR_LOCAL ? '/karaoke_api.php?singer_photo=' : '/app.php?karaoke_singer_photo=') + encodeURIComponent(name) + '&v=' + (d.photo_v||'')) : '');
       var st = KAR_SW_WORDS[d.intro] || '';
+      // Without the announcer the photo is still shown live - never say "No photo yet" over one.
+      if (d.has_photo && d.intro === 'none') st = '✓ Photo on file — shown with their name when they are called up.';
       if (d.intro === 'failed' && d.intro_error) st += ' (' + d.intro_error + ')';
 
       document.getElementById('kar-sw-status').textContent = st;
@@ -3916,7 +3923,7 @@ function karPickFolder(){
   function karSingerPreview(url){
     var p = document.getElementById('kar-sw-prev');
     p.style.backgroundImage = url ? 'url("' + url + '")' : 'none';
-    p.textContent = url ? '' : 'no photo';
+    p.innerHTML = url ? '' : 'no photo<br>(drop one here)';
     document.getElementById('kar-sw-rm').style.display = url ? '' : 'none';
   }
   function karSingerPicked(inp){
@@ -3937,6 +3944,26 @@ function karPickFolder(){
     karSingerPreview(url);
     document.getElementById('kar-sw-status').textContent = 'Press Save to keep this photo.';
   }
+  // Drag a photo from Finder onto the square - skips the file window entirely.
+  (function(){
+    var zone = document.getElementById('kar-sw-prev');
+    if (!zone) return;
+    ['dragenter', 'dragover'].forEach(function(t){
+      zone.addEventListener(t, function(e){ e.preventDefault(); zone.style.borderColor = '#86CAFA'; });
+    });
+    zone.addEventListener('dragleave', function(){ zone.style.borderColor = '#3b4a63'; });
+    zone.addEventListener('drop', function(e){
+      e.preventDefault(); zone.style.borderColor = '#3b4a63';
+      var f = e.dataTransfer && e.dataTransfer.files;
+      if (f && f.length) karSingerPicked({files: f});
+    });
+    // A drop that misses the square must not make the browser open the photo instead of Cantoria.
+    ['dragover', 'drop'].forEach(function(t){
+      document.addEventListener(t, function(e){
+        if (document.getElementById('kar-singer-win').style.display === 'flex') e.preventDefault();
+      });
+    });
+  })();
   function karSingerRemovePhoto(){
     KAR_SW.file = null; KAR_SW.remove = true;
     document.getElementById('kar-sw-file').value = '';
@@ -3959,7 +3986,8 @@ function karPickFolder(){
       btn.disabled = false; btn.textContent = 'Save';
       if (!d.ok) { document.getElementById('kar-sw-status').textContent = '✕ ' + (d.error || 'Not saved.'); return; }
       KAR_SW.file = null; KAR_SW.remove = false;
-      document.getElementById('kar-sw-status').textContent = 'Saved. ' + (KAR_SW_WORDS[d.intro] || '');
+      document.getElementById('kar-sw-status').textContent = 'Saved. ' + ((d.has_photo && d.intro === 'none')
+        ? '✓ Photo on file — shown with their name when they are called up.' : (KAR_SW_WORDS[d.intro] || ''));
       document.getElementById('kar-sw-test').style.display = (!KAR_LOCAL && d.intro === 'ready') ? '' : 'none';
       karSingerBadges();
     }).catch(function(){ btn.disabled = false; btn.textContent = 'Save'; document.getElementById('kar-sw-status').textContent = 'Could not reach Cantoria — nothing was saved.'; });
