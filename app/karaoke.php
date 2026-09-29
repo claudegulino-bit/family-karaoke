@@ -369,7 +369,14 @@ if (!$KAR_LOCAL) {
                              font-size: 11px !important; }
   .kar-simple .kar-play    { width: 78px !important; font-size: 12.5px !important; padding: 3px 0 !important; }
   .kar-simple #kar-h-casai { width: 78px !important; font-size: 11px !important; }
-  .kar-simple .kar-star    { font-size: 22px !important; font-weight: 400 !important; }
+  /* Per-row A B C (2026-09-28): same 84px footprint the old ↓ ☆ ↑ stepper had. Unlit = quiet
+     outline; lit = the Play button's green. "Nice, not overwhelming" (the owner). */
+  .kar-abc-grp { flex:0 0 auto; width:84px; display:inline-flex; align-items:center; justify-content:center; gap:4px; }
+  .kar-abc { flex:0 0 auto; width:22px; height:22px; padding:0; font-family:inherit; font-size:11.5px;
+    font-weight:600; line-height:1; border-radius:6px; cursor:pointer;
+    background:transparent; border:1px solid #334155; color:#64748b; }
+  .kar-abc:hover { border-color:#6ee7b7; color:#a7f3d0; }
+  .kar-abc.is-on { background:rgba(16,185,129,.18); border-color:#10B981; color:#6ee7b7; }
   /* #kar-tierbar rebuilt 2026-09-28 as one compressed joined button (Show/A/B/C/Clear list),
      replacing the old separate .kar-chip-styled pills - see the HTML comment above the markup. */
   #kar-tierbar .kar-tb-label { color:#64748b; font-size:10.5px; font-weight:700; padding:0 7px;
@@ -533,6 +540,7 @@ if (!$KAR_LOCAL) {
       <div id="kar-tierbar" style="display:none;align-items:center;gap:6px">
         <span style="display:flex;align-items:stretch;height:26px;background:#121620;border:1px solid #475569;border-radius:7px;overflow:hidden">
           <span class="kar-tb-label">Show</span>
+          <button type="button" class="kar-tier-chip" data-tier="0" onclick="karTierFilterToggle(0)" title="Show every song on this singer's list">All <span id="kar-tier-cnt-0">0</span></button>
           <button type="button" class="kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show list A songs">A <span id="kar-tier-cnt-1">0</span></button>
           <button type="button" class="kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show list B songs">B <span id="kar-tier-cnt-2">0</span></button>
           <button type="button" class="kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show list C songs">C <span id="kar-tier-cnt-3">0</span></button>
@@ -748,7 +756,7 @@ if (!$KAR_LOCAL) {
             <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Best list renumbers it from 1.</li>
             <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> or a <b>double-click</b> switches full screen on and off; <b>Q</b> or the window's red <b>✕</b> closes the player.</li>
             <li><b>Pitch</b> — the key the song starts in. Use − and + to transpose by semitones. On <b>Song Database</b> and <b>New Songs</b> it always starts at 0 and is never saved — a one-time change for whatever gets played or queued next. On a <b>singer's own list</b>, it saves as that singer's own pitch for the song.</li>
-            <li><b>⭐</b> adds the song to the Best list of the person named in the dropdown; clicking it again removes it.</li>
+            <li><b>A B C</b> puts the song on list A, B or C of the person named in the dropdown; clicking the lit letter again takes it off. The list on screen does not move while you do this. <b>Show: All / A / B / C</b> at the top of a singer's list chooses which of their songs appear.</li>
           </ul>
         </div>
 
@@ -1164,18 +1172,18 @@ if (!$KAR_LOCAL) {
          about singing it. These are hand-aligned to the controls below, so the numbers must stay in
          step with them. Measured from the container's own left edge: the list box adds 1px of border
          and each row 6px of padding, so BOTH heading rows carry 7px of extra left padding (16+7=23)
-         to sit over the row. The SET UP label then spans its three controls — pitch 114 + star 48 +
-         delete 48 with 12px gaps = 234, inset 9px (the section band's 8px padding + 1px border) —
-         and the spacer runs to where the ＋ Add button starts. -->
+         to sit over the row. The SET UP label then spans its three controls — pitch 84 + A/B/C 84 +
+         delete 48 with the section's 10px gaps = 236, inset 9px (the section band's 8px padding +
+         1px border) — and the spacer runs to where the ＋ Add button starts. -->
     <div id="kar-bands" style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px 0 23px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
-      <span style="flex:0 0 auto;width:234px;margin-left:9px;text-align:center;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
+      <span style="flex:0 0 auto;width:236px;margin-left:9px;text-align:center;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
       <span style="flex:0 0 auto;width:70px"></span>
       <span style="flex:1;min-width:0;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Play and sing</span>
     </div>
     <div style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px 0 23px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
       <span class="kar-sect kar-sect-a">
       <span style="flex:0 0 auto;width:84px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number. On Song Database and New Songs it always starts at 0 and is never saved — a one-time change for whatever gets played or queued next. On a singer's own list, it saves (gold = your saved pitch).">Pitch</span>
-      <span style="flex:0 0 auto;width:48px;text-align:center" title="⭐ = on the selected person's Best list — click the star to add or remove the song for whoever is picked in the dropdown at the top">Best<br>List</span>
+      <span style="flex:0 0 auto;width:84px;text-align:center" title="A / B / C = which of the selected singer's lists the song is on. Click a letter to put it there; click the lit one again to take it off.">Best<br>List</span>
       <span id="kar-h-del" style="flex:0 0 auto;width:48px;text-align:center" title="✕ removes the song — the file is moved to the 09-Deleted by casAI folder (recoverable), never destroyed">Delete</span>
       </span>
       <span class="kar-sectgap"></span>
@@ -1224,6 +1232,13 @@ if (!$KAR_LOCAL) {
     function karRebuildBest(){
       var pairs = KAR_BEST_BY[karWho] || [];
       KAR_DATA.best = pairs.map(function(pair){ return pair[0]; });
+      karBestCounts();
+    }
+    // Everything that follows a tier change EXCEPT the row list itself: the lookup that lights
+    // A/B/C, the dropdown's count and the Show: counts. Kept apart from karRebuildBest so a
+    // click can refresh these without reshuffling KAR_DATA.best under the rows on screen.
+    function karBestCounts(){
+      var pairs = KAR_BEST_BY[karWho] || [];
       KAR_BEST_SET = {};
       pairs.forEach(function(pair){ KAR_BEST_SET[pair[0].replace(/\.[a-z0-9]{2,4}$/i,'')] = pair[1]; });
       // The dropdown IS the Best-of box now (the owner, 2026-09-13: "why do I need to click on
@@ -1232,14 +1247,12 @@ if (!$KAR_LOCAL) {
       var sel = document.getElementById('kar-who');
       if (sel) {
         var o = sel.querySelector('option[value="' + (karWho || '').replace(/"/g, '\\"') + '"]');
-        if (o) o.textContent = 'Singer: ' + karWho + ' - ' + KAR_DATA.best.length;
+        if (o) o.textContent = 'Singer: ' + karWho + ' - ' + pairs.length;
         if (sel.value !== karWho) sel.value = karWho;
       }
-      // Counts on the A/B/C "Show:" chips (2026-09-27) - how many of this singer's songs sit
-      // in each list, so the chip itself answers "how many" before you even click it.
-      var tierCounts = { 1: 0, 2: 0, 3: 0 };
+      var tierCounts = { 0: pairs.length, 1: 0, 2: 0, 3: 0 };
       pairs.forEach(function(pair){ if (tierCounts[pair[1]] !== undefined) tierCounts[pair[1]]++; });
-      [1, 2, 3].forEach(function(t){
+      [0, 1, 2, 3].forEach(function(t){
         var c = document.getElementById('kar-tier-cnt-' + t);
         if (c) c.textContent = tierCounts[t];
       });
@@ -1372,39 +1385,51 @@ if (!$KAR_LOCAL) {
       // Switching views starts fresh. the owner, 2026-09-10: a search left in the box quietly
       // filtered the next view too, so 🆕 New would come up empty and the reason was invisible.
       karClearSearch(false);
-      karPaintTierFilter();  // keep ①②③ honest every time the view (or singer) changes
+      karRebuildBest();      // pick up any A/B/C set from another view since the last render
+      karPaintTierFilter();
       karRender();
     }
     var karRenderedView = 'db';
     // Sorting the SONG FILENAME column. '' = the view's natural order (alphabetical for the
     // library, newest-first for 🆕 New), then A→Z, then Z→A, then back to natural.
     var karSort = '';
-    // Best-list tier filter (the owner, 2026-09-27): which tiers show in the Singer view.
-    // Defaults to ① only - opening small is the whole point, not everything at once.
-    // Remembered per browser, same as other view preferences on this page.
-    var karTierFilter = { 1: true, 2: false, 3: false };
+    // Singer-view tier filter: 0 = All, 1/2/3 = only A/B/C. Single-select. Defaults to All
+    // (the owner, 2026-09-28: "we need the ability to see all of them together and then... just
+    // the A, just the B and just the C"). Remembered per browser.
+    var karTierShow = 0;
     try {
-      var _tf = JSON.parse(localStorage.getItem('kar_tier_filter') || 'null');
-      if (_tf && typeof _tf === 'object') karTierFilter = _tf;
+      var _ts = parseInt(localStorage.getItem('kar_tier_show') || '0', 10);
+      if (_ts >= 0 && _ts <= 3) karTierShow = _ts;
     } catch(e){}
-    // Single-select, like the Song Database / New Songs / Singer chips elsewhere on this same
-    // header already are (the owner, 2026-09-27: "I want to select only the ones of the twos" -
-    // one click on ② should show only twos, not require turning ① off separately first).
     function karTierFilterToggle(t){
-      karTierFilter = { 1: false, 2: false, 3: false };
-      karTierFilter[t] = true;
-      try { localStorage.setItem('kar_tier_filter', JSON.stringify(karTierFilter)); } catch(e){}
+      karTierShow = t;
+      try { localStorage.setItem('kar_tier_show', String(t)); } catch(e){}
+      karRebuildBest();
       karPaintTierFilter();
       karRender();
     }
-    // Songs mid-removal: name -> a timer that auto-cancels the warning after a few seconds
-    // (the owner, 2026-09-27 - see the ✕ warning built into the star, above). Never sent to the
-    // server; purely what the star currently shows.
-    var karPendingRemove = {};
-    // Shared by both the − and + tier buttons: send the new tier (or 0 to remove), update the
-    // local list, and make sure the row does not vanish from a filter that isn't showing the
-    // tier it just moved to.
-    function karTierSend(song, name, nextTier){
+    function karAbcHtml(i, tier){
+      var who = karEsc(karWho);
+      var h = '<span class="kar-abc-grp">';
+      ['A', 'B', 'C'].forEach(function(L, n){
+        var t = n + 1, on = (tier === t);
+        h += '<button type="button" class="kar-abc' + (on ? ' is-on' : '') + '" data-i="' + i + '" data-tier="' + t + '" title="'
+           + (on ? 'On ' + who + '’s list ' + L + ' — click again to take it off' : 'Put on ' + who + '’s list ' + L) + '">' + L + '</button>';
+      });
+      return h + '</span>';
+    }
+    function karPaintAbc(grp, tier){
+      if (!grp) return;
+      grp.querySelectorAll('.kar-abc').forEach(function(b){
+        b.classList.toggle('is-on', parseInt(b.getAttribute('data-tier'), 10) === tier);
+      });
+    }
+    // Send the new tier (0 = off every list) and update the local copy. Only the clicked row's
+    // buttons and the counts change - the list is never re-rendered or re-filtered here
+    // (the owner, 2026-09-28: "the view should not change... song one A, song two B, song three
+    // C"). KAR_DATA.best is left as it is until the view or singer next changes, so every
+    // other row's data-i still points at the same song.
+    function karTierSend(song, name, nextTier, grp){
       var fd = new FormData();
       fd.append('form_type', 'karaoke_best_toggle');
       fd.append('song', song);
@@ -1420,11 +1445,8 @@ if (!$KAR_LOCAL) {
         } else if (ix !== -1) {
           a.splice(ix, 1);
         }
-        karRebuildBest();
-        var listEl = document.getElementById('kar-list');
-        var st = listEl.scrollTop;
-        karRender();
-        listEl.scrollTop = st;
+        karBestCounts();
+        karPaintAbc(grp, nextTier);
       }).catch(function(){ alert('Network error — the change was not saved.'); });
     }
     // Bulk-empty a list (the owner, 2026-09-27: "270 songs in this C, that's unmanageable...
@@ -1481,7 +1503,7 @@ if (!$KAR_LOCAL) {
     function karPaintTierFilter(){
       document.querySelectorAll('.kar-tier-chip').forEach(function(b){
         var t = parseInt(b.getAttribute('data-tier'), 10);
-        b.classList.toggle('kar-on', !!karTierFilter[t]);
+        b.classList.toggle('kar-on', t === karTierShow);
       });
     }
     // Which Mac every button on this page talks to. Remembered per browser, so the
@@ -1632,74 +1654,16 @@ if (!$KAR_LOCAL) {
         // you're actually searching (the owner, 2026-09-27: "we got to make sure that we get
         // all three of them"), the search itself is the narrowing, so it must see every tier,
         // not just whichever one the chip currently shows.
-        if (karView === 'best' && !q) {
+        if (karView === 'best' && !q && karTierShow) {
           var nameF = full.replace(/\.[a-z0-9]{2,4}$/i,'');
-          if (!karTierFilter[KAR_BEST_SET[nameF] || 1]) continue;
+          if ((KAR_BEST_SET[nameF] || 0) !== karTierShow) continue;
         }
         rowNo++;
         var name = full.replace(/\.[a-z0-9]{2,4}$/i,'');
-        // Three tiers, not just on/off (the owner, 2026-09-27): ① favorites, widening through
-        // ② ③ - a 415-song search on his own singer code was "not reasonable" to pick a song
-        // from. One colour for all three, not per-tier (the owner: the tier filter already shows
-        // only one tier at a time, so a colour difference between them says nothing) - the same
-        // vivid, unbold green as ▶ Play's own text, #6ee7b7.
-        // Removal is a two-click confirm, not a silent fourth stop (the owner: "I wouldn't want
-        // to click on three with nothing" - i.e. going straight back to a blank star read as
-        // accidental, not deliberate). From ③, the first click shows a red ✕ warning and does
-        // NOT touch the server; a second click on that ✕ is what actually removes it. Walking
-        // away leaves it exactly as it was - karPendingRemove is purely local and never saved.
-        // − / + either side of the tier, not just a single forward-cycling click (the owner,
-        // 2026-09-27: "if you want to go from a three to a two or from a two to a one... you
-        // learn a song and you want to bring it forward"). − moves down (never removes -
-        // there is nothing below ①, and demoting is never how you take a song off the list);
-        // + moves up, and past ③ is where the same two-click removal confirm still lives.
-        var tierN = KAR_BEST_SET[name] || 0;
-        var pendingN = !!karPendingRemove[name];
-        // Letters, not circled numerals (the owner, 2026-09-27): "B is above A, C is above B" -
-        // the same rank order as before, A/B/C instead of ①②③. KAR_TIER_ICON keeps the old
-        // glyphs only for the ☆ (not on the list) and tooltip prose; KAR_TIER_LETTER is what
-        // actually renders and reads out loud.
-        var KAR_TIER_ICON = ['☆','①','②','③'];
-        var KAR_TIER_LETTER = ['','A','B','C'];
-        var starIcon, starColor, upTitle;
-        if (pendingN) {
-          starIcon = '✕'; starColor = '#f87171';
-          upTitle = 'Click again to remove from ' + karWho + '’s list';
-        } else {
-          starIcon = KAR_TIER_ICON[tierN];
-          starColor = tierN ? '#6ee7b7' : '#94a3b8';
-          upTitle = tierN === 0 ? ('Add to ' + karWho + '’s list as A')
-                  : tierN === 3 ? ('Remove from ' + karWho + '’s list')
-                  : ('Move up to ' + KAR_TIER_LETTER[tierN + 1]);
-        }
-        // ↓ stays live even while the ✕ removal warning shows (the owner, 2026-09-27: "somehow
-        // you remove the minus from the left side... it's scary because it looks like you
-        // have no choice" - a disabled, near-invisible button was exactly the wrong moment to
-        // hide an escape route). While pending, ↓ cancels the removal and goes straight back
-        // to showing C - a deliberate "never mind", not one more demotion.
-        // Arrows, not +/− (the owner, 2026-09-27: "instead of the plus we can use the arrow...
-        // it's obvious... B is above A" - up/down reads as "which way in the list" in a way a
-        // bare + never did, and it already matches these buttons' own class names).
-        var dnDisabled = !pendingN && tierN <= 1;
-        var dnTitle = pendingN ? 'Keep it — cancel removing it'
-                    : tierN <= 1 ? 'Already at the bottom tier' : ('Move down to ' + KAR_TIER_LETTER[tierN - 1]);
-        // Badge itself: a plain glyph for ☆/✕, but for tiers A/B/C draw the ring ourselves
-        // (thin border, letter inside) instead of the Unicode circled-digit character — that
-        // glyph is one solid shape per font, so font-weight can't thin the ring without also
-        // thinning the digit (the owner, 2026-09-27: "the circle... too bold... the number is
-        // okay that way... make the circle not bold").
-        var starBadge = (!pendingN && tierN > 0)
-          ? '<span style="flex:0 0 auto;width:32px;text-align:center;display:inline-flex;align-items:center;justify-content:center">'
-            + '<span style="display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:50%;border:1px solid ' + starColor + ';font-size:14px;font-weight:400;line-height:1;color:' + starColor + '">' + KAR_TIER_LETTER[tierN] + '</span></span>'
-          : '<span style="flex:0 0 auto;width:32px;text-align:center;font-size:27px;font-weight:400;line-height:1;color:' + starColor + '">' + starIcon + '</span>';
-        var star = '<span class="kar-tiergrp" style="flex:0 0 auto;width:84px;display:inline-flex;align-items:center;justify-content:center;gap:1px">'
-          + '<button type="button" class="kar-tier-dn" data-i="' + i + '" title="' + dnTitle + '"' + (dnDisabled ? ' disabled' : '')
-          + ' style="flex:0 0 auto;width:20px;height:20px;font-size:14px;font-weight:700;line-height:1;background:transparent;border:0;font-family:inherit;padding:0;'
-          + (dnDisabled ? 'color:#3a4353;cursor:default' : 'color:#94a3b8;cursor:pointer') + '">↓</button>'
-          + starBadge
-          + '<button type="button" class="kar-tier-up" data-i="' + i + '" title="' + upTitle + '" '
-          + 'style="flex:0 0 auto;width:20px;height:20px;font-size:14px;font-weight:700;line-height:1;background:transparent;border:0;color:#94a3b8;cursor:pointer;font-family:inherit;padding:0">↑</button>'
-          + '</span>';
+        // Three direct buttons, A B C (the owner, 2026-09-28: "I click on the A if I want a song
+        // to go to A... we don't have to move up and down"). None lit = not on this singer's
+        // list. Click one to put the song there; click the lit one again to take it off.
+        var star = karAbcHtml(i, KAR_BEST_SET[name] || 0);
         var pOvr = karPitchOvr(full);
         var ovr = !!pOvr;
         var eff = ovr ? pOvr.val : karPitchBaseline(full);
@@ -2237,57 +2201,17 @@ if (!$KAR_LOCAL) {
         }).catch(function(){ qb.textContent = '➕'; alert('Network error — the request was not added.'); });
         return;
       }
-      // − / + on the tier stepper (the owner, 2026-09-27: "if you want to go from a three to a
-      // two or from a two to a one... you learn a song and you want to bring it forward").
-      // + moves up (0->1->2->3, then the ✕ removal confirm past 3); − moves down (3->2->1,
-      // never past 1 - there is nothing below ①, and removal only ever happens going UP past
-      // ③, never by demoting).
-      var stbDn = ev.target.closest ? ev.target.closest('.kar-tier-dn') : null;
-      if (stbDn) {
-        if (stbDn.disabled) return;
-        var songD = src[parseInt(stbDn.getAttribute('data-i'), 10)];
-        if (!songD) return;
-        var nameD = songD.replace(/\.[a-z0-9]{2,4}$/i,'');
-        if (karPendingRemove[nameD]) {
-          // Changed their mind about removing it - cancel the warning and go straight back to
-          // ③, exactly as it was. Nothing was ever sent to the server, so there is nothing to
-          // undo, just a render to bring the number back.
-          clearTimeout(karPendingRemove[nameD]);
-          delete karPendingRemove[nameD];
-          karRender();
-          return;
-        }
-        var curD = KAR_BEST_SET[nameD] || 0;
-        if (curD <= 1) return;
-        karTierSend(songD, nameD, curD - 1);
-        return;
-      }
-      var stbUp = ev.target.closest ? ev.target.closest('.kar-tier-up') : null;
-      if (stbUp) {
-        var songU = src[parseInt(stbUp.getAttribute('data-i'), 10)];
-        if (!songU) return;
-        var nameU = songU.replace(/\.[a-z0-9]{2,4}$/i,'');
-        var curU = KAR_BEST_SET[nameU] || 0;
-        var nextU;
-        if (karPendingRemove[nameU]) {
-          // Already showing the ✕ warning: THIS click is the confirm, not another step up.
-          clearTimeout(karPendingRemove[nameU]);
-          delete karPendingRemove[nameU];
-          nextU = 0;
-        } else if (curU === 3) {
-          // From ③, show the warning and stop - nothing is sent to the server until a
-          // second, confirming click. Auto-cancels itself after 4s if left alone, so
-          // walking away never turns into an accidental removal later.
-          karPendingRemove[nameU] = setTimeout(function(){
-            delete karPendingRemove[nameU];
-            karRender();
-          }, 4000);
-          karRender();
-          return;
-        } else {
-          nextU = curU + 1;   // 0->1, 1->2, 2->3
-        }
-        karTierSend(songU, nameU, nextU);
+      // A / B / C: the clicked letter is the tier; clicking the one already lit takes the
+      // song off this singer's list.
+      var abc = ev.target.closest ? ev.target.closest('.kar-abc') : null;
+      if (abc) {
+        if (!karWho) { alert('Pick a singer first.'); return; }
+        var songT = src[parseInt(abc.getAttribute('data-i'), 10)];
+        if (!songT) return;
+        var nameT = songT.replace(/\.[a-z0-9]{2,4}$/i,'');
+        var want = parseInt(abc.getAttribute('data-tier'), 10);
+        var next = ((KAR_BEST_SET[nameT] || 0) === want) ? 0 : want;
+        karTierSend(songT, nameT, next, abc.parentElement);
         return;
       }
       var dl = ev.target.closest ? ev.target.closest('.kar-del') : null;
