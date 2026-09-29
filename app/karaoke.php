@@ -377,18 +377,14 @@ if (!$KAR_LOCAL) {
     background:transparent; border:1px solid #334155; color:#64748b; }
   .kar-abc:hover { border-color:#6ee7b7; color:#a7f3d0; }
   .kar-abc.is-on { background:rgba(16,185,129,.18); border-color:#10B981; color:#6ee7b7; }
-  /* #kar-tierbar rebuilt 2026-09-28 as one compressed joined button (Show/A/B/C/Clear list),
-     replacing the old separate .kar-chip-styled pills - see the HTML comment above the markup. */
-  #kar-tierbar .kar-tb-label { color:#64748b; font-size:10.5px; font-weight:700; padding:0 7px;
-    display:flex; align-items:center; border-right:1px solid #334155; }
-  #kar-tierbar .kar-tier-chip { font-family:inherit; background:none; border:none;
-    border-right:1px solid #334155; color:#e2e8f0; padding:0 8px; font-size:11.5px;
-    cursor:pointer; }
-  #kar-tierbar .kar-tier-chip span { color:#94a3b8; font-weight:700; }
-  #kar-tierbar .kar-tier-chip.kar-on { background:rgba(134,202,250,.08); color:#CDE8FF; font-weight:700; }
-  #kar-tierbar .kar-tier-chip.kar-on span { color:#CDE8FF; }
-  #kar-tierbar .kar-tierclear-btn { font-family:inherit; background:none; border:none;
-    color:#f87171; padding:0 9px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  /* Singer box + list dropdown joined into one shape (2026-09-28): square the touching
+     corners, drop the shared border, and cancel #kar-listbar's 7px gap between them. */
+  #kar-who.kar-joined { border-top-right-radius:0; border-bottom-right-radius:0; }
+  #kar-tier-sel { margin-left:-7px; border-left:1px solid rgba(169,217,255,.35);
+    border-top-left-radius:0; border-bottom-left-radius:0; }
+  #kar-tierbar .kar-tierclear-btn { font-family:inherit; background:none; border:1px solid #7f1d1d;
+    border-radius:7px; height:30px; color:#f87171; padding:0 10px; font-size:11.5px; font-weight:700;
+    cursor:pointer; white-space:nowrap; }
 
   /* The two list chips join the grey too, and selection is shown the way the Simple|Complete switch
      already shows it - BRIGHTER means selected - with a near-white ring instead of the gold one.
@@ -519,41 +515,29 @@ if (!$KAR_LOCAL) {
           <?php endforeach; ?>
           <option value="__add__">＋ Add a person…</option>
           <option value="__remove__">− Remove a person…</option>
-          </select>
+        </select>
+        <!-- Which of this singer's lists to show, as a dropdown joined to the Singer box so the
+             two read as one control (the owner, 2026-09-28: "a drop down as an extension of the
+             singer box... maybe we could save a little space"). Singer view only; labels and
+             counts are filled in by karBestCounts(). -->
+        <select id="kar-tier-sel" class="kar-chip" onchange="karTierFilterToggle(parseInt(this.value, 10))" title="Which of this singer's lists to show" style="display:none">
+          <option value="0">All</option>
+          <option value="1">A</option>
+          <option value="2">B</option>
+          <option value="3">C</option>
         </select>
       </div>
-      <!-- Tier filter, Singer view only (the owner, 2026-09-27): a 415-song search on his own
-           singer code was "not reasonable" to pick from. Defaults to ① only - the whole point
-           is opening small, not showing everything and asking you to narrow it.
-           ⚠ MUST be a SIBLING of #kar-listbar, not nested inside it (2026-09-27, found from a
-           screenshot: the label showed as "Sho…" cut off at the window edge and nothing after
-           it - #kar-listbar has no wrap of its own, so anything nested inside it just overflows
-           off-screen instead of dropping to its own line the way this outer row already does).
-           Rebuilt 2026-09-28 as ONE joined button (the owner: "I like this all button to be part
-           of this single button... make it as compressed as possible, it takes space we need
-           for the search") - Show/A/B/C/Clear list all share one border, no gaps between them,
-           a soft wash (not a bright fill) marks whichever tier is selected. The 📷 singer/photo
-           button moved here too (the owner: "the camera icon should be to the right of this
-           button") - it now shares this row's Best-list-only visibility, which is a real change
-           from before (it used to show on every view); that's deliberate, since editing a
-           singer's photo/name only makes sense while looking at their own list anyway. -->
+      <!-- Singer view only: 🗑 Clear and the 📷 singer card. ⚠ MUST be a SIBLING of
+           #kar-listbar, not nested inside it (2026-09-27: #kar-listbar has no wrap of its own,
+           so anything nested there overflows off-screen on a narrow window instead of dropping
+           to its own line). -->
       <div id="kar-tierbar" style="display:none;align-items:center;gap:6px">
-        <span style="display:flex;align-items:stretch;height:26px;background:#121620;border:1px solid #475569;border-radius:7px;overflow:hidden">
-          <span class="kar-tb-label">Show</span>
-          <button type="button" class="kar-tier-chip" data-tier="0" onclick="karTierFilterToggle(0)" title="Show every song on this singer's list">All <span id="kar-tier-cnt-0">0</span></button>
-          <button type="button" class="kar-tier-chip" data-tier="1" onclick="karTierFilterToggle(1)" title="Show list A songs">A <span id="kar-tier-cnt-1">0</span></button>
-          <button type="button" class="kar-tier-chip" data-tier="2" onclick="karTierFilterToggle(2)" title="Show list B songs">B <span id="kar-tier-cnt-2">0</span></button>
-          <button type="button" class="kar-tier-chip" data-tier="3" onclick="karTierFilterToggle(3)" title="Show list C songs">C <span id="kar-tier-cnt-3">0</span></button>
           <!-- Clear a whole list (the owner, 2026-09-27: "270 songs in this C, that's
-               unmanageable... remove them from my list... I don't mean delete the songs"). Does
-               NOT act on whichever of A/B/C the Show: chips happen to be on (the owner, 2026-09-28:
-               "a little dangerous... whatever number is selected at the time will disappear") -
-               clicking it opens a popover asking WHICH list, by name, with its real count, so the
-               choice is always deliberate and never inherited from the filter's current state.
-               Song files are never touched; this only removes the Best-list rows, with the same
-               snapshot-before-delete safety as removing a whole person already has. -->
+               unmanageable... remove them from my list... I don't mean delete the songs"). Never
+               acts on whichever list happens to be showing (the owner, 2026-09-28: "a little
+               dangerous") - it opens a popover asking WHICH list, by name, with its real count.
+               Song files are never touched; this only removes the Best-list rows. -->
           <button type="button" class="kar-tierclear-btn" onclick="karTierClearShow(this)" title="Choose a list (A, B or C) to empty — song files are never touched, only taken off that list">🗑 Clear</button>
-        </span>
         <!-- The singer window: full name for the announcer, Man/Woman, photo (2026-09-26). -->
         <button type="button" id="kar-singer-btn" class="kar-chip" onclick="karSingerOpen(karWho)" title="This singer: full name for the announcer, Man or Woman, and the photo shown when they are called up" style="padding:0 11px;position:relative"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg><span id="kar-singer-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px"></span></button>
       </div>
@@ -1252,10 +1236,14 @@ if (!$KAR_LOCAL) {
       }
       var tierCounts = { 0: pairs.length, 1: 0, 2: 0, 3: 0 };
       pairs.forEach(function(pair){ if (tierCounts[pair[1]] !== undefined) tierCounts[pair[1]]++; });
-      [0, 1, 2, 3].forEach(function(t){
-        var c = document.getElementById('kar-tier-cnt-' + t);
-        if (c) c.textContent = tierCounts[t];
-      });
+      var ts = document.getElementById('kar-tier-sel');
+      if (ts) {
+        var lbl = { 0: 'All', 1: 'A', 2: 'B', 3: 'C' };
+        for (var oi = 0; oi < ts.options.length; oi++) {
+          var tv = parseInt(ts.options[oi].value, 10);
+          ts.options[oi].textContent = lbl[tv] + ' – ' + tierCounts[tv];
+        }
+      }
     }
     // Re-picking the SAME name fires no change event, so without this you could never get
     // back to the Best list from Song Database or 🆕 New once the chip was gone. Touching the
@@ -1368,14 +1356,8 @@ if (!$KAR_LOCAL) {
       karView = view;
       // Only the CLASS changes. karSwitch used to paint each chip inline, which made them
       // unstyleable from CSS - and on a white bar an inline dark background is simply wrong.
-      // ⚠ Excludes .kar-tier-chip (2026-09-27, found live: picking a NEW singer wiped every
-      // .kar-chip's "on" state including the tier filter's own, and nothing ever repainted it
-      // afterwards - so right after choosing a singer, none of ①②③ ever LOOKED selected, even
-      // though one genuinely was. The tier chips are their own independent selector, not one
-      // of the three views this line is meant to manage.
-      document.querySelectorAll('.kar-chip').forEach(function(b){
-        if (!b.classList.contains('kar-tier-chip')) b.classList.remove('kar-on');
-      });
+      // (#kar-tier-sel loses kar-on here too; karRender puts it back in Singer view.)
+      document.querySelectorAll('.kar-chip').forEach(function(b){ b.classList.remove('kar-on'); });
       btn.classList.add('kar-on');
       // Picking a list means "show me my songs", so the SEARCH MODE follows the view. Without
       // this the list came back but the bar still said YouTube, and typing in it did nothing -
@@ -1501,10 +1483,8 @@ if (!$KAR_LOCAL) {
       }).catch(function(){ alert('Network error — nothing was cleared.'); });
     }
     function karPaintTierFilter(){
-      document.querySelectorAll('.kar-tier-chip').forEach(function(b){
-        var t = parseInt(b.getAttribute('data-tier'), 10);
-        b.classList.toggle('kar-on', t === karTierShow);
-      });
+      var ts = document.getElementById('kar-tier-sel');
+      if (ts) ts.value = String(karTierShow);
     }
     // Which Mac every button on this page talks to. Remembered per browser, so the
     // TV Mac in one house and the laptop in another each keep their own choice.
@@ -1628,6 +1608,13 @@ if (!$KAR_LOCAL) {
       if (hc) hc.style.display = (karView === 'new') ? '' : 'none';
       var htb = document.getElementById('kar-tierbar');
       if (htb) htb.style.display = (karView === 'best') ? 'flex' : 'none';
+      var tsel = document.getElementById('kar-tier-sel');
+      if (tsel) {
+        tsel.style.display = (karView === 'best') ? '' : 'none';
+        tsel.classList.toggle('kar-on', karView === 'best');   // lit together with the Singer box
+      }
+      var whoEl = document.getElementById('kar-who');
+      if (whoEl) whoEl.classList.toggle('kar-joined', karView === 'best');
       // ⚠ Sort the ORDER, not the array. Every click handler below resolves its data-i against
       // KAR_DATA[karRenderedView], so reordering the array itself would make Play, ✎ and ✕ act on
       // the wrong song. Building an index list keeps data-i meaning what it has always meant.
