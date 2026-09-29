@@ -311,6 +311,34 @@ if ($job === 'intro') {
     exit;
 }
 
+// A singer's photo, chosen in the Mac's OWN Finder window (the owner, 2026-09-28: "I don't see
+// any reason why I shouldn't be able to just pull a photo from a file like I do for
+// everything else"). The Mac mini NJ's browser would not open a file window at all, so this
+// never goes through the browser: osascript shows the real macOS chooser, and the file is
+// stored here directly. `activate` first, or the chooser can open behind the browser.
+if ($job === 'pickphoto') {
+    $id   = (int)($argv[3] ?? 0);
+    $name = (string)($argv[4] ?? '');
+    $say  = str_replace(['\\', '"'], ['', ''], $name);
+    $script = 'try' . "\n"
+        . 'activate' . "\n"
+        . 'set f to choose file of type {"public.image"} with prompt "Choose a photo for ' . $say . '"' . "\n"
+        . 'POSIX path of f' . "\n"
+        . 'on error number -128' . "\n"
+        . '"__CANCELLED__"' . "\n"
+        . 'end try';
+    $out = trim((string)@shell_exec('osascript -e ' . escapeshellarg($script) . ' 2>/dev/null'));
+    if ($out === '' || $out === '__CANCELLED__') {
+        $db->prepare("UPDATE karaoke_play_queue SET status='Skipped', note=? WHERE id=?")
+           ->execute(['cancelled — no photo was changed', $id]);
+        exit;
+    }
+    [$okp, $msg] = kar_singer_set_photo($name, $out);
+    $db->prepare("UPDATE karaoke_play_queue SET status=?, note=? WHERE id=?")
+       ->execute([$okp ? 'Played' : 'Error', $msg, $id]);
+    exit;
+}
+
 if ($job === 'pick') {
     $id = (int)($argv[3] ?? 0);
     $script = 'try' . "\n"

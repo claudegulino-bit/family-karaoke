@@ -751,7 +751,8 @@ try {
         // Two-phase, exactly as the server version: start queues the job, check polls it.
         // A folder chooser waits for a person to walk to the Mac, so it CANNOT run inside
         // the request — it goes to a detached worker and the answer lands on the row.
-        $tasks = ['folder' => '__PICKFOLDER__', 'tools' => '__CHECKTOOLS__', 'update' => '__UPDATE__'];
+        $tasks = ['folder' => '__PICKFOLDER__', 'tools' => '__CHECKTOOLS__', 'update' => '__UPDATE__',
+                  'photo' => '__PICKPHOTO__'];
         $task = (string)($_POST['task'] ?? 'folder');
         // A task this version does not know is refused, not quietly treated as "open the
         // folder chooser" — which is how an older copy answered a newer button by putting
@@ -761,9 +762,21 @@ try {
         $sentinel = $tasks[$task];
 
         if ($mode === 'start') {
+            $who = trim((string)($_POST['name'] ?? ''));
+            if ($task === 'photo' && ($who === '' || mb_strlen($who) > 40 || strpbrk($who, '/\\') !== false)) {
+                kj(['ok'=>false, 'error'=>'Pick or add a singer first.']);
+            }
             $db->prepare("INSERT INTO karaoke_play_queue (filename, player, status) VALUES (?, 'all', 'Pending')")
                ->execute([$sentinel]);
             $id = (int)$db->lastInsertId();
+            if ($task === 'photo') {
+                // The Mac's own Finder chooser, opened by the worker - it waits for a person.
+                $php = PHP_BINARY ?: 'php';
+                @exec(escapeshellarg($php) . ' ' . escapeshellarg(__DIR__ . '/karaoke_worker.php') . ' '
+                    . escapeshellarg((string)kar_marker_path()) . ' pickphoto ' . (int)$id . ' '
+                    . escapeshellarg($who) . ' >/dev/null 2>&1 &');
+                kj(['ok'=>true, 'id'=>$id]);
+            }
             if ($task === 'tools') {
                 // Fast enough to answer inline — no chooser, nothing to wait for.
                 // A GREEN/RED LIST, one line per app (the owner, 2026-09-13). The page splits on "|".

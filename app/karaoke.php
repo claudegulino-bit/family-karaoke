@@ -3871,7 +3871,13 @@ function karPickFolder(){
              input: the Mac mini NJ's browser silently ignored the scripted click (2026-09-28,
              the same code opened the chooser elsewhere). The input is hidden by size and
              opacity, NOT display:none, which some browsers also refuse to open. -->
+        <?php if ($KAR_LOCAL): ?>
+        <!-- On a Mac running Cantoria itself, the Mac's OWN Finder window - it never goes through
+             the browser, which on the Mac mini NJ would not open a file window at all. -->
+        <button type="button" id="kar-sw-pick" onclick="karSingerPickNative(this)" style="background:#2A384C;border:1px solid #86CAFA;color:#86CAFA;border-radius:8px;height:32px;padding:0 12px;cursor:pointer;font-size:13px">Choose photo…</button>
+        <?php else: ?>
         <label for="kar-sw-file" style="display:inline-flex;align-items:center;background:#2A384C;border:1px solid #86CAFA;color:#86CAFA;border-radius:8px;height:32px;padding:0 12px;cursor:pointer;font-size:13px">Choose photo…</label>
+        <?php endif; ?>
         <button type="button" id="kar-sw-rm" onclick="karSingerRemovePhoto()" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:12.5px;padding:0">Remove photo</button>
         <input id="kar-sw-file" type="file" accept="image/*" onchange="karSingerPicked(this)" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden">
       </div>
@@ -3943,6 +3949,43 @@ function karPickFolder(){
     img.src = url;
     karSingerPreview(url);
     document.getElementById('kar-sw-status').textContent = 'Press Save to keep this photo.';
+  }
+  // Standalone Macs: the Mac opens its own Finder chooser (worker job 'pickphoto') and stores
+  // the photo itself; the page waits for the answer. Saved at once - no need to press Save.
+  function karSingerPickNative(btn){
+    var name = KAR_SW.name; if (!name) return;
+    var st = document.getElementById('kar-sw-status');
+    var ask = function(extra){
+      var f = new FormData(); f.append('form_type', 'karaoke_pick_folder'); f.append('task', 'photo');
+      Object.keys(extra).forEach(function(k){ f.append(k, extra[k]); });
+      return fetch(KAR_API, {method:'POST', body:f}).then(function(r){ return r.json(); });
+    };
+    btn.disabled = true;
+    st.textContent = 'A Finder window is opening on this Mac — choose the photo there.';
+    ask({mode:'start', name:name}).then(function(d){
+      if (!d.ok) { btn.disabled = false; st.textContent = '✕ ' + (d.error || 'The Finder window could not be opened.'); return; }
+      var tries = 0;
+      (function poll(){
+        ask({mode:'check', id:d.id}).then(function(c){
+          if (c.ok && c.status === 'Pending' && ++tries < 900) { setTimeout(poll, 1000); return; }
+          btn.disabled = false;
+          if (KAR_SW.name !== name) return;   // they moved on to another singer meanwhile
+          if (c.ok && c.status === 'Played') {
+            KAR_SW.file = null; KAR_SW.remove = false;
+            var g = new FormData(); g.append('form_type', 'karaoke_singer_get'); g.append('name', name);
+            fetch(KAR_API, {method:'POST', body:g}).then(function(r){ return r.json(); }).then(function(s){
+              if (s.ok && s.has_photo) karSingerPreview('/karaoke_api.php?singer_photo=' + encodeURIComponent(name) + '&v=' + (s.photo_v || ''));
+            });
+            st.textContent = '✓ Photo saved.';
+            if (typeof karSingerBadges === 'function') karSingerBadges();
+          } else if (c.ok && c.status === 'Skipped') {
+            st.textContent = 'No photo chosen — nothing changed.';
+          } else {
+            st.textContent = '✕ ' + ((c.note || c.error) || 'The photo was not saved.');
+          }
+        }).catch(function(){ if (++tries < 900) setTimeout(poll, 2000); else btn.disabled = false; });
+      })();
+    }).catch(function(){ btn.disabled = false; st.textContent = 'Could not reach Cantoria.'; });
   }
   // Drag a photo from Finder onto the square - skips the file window entirely.
   (function(){
