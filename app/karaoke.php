@@ -1144,6 +1144,17 @@ if (!$KAR_LOCAL) {
         <button type="button" onclick="karDelDo()" id="kar-del-yes" style="font-family:inherit;background:#7f1d1d;border:1px solid #ef4444;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 14px;border-radius:8px">🗑 Delete file</button>
       </div>
     </div>
+    <!-- Shown the first time a pitch is changed on Song Database / New Songs (the owner,
+         2026-09-29: "I changed that pitch on maybe a hundred songs and then found out it was no
+         good... other people are going to do it too"). Once per page load. -->
+    <div id="kar-pitchwarn-pop" style="display:none;position:fixed;z-index:60;background:#1c2331;border:1px solid #b45309;border-radius:10px;padding:12px 14px;max-width:330px;box-shadow:0 6px 24px rgba(0,0,0,.65)">
+      <div style="color:#fbbf24;font-size:12.5px;font-weight:700;margin-bottom:5px">This change is for one play only</div>
+      <div style="color:#cbd5e1;font-size:12px;line-height:1.45;margin-bottom:10px">Song Database and New Songs never save pitches. To save a key, set it on the singer's own list.</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button type="button" id="kar-pitchwarn-list" onclick="karPitchWarnHide(); karSwitch('best', document.getElementById('kar-who'));" style="font-family:inherit;background:#047857;border:1px solid #10B981;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px">Open the list</button>
+        <button type="button" onclick="karPitchWarnHide()" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px">OK, just this once</button>
+      </div>
+    </div>
     <!-- Which list to clear — a deliberate choice every time (the owner, 2026-09-28: never inherit
          it from whatever the Show: chips happen to be on). Counts are filled in live so the
          choice is informed, not a guess. -->
@@ -2105,6 +2116,31 @@ if (!$KAR_LOCAL) {
       pop.style.left = left + 'px';
       pop.style.top = top + 'px';
     }
+    var karPitchWarned = false;
+    function karPitchWarnShow(anchor){
+      if (karPitchWarned) return;
+      karPitchWarned = true;
+      var pop = document.getElementById('kar-pitchwarn-pop');
+      var lb = document.getElementById('kar-pitchwarn-list');
+      lb.style.display = karWho ? '' : 'none';
+      lb.textContent = 'Open ' + karWho + '’s list';
+      pop.style.display = 'block';
+      var r = anchor.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+      var left = r.right + 10;
+      if (left + pw > window.innerWidth - 8) left = Math.max(8, r.left - pw - 10);
+      var top = r.top + r.height / 2 - ph / 2;
+      if (top < 8) top = 8;
+      if (top + ph > window.innerHeight - 8) top = window.innerHeight - ph - 8;
+      pop.style.left = left + 'px'; pop.style.top = top + 'px';
+    }
+    function karPitchWarnHide(){ document.getElementById('kar-pitchwarn-pop').style.display = 'none'; }
+    document.addEventListener('click', function(ev){
+      var pop = document.getElementById('kar-pitchwarn-pop');
+      if (pop.style.display === 'none' || pop.contains(ev.target)) return;
+      if (ev.target.closest && ev.target.closest('.kar-pgrp')) return;   // still nudging the same box
+      karPitchWarnHide();
+    });
+    document.getElementById('kar-list').addEventListener('scroll', karPitchWarnHide);
     function karDelHide(){
       karDelSong = null;
       document.getElementById('kar-del-pop').style.display = 'none';
@@ -2397,6 +2433,7 @@ if (!$KAR_LOCAL) {
         karStylePitchBox(inp, song);
         var grpN = inp.closest ? inp.closest('.kar-pgrp') : inp.parentElement;
         if (grpN) grpN.classList.toggle('is-temp', vTemp !== 0);
+        if (vTemp !== 0) karPitchWarnShow(grpN || inp);
         return;
       }
       // A singer's own list saves to THEIR pitch, on top of the shared default.
