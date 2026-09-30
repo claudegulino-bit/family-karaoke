@@ -81,7 +81,7 @@ if ($job === 'announce') {
         }
         // A singer's PHOTO on screen is a still picture with no soundtrack, so the applause that
         // rides in the crowd video's audio is gone with it - it must be played on its own,
-        // underneath (the owner, 2026-09-29, Mike's Mac: "everything is working except that there
+        // underneath (the owner, 2026-09-29, on a family Mac: "everything is working except that there
         // is no applause" - every singer with a photo walked up in silence).
         $still = $crowd && preg_match('/\.(jpe?g|png|gif|heic|webp)$/i', $ap);
 
