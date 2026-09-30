@@ -299,13 +299,16 @@ PHPBIN="$(command -v php || true)"
 [ -z "$PHPBIN" ] && [ -x /usr/local/bin/php ]    && PHPBIN=/usr/local/bin/php
 [ -z "$PHPBIN" ] && PHPBIN=php
 cat > "$TMP/launch.applescript" <<AS
+-- cantoria launcher v2 (KEEP IN STEP with update.sh's copy in publish_karaoke.php)
 on run
 	set theURL to "http://localhost:$PORT/karaoke.php"
 	set code to do shell script "curl -s -o /dev/null -m 5 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
 	if code is not "200" then
 		-- stdin, stdout and stderr all redirected, or this script waits on the server forever
 		-- and every later double-click only wakes the stuck copy (2026-09-26)
-		do shell script "cd $DEST && nohup $PHPBIN -S 0.0.0.0:$PORT -t . > $DEST/logs/server.log 2>&1 < /dev/null &"
+		-- If this Mac has the start-by-itself service, wake THAT rather than starting a second
+		-- server beside it (two copies left the service failing every 10 s, 2026-09-29).
+		do shell script "launchctl kickstart gui/$(id -u)/com.familykaraoke.server 2>/dev/null || (cd $DEST && nohup $PHPBIN -S 0.0.0.0:$PORT -t . > $DEST/logs/server.log 2>&1 < /dev/null &)"
 		repeat 20 times
 			delay 1
 			set code to do shell script "curl -s -o /dev/null -m 5 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
@@ -313,7 +316,13 @@ on run
 		end repeat
 	end if
 	if code is "200" then
-		open location theURL
+		-- Chrome BY NAME first (2026-09-29): on one family Mac "the default browser" for plain http://
+		-- was not Chrome, so "open location" handed the page to nothing and the icon looked dead.
+		try
+			do shell script "open -a 'Google Chrome' " & quoted form of theURL
+		on error
+			open location theURL
+		end try
 	else
 		activate
 		display dialog "Cantoria could not start on this Mac." buttons {"OK"} default button 1 with icon caution with title "Cantoria" giving up after 30

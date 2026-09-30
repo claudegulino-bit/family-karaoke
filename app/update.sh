@@ -109,6 +109,54 @@ if [ -d "$APP" ] && [ -f "$DEST/karaoke.icns" ] && ! cmp -s "$DEST/karaoke.icns"
   touch "$APP" 2>/dev/null || true
   echo "The Cantoria icon on the Desktop was refreshed."
 fi
+# THE ICON'S LAUNCHER follows the shipped one too (2026-09-29). Only the script inside the
+# existing Cantoria.app is replaced - same bundle, same place - so a Dock icon pointing at it
+# keeps working. Skipped once this Mac already has launcher v2.
+if [ -d "$APP" ] && ! osadecompile "$APP/Contents/Resources/Scripts/main.scpt" 2>/dev/null | grep -q "cantoria launcher v2"; then
+  PORT="$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("port","8899"))' "$DEST/karaoke_standalone.json" 2>/dev/null || echo 8899)"
+  PHPBIN="$(command -v php || true)"
+  [ -z "$PHPBIN" ] && [ -x /opt/homebrew/bin/php ] && PHPBIN=/opt/homebrew/bin/php
+  [ -z "$PHPBIN" ] && [ -x /usr/local/bin/php ]    && PHPBIN=/usr/local/bin/php
+  [ -z "$PHPBIN" ] && PHPBIN=php
+  cat > "$TMP/launch.applescript" <<AS
+-- cantoria launcher v2 (KEEP IN STEP with update.sh's copy in publish_karaoke.php)
+on run
+	set theURL to "http://localhost:$PORT/karaoke.php"
+	set code to do shell script "curl -s -o /dev/null -m 5 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
+	if code is not "200" then
+		-- stdin, stdout and stderr all redirected, or this script waits on the server forever
+		-- and every later double-click only wakes the stuck copy (2026-09-26)
+		-- If this Mac has the start-by-itself service, wake THAT rather than starting a second
+		-- server beside it (two copies left the service failing every 10 s, 2026-09-29).
+		do shell script "launchctl kickstart gui/$(id -u)/com.familykaraoke.server 2>/dev/null || (cd $DEST && nohup $PHPBIN -S 0.0.0.0:$PORT -t . > $DEST/logs/server.log 2>&1 < /dev/null &)"
+		repeat 20 times
+			delay 1
+			set code to do shell script "curl -s -o /dev/null -m 5 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
+			if code is "200" then exit repeat
+		end repeat
+	end if
+	if code is "200" then
+		-- Chrome BY NAME first (2026-09-29): on Mike's Mac "the default browser" for plain http://
+		-- was not Chrome, so "open location" handed the page to nothing and the icon looked dead.
+		try
+			do shell script "open -a 'Google Chrome' " & quoted form of theURL
+		on error
+			open location theURL
+		end try
+	else
+		activate
+		display dialog "Cantoria could not start on this Mac." buttons {"OK"} default button 1 with icon caution with title "Cantoria" giving up after 30
+	end if
+end run
+AS
+  if osacompile -o "$TMP/main.scpt" "$TMP/launch.applescript" 2>/dev/null; then
+    cp "$TMP/main.scpt" "$APP/Contents/Resources/Scripts/main.scpt"
+    xattr -cr "$APP" 2>/dev/null || true
+    codesign --force --deep -s - "$APP" 2>/dev/null || true
+    touch "$APP" 2>/dev/null || true
+    echo "The Cantoria icon now opens Chrome directly."
+  fi
+fi
 # VERSION IS WRITTEN LAST (2026-09-29): it is this Mac's claim that the update finished. An
 # update that died halfway once wrote it first, so the Mac reported the new version while
 # running the old program, hid its own Update button, and every retry failed the same way.
