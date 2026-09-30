@@ -72,12 +72,21 @@ if (!$KAR_LOCAL) {
     } catch (Throwable $e) { $KAR_MACS = []; }
     if (!$KAR_MACS) $KAR_MACS = ['Laptop'];   // never render an empty picker
 }
+// WHICH MAC IS THIS (2026-09-29). Opened remotely, every Cantoria looks the same, so the header and
+// the browser tab name the Mac the page is running on. Read from the Mac itself at load time -
+// "mac_name" in karaoke_standalone.json overrides it - so no machine names live in the code.
+$KAR_HOST = '';
+if ($KAR_LOCAL) {
+    $KAR_HOST = trim((string)(kar_cfg()['mac_name'] ?? ''));
+    if ($KAR_HOST === '' && PHP_OS_FAMILY === 'Darwin') $KAR_HOST = trim((string)@shell_exec('/usr/sbin/scutil --get ComputerName 2>/dev/null'));
+    if ($KAR_HOST === '') $KAR_HOST = trim((string)gethostname());
+}
 ?><!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cantoria</title>
+<title><?= $KAR_HOST !== '' ? 'Cantoria — ' . h($KAR_HOST) : 'Cantoria' ?></title>
 <link rel="icon" href="/favicon.ico">
 <style>
   /* every button on the page presses in — no more "dead" solid blocks (2026-09-12) */
@@ -449,6 +458,7 @@ if (!$KAR_LOCAL) {
       <h1 style="margin:0;font-size:22px;font-weight:800;color:#f3f4f6;letter-spacing:.01em">🎤 Cantoria</h1>
     </div>
     <?php if ($KAR_LOCAL): ?>
+    <?php if ($KAR_HOST !== ''): ?><span title="The Mac this Cantoria is running on — its speakers, its songs, its singers" style="align-self:center;display:inline-flex;align-items:center;gap:6px;background:rgba(210,173,108,.14);border:1px solid #D2AD6C;color:#D2AD6C;font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px;white-space:nowrap">🖥 <?= h($KAR_HOST) ?></span><?php endif; ?>
     <span style="color:#64748b;font-size:12.5px">everything runs on this Mac — nothing to sign in to</span>
     <?php else: ?>
     <span style="color:#64748b;font-size:12.5px"><a href="/app.php" style="color:#60A5FA;text-decoration:none">← back to casAI</a></span>
