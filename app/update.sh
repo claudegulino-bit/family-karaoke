@@ -34,6 +34,7 @@ for f in "$SRC"/*; do
   b="$(basename "$f")"
   [ "$b" = "karaoke_standalone.example.json" ] && continue
   [ -d "$f" ] && continue   # folders are handled explicitly below (see "announcer/")
+  [ "$b" = "VERSION" ] && continue   # written LAST, below - see there
   cp "$f" "$DEST/$b"
 done
 # THE ANNOUNCER FOLDER (2026-09-26): copied as CONTENTS-INTO, not as a directory, because
@@ -108,6 +109,10 @@ if [ -d "$APP" ] && [ -f "$DEST/karaoke.icns" ] && ! cmp -s "$DEST/karaoke.icns"
   touch "$APP" 2>/dev/null || true
   echo "The Cantoria icon on the Desktop was refreshed."
 fi
+# VERSION IS WRITTEN LAST (2026-09-29): it is this Mac's claim that the update finished. An
+# update that died halfway once wrote it first, so the Mac reported the new version while
+# running the old program, hid its own Update button, and every retry failed the same way.
+cp "$SRC/VERSION" "$DEST/VERSION"
 NOW="$(cat "$DEST/VERSION" 2>/dev/null || true)"
 if [ -n "$HAD" ] && [ "$HAD" = "$NOW" ]; then
   echo "Already up to date (karaoke $NOW)."
