@@ -690,6 +690,7 @@ if (!$KAR_LOCAL) {
         // casAI only: it names the machines, so it is gated to the copy that never leaves
         // the household, and every name in it is read at render time from the database.
         if (!$KAR_LOCAL) $_karCards[] = ['config', $_num('Configuration and workflow'), 'Machines, release process and shared data.', 'Setting up'];
+        if (!$KAR_LOCAL) $_karCards[] = ['remote', $_num('Remote help'), 'Reach the other Macs from anywhere — one click.', 'Setting up'];
         $_karCards[] = ['update', $_num('Software updates'), $KAR_LOCAL ? 'Installing the latest version.' : 'How the other Macs receive a release.', 'Setting up'];
         $_karCards[] = ['sing',  $_num('Play a song'),          'Search, playback and key.', 'Using it'];
         $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: key, speed, restart and stop.', 'Using it'];
@@ -996,6 +997,47 @@ if (!$KAR_LOCAL) {
             <div><b style="color:#D2AD6C">This page contains no audio</b> — it lists the contents of the shared folder and sends playback requests to a Mac.</div>
             <div><b style="color:#D2AD6C">⭐ Singers and their lists</b> — each computer keeps its own, and they are never shared. The same is true of a song's key: changing it here sets that song's key <b>on this computer only</b>. Only the song library travels between machines.</div>
             <div><b style="color:#D2AD6C">If a song does not play</b> — the Mac is asleep, the wrong Mac is selected under <b>Play on</b>, or that Mac points to a different songs folder.</div>
+          </div>
+        </div>
+        <?php
+        // REMOTE HELP (the owner, 2026-09-29: "wouldn't it be beautiful if... I could connect by
+        // just pushing the button"). casAI only, like the card above - and for the same
+        // reason the Macs themselves live in the database (karaoke_settings.remote_macs, a JSON
+        // list), never in this file, which is published to a public repository.
+        //   [{"name":"…","anywhere":"100.x.y.z","home":"Name.local","note":"…","expires":"YYYY-MM-DD"}]
+        $_rmList = [];
+        if ($pdo) { try { $_rmList = json_decode((string)$pdo->query("SELECT v FROM karaoke_settings WHERE k='remote_macs'")->fetchColumn(), true) ?: []; } catch (Throwable $e) {} }
+        $_rmVnc = function ($a) { return 'vnc://' . preg_replace('/[^A-Za-z0-9.\-]/', '', (string)$a); };
+        ?>
+        <div class="kar-gs" id="kar-gs-remote" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Remote help — reaching the other Macs</h3>
+          <p style="margin:0 0 12px;color:#94a3b8;font-size:12.5px">Click a button to open that Mac's screen in <b style="color:#cbd5e1">Screen Sharing</b> and use it with this laptop's mouse and keyboard — from New Jersey, Florida or Italy. It works through <b style="color:#cbd5e1">Tailscale</b>, the private network between these Macs.</p>
+          <div style="display:grid;gap:8px;margin-bottom:14px">
+            <?php if (!$_rmList): ?>
+            <div style="color:#94a3b8;font-size:12.5px">No Macs are set up for remote help yet.</div>
+            <?php endif; ?>
+            <?php foreach ($_rmList as $_rm): if (empty($_rm['name'])) continue; ?>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#121620;border:1px solid #334155;border-radius:10px;padding:10px 12px">
+              <?php if (!empty($_rm['anywhere'])): ?>
+              <a href="<?= h($_rmVnc($_rm['anywhere'])) ?>" style="display:inline-flex;align-items:center;gap:7px;background:#047857;border:1px solid #10B981;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;white-space:nowrap">🖥 Connect to <?= h($_rm['name']) ?></a>
+              <?php else: ?>
+              <span style="display:inline-flex;align-items:center;background:#1e2636;border:1px dashed #475569;color:#94a3b8;font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;white-space:nowrap"><?= h($_rm['name']) ?> — not reachable from away yet</span>
+              <?php endif; ?>
+              <span style="font-size:12px;color:#94a3b8;line-height:1.5">
+                <?php if (!empty($_rm['anywhere'])): ?>From anywhere: <code style="color:#cbd5e1"><?= h($_rmVnc($_rm['anywhere'])) ?></code><br><?php endif; ?>
+                <?php if (!empty($_rm['home'])): ?>Same house only: <code style="color:#cbd5e1"><?= h($_rmVnc($_rm['home'])) ?></code><br><?php endif; ?>
+                <?php if (!empty($_rm['note'])): ?><?= h($_rm['note']) ?><?php endif; ?>
+              </span>
+            </div>
+            <?php endforeach; ?>
+          </div>
+          <div style="display:grid;gap:9px">
+            <div><b style="color:#D2AD6C">The first time</b> — the browser asks whether to open <b>Screen Sharing</b>. Tick <b>Always allow</b>, then <b>Open</b>. Screen Sharing then asks for <b>that Mac's</b> user name and password (not this laptop's).</div>
+            <div><b style="color:#D2AD6C">By hand</b> — the same address works in Finder: <b>⌘K</b>, paste it, <b>Connect</b>. It goes in Finder, never in Terminal.</div>
+            <div><b style="color:#D2AD6C">If it will not connect</b> — check, in order: Tailscale on <b>this laptop</b> shows <b>Connected</b> (its icon in the menu bar); the other Mac is <b>on and awake</b>; and its Tailscale sign-in has not expired<?php foreach ($_rmList as $_rm) { if (!empty($_rm['expires'])) { echo ' (' . h($_rm['name']) . ': ' . h($_rm['expires']) . ')'; } } ?> — Control Room has the reminder and the steps.</div>
+            <div><b style="color:#D2AD6C">Once connected: Cantoria won't update</b> — open Terminal on that Mac and run<br><code style="display:block;margin-top:4px;color:#cbd5e1;background:#0d1118;border:1px solid #334155;border-radius:6px;padding:6px 8px;font-size:11.5px;word-break:break-all">curl -fsSL https://raw.githubusercontent.com/claudegulino-bit/family-karaoke/main/app/update.sh | bash -s -- ~/Karaoke</code></div>
+            <div><b style="color:#D2AD6C">Once connected: Cantoria seems gone</b> — in Terminal run <code style="color:#cbd5e1">echo $HOME; ls -d /Users/*/Karaoke</code>. If $HOME is not <code>/Users/&lt;name&gt;</code>, the account's home folder was changed (the Mac starts up looking empty but nothing is lost) — point it back and restart.</div>
+            <div><b style="color:#D2AD6C">Lessons already learned</b> — music keeps going for a few seconds after Stop: use <b>wired</b> speakers, not wireless. "Choose photo…" does nothing: drag the photo onto the square instead.</div>
           </div>
         </div>
         <?php endif; ?>
