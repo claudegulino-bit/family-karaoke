@@ -136,7 +136,7 @@ on run
 		end repeat
 	end if
 	if code is "200" then
-		-- Chrome BY NAME first (2026-09-29): on Mike's Mac "the default browser" for plain http://
+		-- Chrome BY NAME first (2026-09-29): on one family Mac "the default browser" for plain http://
 		-- was not Chrome, so "open location" handed the page to nothing and the icon looked dead.
 		try
 			do shell script "open -a 'Google Chrome' " & quoted form of theURL
