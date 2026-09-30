@@ -1020,6 +1020,9 @@ if (!$KAR_LOCAL) {
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#121620;border:1px solid #334155;border-radius:10px;padding:10px 12px">
               <?php if (!empty($_rm['anywhere'])): ?>
               <a href="<?= h($_rmVnc($_rm['anywhere'])) ?>" style="display:inline-flex;align-items:center;gap:7px;background:#047857;border:1px solid #10B981;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;white-space:nowrap">🖥 Connect to <?= h($_rm['name']) ?></a>
+              <?php // That Mac's own Cantoria page, straight in this browser over Tailscale - its
+                    // controls act on THAT Mac, 2026-09-29. ?>
+              <a href="http://<?= h(preg_replace('/[^A-Za-z0-9.\-]/', '', (string)$_rm['anywhere'])) ?>:<?= (int)($_rm['port'] ?? 8899) ?>/karaoke.php" target="_blank" rel="noopener" title="Opens that Mac's Cantoria in a new tab here — Play, the queue and everything else act on THAT Mac, through its speakers" style="display:inline-flex;align-items:center;gap:7px;background:rgba(210,173,108,.14);border:1px solid #D2AD6C;color:#D2AD6C;text-decoration:none;font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;white-space:nowrap">🎤 Open its Cantoria</a>
               <?php else: ?>
               <span style="display:inline-flex;align-items:center;background:#1e2636;border:1px dashed #475569;color:#94a3b8;font-size:13px;font-weight:700;padding:8px 14px;border-radius:8px;white-space:nowrap"><?= h($_rm['name']) ?> — not reachable from away yet</span>
               <?php endif; ?>
