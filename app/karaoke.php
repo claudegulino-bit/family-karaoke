@@ -3011,6 +3011,10 @@ function karPickFolder(){
         document.getElementById(pid).style.display = 'none';
         karBtnLight(pid, false);
       });
+      // The Guide always reopens on ALL its topics (the owner, 2026-09-30): reopening on the last
+      // card read hid every other topic, and the small "All topics" button is easy to miss.
+      // This runs on every way of closing - its button, ✕ Close, Esc, or opening another panel.
+      try { karGuideBack(); var gp = document.getElementById('kar-guide-panel'); if (gp) gp.scrollTop = 0; } catch(e){}
       if (karDlTimer) { clearTimeout(karDlTimer); karDlTimer = null; }
           try { karFitList(); } catch(e){}
     }
