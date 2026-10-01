@@ -2373,7 +2373,7 @@ function kar_pitch_map_by_singer(PDO $db): array {
 }
 
 /**
- * 🆕 New: downloads of the last 30 days, newest first, intersected with the live
+ * 🆕 New: downloads of the last 5 days, newest first, intersected with the live
  * catalog so a renamed-out or removed file never shows as a ghost.
  *
  * THE DUPLICATE COLUMN HEALS ITSELF (the owner, 2026-09-20).  dup_note is written once at
@@ -2392,7 +2392,7 @@ function kar_pitch_map_by_singer(PDO $db): array {
  */
 function kar_new_downloads(PDO $db, array $catalog): array {
     $new = []; $dup = [];
-    $cut = kar_ago(30, 'days');
+    $cut = kar_ago(5, 'days');   // 5 days (the owner, 2026-09-30: a weekend's songs are gone by the next weekend). Was 7, then 30 from 2026-09-07.
     $set = array_flip($catalog);
     $redo = [];
     try {

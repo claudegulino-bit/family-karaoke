@@ -506,7 +506,7 @@ if ($KAR_LOCAL) {
   // the shared default above — only meaningful on a singer's own list, never on Song Database
   // or New Songs, which have no singer to personalize for.
   $_kjPitchBy = $pdo ? kar_pitch_map_by_singer($pdo) : [];
-  // 🆕 New — everything downloaded in the last 30 days, newest first (the owner, 2026-09-07:
+  // 🆕 New — everything downloaded in the last 5 days (was 30 until 2026-09-30), newest first (the owner, 2026-09-07:
   // "you don't remember what you downloaded last night... a temporary place, a simple click"),
   // each with the duplicate finding made at download time so the review list can still flag
   // it days later.
@@ -526,7 +526,7 @@ if ($KAR_LOCAL) {
            songs you play. Colours come from CSS on .kar-chip, NEVER inline from karSwitch. -->
       <div id="kar-listbar" style="flex:0 0 auto;display:flex;align-items:center;gap:7px">
         <button type="button" id="kar-chip-db" class="kar-chip kar-on" onclick="karSwitch('db',this)" title="Every song in the library"><svg class="kar-vinyl" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" style="flex:0 0 auto"><circle cx="12" cy="12" r="10.5" fill="#111"/><circle cx="12" cy="12" r="8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="5.8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="3.6" fill="#6ee7b7"/><circle cx="12" cy="12" r="1" fill="#111"/><path d="M6 7.5 A7.5 7.5 0 0 1 12 4.5" stroke="#fff" stroke-opacity=".35" stroke-width="1.2" fill="none"/></svg>Song Database <span id="kar-db-count" class="kar-cnt"><?= count($_kjDb) ?></span></button>
-        <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 30 days, newest first — so last night's songs, and last month's, are one click away"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="flex:0 0 auto"><path d="M12 1.5l2.4 5.2 5.6.6-4.2 3.8 1.2 5.5L12 13.8l-5 2.8 1.2-5.5L4 7.3l5.6-.6z" fill="#FBBF24"/><path d="M19.5 15.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="#FDE68A"/><path d="M4 17l.6 1.3 1.3.6-1.3.6L4 20.8l-.6-1.3-1.3-.6 1.3-.6z" fill="#FDE68A"/></svg>New Songs <span id="kar-new-count" class="kar-cnt"><?= count($_kjNew) ?></span></button>
+        <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 5 days, newest first"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="flex:0 0 auto"><path d="M12 1.5l2.4 5.2 5.6.6-4.2 3.8 1.2 5.5L12 13.8l-5 2.8 1.2-5.5L4 7.3l5.6-.6z" fill="#FBBF24"/><path d="M19.5 15.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="#FDE68A"/><path d="M4 17l.6 1.3 1.3.6-1.3.6L4 20.8l-.6-1.3-1.3-.6 1.3-.6z" fill="#FDE68A"/></svg>New Songs <span id="kar-new-count" class="kar-cnt"><?= count($_kjNew) ?></span></button>
         <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Which singer&#39;s songs to show — the ones they know. Pick a name, or add a new person.">
           <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
           <option value="<?= h($_kbp) ?>">Singer: <?= h($_kbp) ?> - <?= count($_kjBestBy[$_kbp]) ?></option>
@@ -754,7 +754,7 @@ if ($KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-sing" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Play a song</h3>
           <ul style="margin:0;padding-left:20px">
-            <li><b>Choose a list.</b> The three boxes under <b>Songs and singers</b> select what the page shows: <b>Song Database</b> (everything), <b>New Songs</b> (added in the last 30 days) and <b>Singer:</b> (one person's songs — the dropdown chooses who). The one on a shaded background is the list currently on screen.</li>
+            <li><b>Choose a list.</b> The three boxes under <b>Songs and singers</b> select what the page shows: <b>Song Database</b> (everything), <b>New Songs</b> (added in the last 5 days) and <b>Singer:</b> (one person's songs — the dropdown chooses who). The one on a shaded background is the list currently on screen.</li>
             <li><b>Search</b> — filters the list on screen by title, artist or singer's name. Esc clears it.</li>
             <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Singer list renumbers it from 1.</li>
             <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> or a <b>double-click</b> switches full screen on and off; <b>Q</b> or the window's red <b>✕</b> closes the player.</li>
@@ -794,7 +794,7 @@ if ($KAR_LOCAL) {
           <ul style="margin:0;padding-left:20px">
             <li><b>⭐ Singer lists</b> — one per person. The dropdown at the top is that list: its menu names every person with the number of songs they have, and selecting a name opens their list. <b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu.</li>
             <li><b>Adding to a list</b> — with the person selected, click <b>⭐</b> on a song's row to add it, and again to remove it. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
-            <li><b>🆕 New Songs</b> — every song added in the last 30 days. The <b>Duplicate</b> column flags songs that appear to match one already in the library.</li>
+            <li><b>🆕 New Songs</b> — every song added in the last 5 days. The <b>Duplicate</b> column flags songs that appear to match one already in the library.</li>
             <li><b>Click a song’s name</b> to rename it. The same box has <b>🗑 Delete file</b>, which removes the song from Cantoria after asking: the file is moved to a Deleted folder, not destroyed, and can be restored. The <b>✕</b> beside A B C only takes a song off the selected singer’s list.</li>
             <li><b>Licensing.</b> These songs are for private use at home. For commercial use — a restaurant, a hall, a ticketed event — point Cantoria at a licensed song library. The songs folder is a setting — see <a href="#" onclick="karGuideOpen('setup');return false" style="color:#D2AD6C">Installing Cantoria</a>.</li>
           </ul>
@@ -817,7 +817,7 @@ if ($KAR_LOCAL) {
         <div><b style="color:#fca5a5">2 · Download it</b> — <b style="color:#fca5a5">⬇ Download</b> starts it immediately. <b>▶ Watch</b> opens the video on YouTube in a new tab first. Every row you open stays marked — the most recent in red, the earlier ones as <b>✓ watched</b> — so after trying several you can see which they were and download whichever you chose. A row you have sent to the list is marked in green. To send a link to somebody, open it with <b>▶ Watch</b> and copy it from the address bar.</div>
         <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b>⬇ Download this link</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
         <div><b style="color:#fca5a5">3 · It downloads straight away</b> — no second button. Songs are fetched one at a time, typically a minute or two each, and the panel may be closed while this runs. Tap several and they queue up behind one another. <b>Clear the list</b> tidies away anything finished or failed.</div>
-        <div><b style="color:#fca5a5">4 · Result</b> — a completed row reads <b style="color:#10B981">✓ Completed</b> and tells you the song is now under <b style="color:#c084fc">🆕 New Songs</b>, which is where songs are renamed, given a key or removed, and where they stay for 30 days. Completed rows remain here while anything else is still downloading — so you can see a whole batch arrive — and clear themselves a couple of minutes after the last one lands. A <b style="color:#f87171">failed</b> download does not clear: it stays here in red with the reason, because a song that never arrived cannot appear under 🆕 New Songs and this is the only place you would ever find out.</div>
+        <div><b style="color:#fca5a5">4 · Result</b> — a completed row reads <b style="color:#10B981">✓ Completed</b> and tells you the song is now under <b style="color:#c084fc">🆕 New Songs</b>, which is where songs are renamed, given a key or removed, and where they stay for 5 days. Completed rows remain here while anything else is still downloading — so you can see a whole batch arrive — and clear themselves a couple of minutes after the last one lands. A <b style="color:#f87171">failed</b> download does not clear: it stays here in red with the reason, because a song that never arrived cannot appear under 🆕 New Songs and this is the only place you would ever find out.</div>
         <div><b style="color:#fca5a5">Closing the panel</b> — the <b>YouTube Downloads</b> button closes it and keeps the search results. <b style="color:#fca5a5">✕ Clear</b> discards the search results and closes.</div>
         <div><b style="color:#fca5a5">Guest requests</b> — songs requested from guests’ phones appear here under the guest’s name and download automatically.</div>
           </div>
@@ -1794,7 +1794,7 @@ if ($KAR_LOCAL) {
           + '</span>'                                   // end SING
           + '</div>');
       }
-      var lbl = karView === 'db' ? 'song database' : (karView === 'new' ? 'new downloads (last 30 days)' : (karWho + '’s Singer list'));
+      var lbl = karView === 'db' ? 'song database' : (karView === 'new' ? 'new downloads (last 5 days)' : (karWho + '’s Singer list'));
       // While a search is active this line stops being a quiet caption and becomes a notice you
       // cannot miss, with a one-click way out — the old 11.5px grey was easy to walk past, which
       // is exactly how a forgotten search made a view look empty for no visible reason.
@@ -1825,7 +1825,7 @@ if ($KAR_LOCAL) {
         : (karView === 'best' && !src.length
            ? '<p style="color:#94a3b8;font-size:13px">' + karEsc(karWho) + '’s list is empty — open 🗂 Song Database and click the ☆ on their songs to build it.</p>'
            : (karView === 'new' && !src.length
-              ? '<p style="color:#94a3b8;font-size:13px">Nothing downloaded in the last 30 days — new songs land here automatically when they arrive.</p>'
+              ? '<p style="color:#94a3b8;font-size:13px">Nothing downloaded in the last 5 days — new songs land here automatically when they arrive.</p>'
               : (karSimple && q
                  // SIMPLE MODE ONLY. The Downloads panel is hidden here, so without this a singer
                  // whose song is missing is simply stuck (the owner, 2026-09-17). The offer appears
@@ -4177,7 +4177,7 @@ function karPickFolder(){
     ['#kar-chip-db', 'Song Database',
      'Every song in this Mac’s song folder — the complete library. Find any song here and add it to a singer’s list with A, B or C. A key set in this view applies to that one play only; a singer’s own keys are kept in their list.'],
     ['#kar-chip-new', 'New Songs',
-     'Songs added in the last 30 days, newest first. They are already in the Song Database as well. This list exists so new arrivals can be checked while they are fresh — the name, the key, and any song Cantoria flags as a possible duplicate of one you already have. After 30 days a song simply drops off this list. A key set here applies to one play only.'],
+     'Songs added in the last 5 days, newest first. They are already in the Song Database as well. This list exists so new arrivals can be checked while they are fresh — the name, the key, and any song Cantoria flags as a possible duplicate of one you already have. After 5 days a song drops off this list by itself, so the songs from one weekend are gone before the next. A key set here applies to one play only.'],
     ['#kar-who', 'Singer',
      'Shows this singer’s Singer List — every song they know — so nobody has to search the whole library at a party. Keys are kept per singer: a key set here is remembered for this singer only. Pick a name, or add a new person.'],
     ['#kar-tier-sel', 'Which list',
