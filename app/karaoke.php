@@ -1219,7 +1219,7 @@ if ($KAR_LOCAL) {
          it from whatever the Show: chips happen to be on). Counts are filled in live so the
          choice is informed, not a guess. -->
     <div id="kar-tierclear-pop" style="display:none;position:fixed;z-index:60;background:#1c2331;border:1px solid #7f1d1d;border-radius:10px;padding:12px 14px;max-width:280px;box-shadow:0 6px 24px rgba(0,0,0,.65)">
-      <div style="color:#f87171;font-size:12px;font-weight:700;margin-bottom:8px">Clear which list?</div>
+      <div id="kar-tierclear-t" style="color:#f87171;font-size:12px;font-weight:700;margin-bottom:8px">Clear which list?</div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
         <button type="button" onclick="karTierClearPick(1)" style="font-family:inherit;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 10px;border-radius:8px;text-align:left">List A — <span id="kar-tierclear-n1">0</span> songs</button>
         <button type="button" onclick="karTierClearPick(2)" style="font-family:inherit;background:#121620;border:1px solid #334155;color:#e2e8f0;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 10px;border-radius:8px;text-align:left">List B — <span id="kar-tierclear-n2">0</span> songs</button>
@@ -1525,6 +1525,10 @@ if ($KAR_LOCAL) {
       var cnt = { 1: 0, 2: 0, 3: 0 };
       for (var p = 0; p < pairs.length; p++) if (cnt[pairs[p][1]] !== undefined) cnt[pairs[p][1]]++;
       [1, 2, 3].forEach(function(t){ document.getElementById('kar-tierclear-n' + t).textContent = cnt[t]; });
+      // Name the singer in the question itself, so whose list is about to be emptied is
+      // visible BEFORE a letter is picked (2026-09-30 - the owner had trouble with this himself).
+      var tt = document.getElementById('kar-tierclear-t');
+      if (tt) tt.textContent = 'Clear which of ' + karWho + '\u2019s lists?';
       var pop = document.getElementById('kar-tierclear-pop');
       pop.style.display = 'block';
       var r = btn.getBoundingClientRect();
@@ -1794,7 +1798,7 @@ if ($KAR_LOCAL) {
           + '</span>'                                   // end SING
           + '</div>');
       }
-      var lbl = karView === 'db' ? 'song database' : (karView === 'new' ? 'new downloads (last 5 days)' : (karWho + '’s Singer list'));
+      var lbl = karView === 'db' ? 'the song database' : (karView === 'new' ? 'the new downloads (last 5 days)' : (karWho + '’s Singer List'));
       // While a search is active this line stops being a quiet caption and becomes a notice you
       // cannot miss, with a one-click way out — the old 11.5px grey was easy to walk past, which
       // is exactly how a forgotten search made a view look empty for no visible reason.
@@ -1812,7 +1816,7 @@ if ($KAR_LOCAL) {
       } else {
         cntEl.style.cssText = 'margin-top:10px;color:#64748b;font-size:11.5px;'
           + 'display:flex;align-items:center;gap:12px;flex-wrap:wrap';
-        cntEl.innerHTML = '<span>' + out.length + ' of ' + src.length + ' songs in the ' + karEsc(lbl) + '</span>'
+        cntEl.innerHTML = '<span>' + out.length + ' of ' + src.length + ' songs in ' + karEsc(lbl) + '</span>'
           + (karView === 'new' && src.length
              ? '<button type="button" id="kar-chk-all" onclick="karCheckedAll()" '
                + 'title="Take every song off this list at once. They all stay in the song database — nothing is deleted." '
@@ -4183,7 +4187,7 @@ function karPickFolder(){
     ['#kar-tier-sel', 'Which list',
      'A singer’s list is every song they know, in three groups: A for the songs they sing best, B for the next best, C for the rest. Choose one, or All to see them together. The number beside each shows how many songs it holds.'],
     ['[onclick^="karTierClearShow"]', 'Clear a list',
-     'Empties one of this singer’s lists (A, B or C) after you choose which one and confirm. The song files are never touched — the songs only come off that list.'],
+     'Choose the singer first, in the Singer box to the left — Clear works on whoever is shown there. Then pick which of their lists to empty (A, B or C) and confirm. The song files are never touched; the songs only come off that singer’s list.'],
     ['#kar-singer-btn', 'Singer details',
      'This singer’s full name as the announcer says it, Man or Woman, and the photo shown on screen when they are called up.'],
     ['#kar-search', 'Search',
