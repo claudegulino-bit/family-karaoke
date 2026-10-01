@@ -4219,7 +4219,7 @@ function karPickFolder(){
     ['#kar-q-btn', 'Queue',
      'The singing queue: who sings next, in order. Add songs to it from any list. With Scheduling fairness switched on, everyone sings once before anyone sings twice.'],
     ['#kar-qr-btn', 'Guest QR',
-     'Shows a code guests scan with their phone’s camera. They can search the library and request songs from their own phone, with no app to install.'],
+     'Shows a code guests scan with their phone’s camera — no app to install. From their phone they can search the library and put themselves in the queue. If their song is not there, they can find it on YouTube: Cantoria downloads it in a few minutes, adds it to the library, and puts them in the queue to sing it. Up to 2 new songs per guest per night, 15 in all.'],
     ['#kar-upd-now', 'Update',
      'A newer version of Cantoria is ready. One click installs it and reloads the page. Songs, singers, keys and settings are not touched.'],
     ['#kar-guide-btn', 'Guide',
