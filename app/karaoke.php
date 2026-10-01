@@ -4187,7 +4187,9 @@ function karPickFolder(){
     ['#kar-tier-sel', 'Which list',
      'A singer’s list is every song they know, in three groups: A for the songs they sing best, B for the next best, C for the rest. Choose one, or All to see them together. The number beside each shows how many songs it holds.'],
     ['[onclick^="karTierClearShow"]', 'Clear a list',
-     'Choose the singer first, in the Singer box to the left — Clear works on whoever is shown there. Then pick which of their lists to empty (A, B or C) and confirm. The song files are never touched; the songs only come off that singer’s list.'],
+     function(){ var w = (typeof karWho === 'string' && karWho) ? karWho : '';
+       return (w ? 'This clears one of ' + w + '’s lists. ' : '') +
+              'Choose the singer first, in the Singer box to the left — Clear works on whoever is shown there. Then pick which of their lists to empty (A, B or C) and confirm. The song files are never touched; the songs only come off that singer’s list.'; }],
     ['#kar-singer-btn', 'Singer details',
      'This singer’s full name as the announcer says it, Man or Woman, and the photo shown on screen when they are called up.'],
     ['#kar-search', 'Search',
@@ -4235,7 +4237,8 @@ function karPickFolder(){
   function hide(){ clearTimeout(timer); timer = null; cur = null; box.classList.remove('is-on'); box.setAttribute('aria-hidden','true'); }
   function show(el){
     box.firstChild.textContent = el.getAttribute('data-tip-t');
-    box.lastChild.textContent = el.getAttribute('data-tip-b');
+    var fn = el._karTipFn;
+    box.lastChild.textContent = fn ? fn() : el.getAttribute('data-tip-b');
     box.style.left = '0px'; box.style.top = '0px'; box.classList.add('is-on'); box.setAttribute('aria-hidden','false');
     var r = el.getBoundingClientRect(), bw = box.offsetWidth, bh = box.offsetHeight, m = 8;
     var x = Math.min(Math.max(m, r.left + r.width / 2 - bw / 2), window.innerWidth - bw - m);
@@ -4262,7 +4265,9 @@ function karPickFolder(){
     });
     KAR_TIPS.forEach(function(t){
       document.querySelectorAll(t[0]).forEach(function(el){
-        el.setAttribute('data-tip-t', t[1]); el.setAttribute('data-tip-b', t[2]);
+        el.setAttribute('data-tip-t', t[1]);
+        if (typeof t[2] === 'function') { el._karTipFn = t[2]; el.setAttribute('data-tip-b', ''); }
+        else el.setAttribute('data-tip-b', t[2]);
         el.removeAttribute('title'); arm(el);
       });
     });
