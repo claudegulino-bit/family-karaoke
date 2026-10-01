@@ -1557,7 +1557,7 @@ if ($KAR_LOCAL) {
       var cnt = 0;
       for (var p = 0; p < pairs.length; p++) if (pairs[p][1] === t) cnt++;
       if (cnt === 0) { alert('List ' + letter + ' is already empty for ' + karWho + '.'); return; }
-      if (!confirm('Remove all ' + cnt + ' of ' + karWho + '’s list ' + letter + ' songs from the list?\n\nThe song files are NOT touched — this only takes them off list ' + letter + '. They can be added back one at a time from Song Database or New Songs.')) return;
+      if (!confirm('Remove all ' + cnt + ' of ' + karWho + '’s list ' + letter + ' songs from the list?\n\nThe songs stay in the Song Database — this only takes them off ' + karWho + '’s list ' + letter + '. They can be added back one at a time from the Song Database or New Songs.')) return;
       var fd = new FormData();
       fd.append('form_type', 'karaoke_best_clear_tier');
       fd.append('person', karWho);
@@ -4198,8 +4198,8 @@ function karPickFolder(){
     ['[onclick^="karTierClearShow"]', 'Clear a list',
      function(){ var w = (typeof karWho === 'string' && karWho) ? karWho : '';
        // Worded by the owner, 2026-09-30: say whose list it is, then what to do - no repetition.
-       if (!w) return 'Choose a singer in the Singer box first. Clear then empties one of that singer’s lists — A, B or C — after you confirm. The song files are never touched.';
-       return 'This clears one of ' + w + '’s lists. Choose the list you want to empty — A, B or C — and confirm. To clear a different singer’s list, first choose that singer in the Singer box. The song files are never touched; the songs only come off ' + w + '’s Singer List.'; }],
+       if (!w) return 'Choose a singer in the Singer box first. Clear then empties one of that singer’s lists — A, B or C — after you confirm. The songs stay in the Song Database.';
+       return 'This clears one of ' + w + '’s lists. Choose the list you want to empty — A, B or C — and confirm. To clear a different singer’s list, first choose that singer in the Singer box. The songs stay in the Song Database; they only come off ' + w + '’s list.'; }],
     ['#kar-singer-btn', 'Singer details',
      'This singer’s full name as the announcer says it, Man or Woman, and the photo shown on screen when they are called up.'],
     ['#kar-search', 'Search',
