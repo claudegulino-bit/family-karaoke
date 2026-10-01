@@ -4188,7 +4188,7 @@ function karPickFolder(){
 (function(){
   var KAR_TIPS = [
     ['#kar-chip-db', 'Song Database',
-     'This is the Song Database: the complete library — every song Cantoria can play. Find any song here.'],
+     'This is the complete song database: every song Cantoria can play. It is also where you add songs to a singer’s list — choose the singer in the Singer box, then press A for the songs they sing best, B for the next best, or C for the rest. A key can be set here too, but it applies to one play only and then goes back to 0. To keep a key for a singer permanently, set it in their Singer List.'],
     ['#kar-chip-new', 'New Songs',
      'Songs added in the last 5 days, newest first. They are already in the Song Database as well. This list exists so new arrivals can be checked while they are fresh — the name, the key, and any song Cantoria flags as a possible duplicate of one you already have. After 5 days a song drops off this list by itself, so the songs from one weekend are gone before the next. A key set here applies to one play only.'],
     ['#kar-who', 'Singer',
