@@ -4237,13 +4237,16 @@ function karPickFolder(){
     ['#kar-stop-btn', 'Stop',
      'Stops the song where it is; press again to carry on from the same place. To end the song, close the lyrics screen.'],
     ['#kar-q-btn', 'Queue',
-     'The singing queue: who sings next, in order. Add songs to it from any list. With Scheduling fairness switched on, everyone sings once before anyone sings twice.'],
+     'The singing queue: who is singing now and who sings next, in order. In it, ▶ Next singer calls the next person up. Add songs to it with Queue on any song’s row. With Scheduling fairness switched on, everyone sings once before anyone sings twice.\n' +
+     'Click once to open it, click again to close it — the button stays lit while it is open. ✕ Close or the Esc key close it too. Only one of Queue, Guest QR and Guide is open at a time: opening one closes the others.'],
     ['#kar-qr-btn', 'Guest QR',
-     'Shows a code guests scan with their phone’s camera — no app to install. From their phone they can search the library and put themselves in the queue. If their song is not there, they can find it on YouTube: Cantoria downloads it in a few minutes, adds it to the library, and puts them in the queue to sing it. Each guest can have up to 2 new songs on the way at a time; once one is sung, they can add another.'],
+     'Shows a code guests scan with their phone’s camera — no app to install. From their phone they can search the library and put themselves in the queue. If their song is not there, they can find it on YouTube: Cantoria downloads it in a few minutes, adds it to the library, and puts them in the queue to sing it. Each guest can have up to 2 new songs on the way at a time; once one is sung, they can add another. The code can also be printed.\n' +
+     'Click once to open it, click again to close it — the button stays lit while it is open. ✕ Close or the Esc key close it too. Only one of Queue, Guest QR and Guide is open at a time: opening one closes the others.'],
     ['#kar-upd-now', 'Update',
      'A newer version of Cantoria is ready. One click installs it and reloads the page. Songs, singers, pitch settings and other settings are not touched. This button appears by itself: Cantoria checks for a new version when the page opens, whenever you come back to it, and every 5 minutes.'],
     ['#kar-guide-btn', 'Guide',
-     'How everything on this page works, explained topic by topic — from setting up a Mac to running a party.'],
+     'How everything on this page works, explained topic by topic — from setting up a Mac to running a party. While the Guide is open it takes the place of the song list; closing it brings the list back.\n' +
+     'Click once to open it, click again to close it — the button stays lit while it is open. ✕ Close or the Esc key close it too. Only one of Queue, Guest QR and Guide is open at a time: opening one closes the others.'],
     ['[onclick="location.reload()"]', 'Refresh',
      'Reloads the page so it shows the latest song lists — for example after new songs have been added. It also checks at once for a new version of Cantoria; if there is one, the gold Update button appears beside it.']
   ];
