@@ -4176,12 +4176,12 @@ function karPickFolder(){
      A control listed here loses its plain title= so two tooltips never show at once. Register:
      professional documentation, like the Guide - clear and precise, never chatty. -->
 <style>
-  #kar-tipbox{position:fixed;z-index:10050;max-width:330px;background:#0f172a;border:1px solid #D2AD6C;
+  #kar-tipbox{position:fixed;z-index:10050;max-width:380px;background:#0f172a;border:1px solid #D2AD6C;
     border-radius:10px;padding:10px 13px;box-shadow:0 10px 28px rgba(0,0,0,.5);pointer-events:none;
     opacity:0;transform:translateY(3px);transition:opacity .12s ease,transform .12s ease;font-family:inherit}
   #kar-tipbox.is-on{opacity:1;transform:none}
   #kar-tipbox b{display:block;color:#D2AD6C;font-size:13px;font-weight:800;margin-bottom:4px}
-  #kar-tipbox span{display:block;color:#cbd5e1;font-size:12.5px;line-height:1.5}
+  #kar-tipbox span{display:block;color:#cbd5e1;font-size:12.5px;line-height:1.5;white-space:pre-line}
 </style>
 <div id="kar-tipbox" role="tooltip" aria-hidden="true"><b></b><span></span></div>
 <script>
@@ -4203,7 +4203,11 @@ function karPickFolder(){
     ['#kar-singer-btn', 'Singer details',
      'This singer’s full name as the announcer says it, Man or Woman, and the photo shown on screen when they are called up.'],
     ['#kar-search', 'Search',
-     'With Song Database selected on the right, type part of a song or artist and the list below narrows as you type — in the Song Database, New Songs or a singer’s list, whichever is showing. With YouTube selected, it searches YouTube instead; with Link, paste an address here. Found the song? Press Queue on its row to put it in the singing queue. Esc clears it.'],
+     'Songs come from three places — pick one with the three buttons on the right:\n' +
+     '1 · Song Database — the songs already on this Mac. This is the normal setting: the list narrows as you type.\n' +
+     '2 · YouTube — type the song or artist, then press YouTube. Choose a version and Cantoria downloads it.\n' +
+     '3 · Link — paste a YouTube address you already have, then press Link, and Cantoria downloads it.\n' +
+     'Found the song? Press Queue on its row to put it in the singing queue. Esc clears the box.'],
     ['#kar-sm-list', 'Search: Song Database',
      'Search the songs already on this Mac. When you find the one you want, press Queue on its row to put it in the singing queue, or Play to sing it now.'],
     ['#kar-sm-yt', 'Search: YouTube',
