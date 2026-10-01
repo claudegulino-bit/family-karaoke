@@ -592,7 +592,7 @@ if ($KAR_LOCAL) {
       <!-- Simple / Complete. Hidden by KAR_MODE_SWITCH=false, and sized to the pills so that it
            fits the row on the day it is switched back on. -->
       <span id="kar-mode-sw" title="Simple shows only what you need to sing. Complete shows everything." style="display:inline-flex;align-items:stretch;border:1px solid #475569;border-radius:9px;overflow:hidden">
-        <button type="button" id="kar-mode-s" onclick="karSetSimple(true)" title="Just what you need to sing - search, key, play, stop" style="appearance:none;-webkit-appearance:none;font-family:inherit;border:none;border-right:1px solid #475569;cursor:pointer;width:72px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase">Simple</button>
+        <button type="button" id="kar-mode-s" onclick="karSetSimple(true)" title="Just what you need to sing - search, pitch, play, stop" style="appearance:none;-webkit-appearance:none;font-family:inherit;border:none;border-right:1px solid #475569;cursor:pointer;width:72px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase">Simple</button>
         <button type="button" id="kar-mode-c" onclick="karSetSimple(false)" title="Everything - the singing queue, downloads and guest requests" style="appearance:none;-webkit-appearance:none;font-family:inherit;border:none;cursor:pointer;width:72px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase">Complete</button>
       </span>
       </div>
@@ -605,7 +605,7 @@ if ($KAR_LOCAL) {
         <?php if (!$KAR_LOCAL): // casAI only — and shown only when there is more than one Mac to choose from ?>
         <span style="display:<?= count($KAR_MACS) > 1 ? 'flex' : 'none' ?>;flex-direction:column;gap:5px;padding:0 16px 0 0">
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">Play on</span>
-          <select id="kar-mac" onchange="karMacChange(this)" title="Which Mac the music comes out of. Every button on this page — Play, Stop, key, tempo — goes to the Mac picked here." style="font-family:inherit;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:12px;font-weight:700;padding:4px 8px;border-radius:8px">
+          <select id="kar-mac" onchange="karMacChange(this)" title="Which Mac the music comes out of. Every button on this page — Play, Stop, pitch, tempo — goes to the Mac picked here." style="font-family:inherit;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:12px;font-weight:700;padding:4px 8px;border-radius:8px">
             <?php foreach ($KAR_MACS as $_km): ?>
             <option value="<?= h($_km) ?>"><?= h($_km) ?></option>
             <?php endforeach; ?>
@@ -624,11 +624,11 @@ if ($KAR_LOCAL) {
           </span>
         </span>
         <span id="kar-sec-key" style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
-          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Key</span>
+          <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Pitch</span>
           <span style="display:flex;align-items:center;gap:6px">
-            <button type="button" onclick="karLiveAdj(-1)" title="Lower the key one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
+            <button type="button" onclick="karLiveAdj(-1)" title="Lower the pitch one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
             <span id="kar-live-val" style="color:#D2AD6C;font-size:16px;font-weight:800;width:32px;text-align:center">0</span>
-            <button type="button" onclick="karLiveAdj(1)" title="Raise the key one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
+            <button type="button" onclick="karLiveAdj(1)" title="Raise the pitch one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
           </span>
         </span>
         <span id="kar-sec-tempo" style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
@@ -637,16 +637,16 @@ if ($KAR_LOCAL) {
             <!-- −/+ buttons, not a slider. A slider went in on 2026-09-20 and the owner asked the
                  same day to put these back: "I made a mistake. Please change back." Each press is
                  5%; the number between them is the alarm and the one-click way back to 100%. -->
-            <button type="button" id="kar-tempo-down" onclick="karTempoAdj(-5)" title="Slow the song by 5%. The key stays true. For tonight only — not saved." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
+            <button type="button" id="kar-tempo-down" onclick="karTempoAdj(-5)" title="Slow the song by 5%. The pitch stays true. For tonight only — not saved." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
             <span id="kar-tempo-val" onclick="karTempoReset()" title="Normal speed. Use − and + to change it for tonight; it is not saved." style="color:#6ee7b7;font-size:15px;font-weight:800;width:52px;text-align:center;cursor:pointer;border-radius:6px;padding:2px 0">100%</span>
-            <button type="button" id="kar-tempo-up" onclick="karTempoAdj(5)" title="Speed the song up by 5%. The key stays true. For tonight only — not saved." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
+            <button type="button" id="kar-tempo-up" onclick="karTempoAdj(5)" title="Speed the song up by 5%. The pitch stays true. For tonight only — not saved." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
           </span>
         </span>
         <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <span id="kar-lbl-playback" style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Playback</span>
           <span style="display:flex;align-items:center;gap:8px">
             <button id="kar-lyrics-btn" type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics screen, or bring it back in front of everything" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:11px;font-weight:800;line-height:1.1;padding:0 10px;height:36px;border-radius:8px;white-space:nowrap">🎬 Lyrics<br>Screen</button>
-            <button type="button" id="kar-start-btn" onclick="karPlayAgain()" title="Restart from the beginning — same player, at the key shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏮ Restart</button>
+            <button type="button" id="kar-start-btn" onclick="karPlayAgain()" title="Restart from the beginning — same player, at the pitch shown" style="font-family:inherit;background:#16a34a;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏮ Restart</button>
             <button type="button" onclick="karPauseToggle(this)" id="kar-stop-btn" title="Stop the song where it is. Press again to resume. To end a song, close the lyrics screen (Q)." style="font-family:inherit;background:#dc2626;border:1px solid #dc2626;color:#fff;cursor:pointer;font-size:12px;font-weight:800;padding:0 16px;height:36px;border-radius:8px">⏹ Stop</button>
           </span>
         </span>
@@ -665,7 +665,7 @@ if ($KAR_LOCAL) {
              "Refresh will be the last one. Then it will be guide. And then it will be start and
              stop." No label above them — they say what they are. -->
         <span style="display:flex;align-items:center;gap:7px;padding:0 0 0 16px;border-left:1px solid rgba(210,173,108,.28)">
-          <?php if ($KAR_LOCAL): ?><button type="button" id="kar-upd-now" onclick="karUpdateNow(this)" title="A newer Cantoria is ready — one click installs it and reloads this page. Your songs, singers, keys and settings are not touched." style="display:none;font-family:inherit;background:#D2AD6C;border:1px solid #fde68a;color:#1A1F2C;cursor:pointer;font-size:12.5px;font-weight:800;padding:0 14px;height:36px;border-radius:8px;box-shadow:0 0 0 3px rgba(210,173,108,.28)">⬆︎ Update</button><?php endif; ?>
+          <?php if ($KAR_LOCAL): ?><button type="button" id="kar-upd-now" onclick="karUpdateNow(this)" title="A newer Cantoria is ready — one click installs it and reloads this page. Your songs, singers, pitch settings and other settings are not touched." style="display:none;font-family:inherit;background:#D2AD6C;border:1px solid #fde68a;color:#1A1F2C;cursor:pointer;font-size:12.5px;font-weight:800;padding:0 14px;height:36px;border-radius:8px;box-shadow:0 0 0 3px rgba(210,173,108,.28)">⬆︎ Update</button><?php endif; ?>
           <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" class="kar-ref kar-tile" title="How everything on this page works — all the rules in one readable place"><span style="font-size:15px">&#x1F4D6;</span>Guide</button>
           <button type="button" onclick="location.reload()" class="kar-ref" title="Refresh — reload the song lists from the server"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 12a8.5 8.5 0 1 1-2.49-6.01"/><path d="M20.5 4v5.5h-5.5"/></svg>Refresh</button>
         </span>
@@ -702,8 +702,8 @@ if ($KAR_LOCAL) {
         if (!$KAR_LOCAL) $_karCards[] = ['config', $_num('Configuration and workflow'), 'Machines, release process and shared data.', 'Setting up'];
         if (!$KAR_LOCAL) $_karCards[] = ['remote', $_num('Remote help'), 'Reach the other Macs from anywhere — one click.', 'Setting up'];
         $_karCards[] = ['update', $_num('Software updates'), $KAR_LOCAL ? 'Installing the latest version.' : 'How the other Macs receive a release.', 'Setting up'];
-        $_karCards[] = ['sing',  $_num('Play a song'),          'Search, playback and key.', 'Using it'];
-        $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: key, speed, restart and stop.', 'Using it'];
+        $_karCards[] = ['sing',  $_num('Play a song'),          'Search, playback and pitch.', 'Using it'];
+        $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: pitch, speed, restart and stop.', 'Using it'];
         $_karCards[] = ['songs', $_num('Managing songs'),       'Singer lists, new arrivals, renaming and removal.', 'Using it'];
         $_karCards[] = ['party', $_num('Party controls'),       'The singing queue, guest requests and downloads.', 'At a party'];
         // The three party panels each get a card of their own. Their words live HERE and
@@ -758,7 +758,7 @@ if ($KAR_LOCAL) {
             <li><b>Search</b> — filters the list on screen by title, artist or singer's name. Esc clears it.</li>
             <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Singer list renumbers it from 1.</li>
             <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> or a <b>double-click</b> switches full screen on and off; <b>Q</b> or the window's red <b>✕</b> closes the player.</li>
-            <li><b>Pitch</b> — the key the song starts in. Use − and + to transpose by semitones. On <b>Song Database</b> and <b>New Songs</b> it always starts at 0 and is never saved — a one-time change for whatever gets played or queued next. On a <b>singer's own list</b>, it saves as that singer's own pitch for the song.</li>
+            <li><b>Pitch</b> — the pitch the song starts at. Use − and + to transpose by semitones. On <b>Song Database</b> and <b>New Songs</b> it always starts at 0 and is never saved — a one-time change for whatever gets played or queued next. On a <b>singer's own list</b>, it saves as that singer's own pitch for the song.</li>
             <li><b>A B C</b> puts the song on list A, B or C of the person named in the dropdown; clicking the lit letter again takes it off. The list on screen does not move while you do this. <b>Show: All / A / B / C</b> at the top of a singer's list chooses which of their songs appear.</li>
           </ul>
         </div>
@@ -768,11 +768,11 @@ if ($KAR_LOCAL) {
           <ul style="margin:0;padding-left:20px">
             <li>The <b>gold bar</b> controls the song currently playing. It stays at the top of the page as the list scrolls.</li>
             <li><b>Speed</b> — − and + change it 5% at a time. It takes effect immediately, mid-song, and shows what the player is actually doing. At <b>100%</b> it is quiet green; at anything else it turns <b>amber</b>, and one click on the number puts it straight back to normal. A song that sounds slow or fast is therefore visible on the bar rather than left to guesswork.</li>
-            <li><b>Key</b> sits beside it and also takes effect mid-song. Each song's own starting key is the <b>Pitch</b> box on its row; the key set here is for tonight only and is not saved.</li>
+            <li><b>Pitch</b> in the gold bar sits beside it and also takes effect mid-song. Each song's own starting pitch is the <b>Pitch</b> box on its row; the pitch set in the gold bar is for tonight only and is not saved.</li>
             <li><b>The progress line</b> under the song name shows how far through it is — drag it to move within the song.</li>
             <li><b>⏮ Restart</b> goes back to the beginning of the song. <b>⏹ Stop</b> pauses it where it is and becomes <b>▶ Resume</b>, which carries on from that point.</li>
             <li><b>🎬 Lyrics Screen</b> hides the lyrics window or brings it back. It otherwise stays in front of the browser while a song plays. To end a song, close that window — <b>Q</b> or its red <b>✕</b> on the Mac.</li>
-            <li>Changes made in the gold bar apply to the current performance only. A song's saved key is the <b>Pitch</b> value on its row.</li>
+            <li>Changes made in the gold bar apply to the current performance only. A song's saved pitch is the <b>Pitch</b> value on its row.</li>
           </ul>
         </div>
 
@@ -817,7 +817,7 @@ if ($KAR_LOCAL) {
         <div><b style="color:#fca5a5">2 · Download it</b> — <b style="color:#fca5a5">⬇ Download</b> starts it immediately. <b>▶ Watch</b> opens the video on YouTube in a new tab first. Every row you open stays marked — the most recent in red, the earlier ones as <b>✓ watched</b> — so after trying several you can see which they were and download whichever you chose. A row you have sent to the list is marked in green. To send a link to somebody, open it with <b>▶ Watch</b> and copy it from the address bar.</div>
         <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b>⬇ Download this link</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
         <div><b style="color:#fca5a5">3 · It downloads straight away</b> — no second button. Songs are fetched one at a time, typically a minute or two each, and the panel may be closed while this runs. Tap several and they queue up behind one another. <b>Clear the list</b> tidies away anything finished or failed.</div>
-        <div><b style="color:#fca5a5">4 · Result</b> — a completed row reads <b style="color:#10B981">✓ Completed</b> and tells you the song is now under <b style="color:#c084fc">🆕 New Songs</b>, which is where songs are renamed, given a key or removed, and where they stay for 5 days. Completed rows remain here while anything else is still downloading — so you can see a whole batch arrive — and clear themselves a couple of minutes after the last one lands. A <b style="color:#f87171">failed</b> download does not clear: it stays here in red with the reason, because a song that never arrived cannot appear under 🆕 New Songs and this is the only place you would ever find out.</div>
+        <div><b style="color:#fca5a5">4 · Result</b> — a completed row reads <b style="color:#10B981">✓ Completed</b> and tells you the song is now under <b style="color:#c084fc">🆕 New Songs</b>, which is where songs are renamed, given a pitch or removed, and where they stay for 5 days. Completed rows remain here while anything else is still downloading — so you can see a whole batch arrive — and clear themselves a couple of minutes after the last one lands. A <b style="color:#f87171">failed</b> download does not clear: it stays here in red with the reason, because a song that never arrived cannot appear under 🆕 New Songs and this is the only place you would ever find out.</div>
         <div><b style="color:#fca5a5">Closing the panel</b> — the <b>YouTube Downloads</b> button closes it and keeps the search results. <b style="color:#fca5a5">✕ Clear</b> discards the search results and closes.</div>
         <div><b style="color:#fca5a5">Guest requests</b> — songs requested from guests’ phones appear here under the guest’s name and download automatically.</div>
           </div>
@@ -994,7 +994,7 @@ if ($KAR_LOCAL) {
               <div style="display:grid;gap:7px;font-size:12.5px;line-height:1.5">
                 <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#D2AD6C">1</b><span><b style="color:#f3d9a4">Development</b> — all changes are made in casAI, on the master Cantoria.</span></div>
                 <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#60A5FA">2</b><span><b style="color:#bfdbfe">Testing</b> — each release is then installed on the standalone copy, on the same laptop, and used before distribution.</span></div>
-                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#6ee7b7">3</b><span><b style="color:#d1fae5">Installation</b> — each user retrieves the release on their own Mac, from the 📖 Guide button. Songs, lists and saved keys are unaffected.</span></div>
+                <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#6ee7b7">3</b><span><b style="color:#d1fae5">Installation</b> — each user retrieves the release on their own Mac, from the 📖 Guide button. Songs, lists and saved pitch settings are unaffected.</span></div>
                 <div style="display:flex;gap:9px"><b style="flex:0 0 18px;color:#c084fc">♪</b><span><b style="color:#e9d5ff">Songs</b> — not part of any release. My own Macs read one shared Google Drive folder; every other Mac keeps its own copy.</span></div>
               </div>
             </div>
@@ -1064,7 +1064,7 @@ if ($KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-update" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Software updates</h3>
           <p style="margin:0 0 8px"><b>Usually you do not need this page.</b> When a new version is published, a gold <b style="color:#D2AD6C">⬆︎ Update</b> button appears on the gold bar, next to Guide. Press it once: the new version installs and the page reloads by itself.</p>
-          <p style="margin:0 0 8px">The button below does the same thing, any time. <b>Songs, settings, Singer lists and saved keys are preserved</b>; only the program is replaced.</p>
+          <p style="margin:0 0 8px">The button below does the same thing, any time. <b>Songs, settings, Singer lists and saved pitch settings are preserved</b>; only the program is replaced.</p>
           <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Cantoria Software Update</button>
           <div id="kar-upd-state" style="display:none;margin-top:8px;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;line-height:1.6"></div>
           <span id="kar-upd-msg" style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">Installed version: <b id="kar-upd-ver" style="color:#cbd5e1"><?= h(kar_installed_version()) ?></b></span>
@@ -1079,7 +1079,7 @@ if ($KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Software updates</h3>
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">This Mac</b> — the development machine. Changes are made here directly and released from here, so there is nothing to retrieve and no update button on this copy.</div>
         <div><b style="color:#D2AD6C">Every other Mac</b> — opens its own <b>📖 Guide → Software updates</b> and presses <b style="color:#6ee7b7">⬆︎ Cantoria Software Update</b>. Each machine installs the release itself; nothing is sent to it from here.</div>
-        <div><b style="color:#D2AD6C">What is preserved</b> — on those machines the songs, settings, Singer lists and saved keys are kept. Only the program is replaced.</div>
+        <div><b style="color:#D2AD6C">What is preserved</b> — on those machines the songs, settings, Singer lists and saved pitch settings are kept. Only the program is replaced.</div>
         <?php
           // ⚠ ONE FILE. Written ONLY by publish_karaoke.php, on the server, outside the
           // webroot - never edited on any Mac. Every other machine shows its OWN version
@@ -1209,7 +1209,7 @@ if ($KAR_LOCAL) {
          good... other people are going to do it too"). Once per page load. -->
     <div id="kar-pitchwarn-pop" style="display:none;position:fixed;z-index:60;background:#1c2331;border:1px solid #b45309;border-radius:10px;padding:12px 14px;max-width:330px;box-shadow:0 6px 24px rgba(0,0,0,.65)">
       <div style="color:#fbbf24;font-size:12.5px;font-weight:700;margin-bottom:5px">This change is for one play only</div>
-      <div style="color:#cbd5e1;font-size:12px;line-height:1.45;margin-bottom:10px">Song Database and New Songs never save pitches. To save a key, set it on the singer's own list.</div>
+      <div style="color:#cbd5e1;font-size:12px;line-height:1.45;margin-bottom:10px">Song Database and New Songs never save pitches. To save a pitch, set it on the singer's own list.</div>
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
         <button type="button" id="kar-pitchwarn-list" onclick="karPitchWarnHide(); karSwitch('best', document.getElementById('kar-who'));" style="font-family:inherit;background:#047857;border:1px solid #10B981;color:#fff;cursor:pointer;font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px">Open the list</button>
         <button type="button" onclick="karPitchWarnHide()" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px">OK, just this once</button>
@@ -1239,7 +1239,7 @@ if ($KAR_LOCAL) {
          delete 48 with the section's 10px gaps = 236, inset 9px (the section band's 8px padding +
          1px border) — and the spacer runs to where the ＋ Add button starts. -->
     <div id="kar-bands" style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px 0 23px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
-      <span style="flex:0 0 auto;width:236px;margin-left:9px;text-align:center;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Singer list, and removing it">Set up</span>
+      <span style="flex:0 0 auto;width:236px;margin-left:9px;text-align:center;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="How the song is set up: its pitch, whether it is on someone&#39;s Singer list, and removing it">Set up</span>
       <span style="flex:0 0 auto;width:70px"></span>
       <span style="flex:1;min-width:0;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Play and sing</span>
     </div>
@@ -2942,7 +2942,7 @@ function karPickFolder(){
       fetch(KAR_API,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
         var b = document.getElementById('kar-upd-now'); if (!b || !d || !d.ok) return;
         b.style.display = d.available ? '' : 'none';
-        if (d.available) b.title = 'Cantoria ' + d.latest + ' is ready (this Mac has ' + d.local + '). One click installs it and reloads this page. Your songs, singers, keys and settings are not touched.';
+        if (d.available) b.title = 'Cantoria ' + d.latest + ' is ready (this Mac has ' + d.local + '). One click installs it and reloads this page. Your songs, singers, pitch settings and other settings are not touched.';
       }).catch(function(){});
     }
     function karUpdateNow(btn){
@@ -4211,23 +4211,23 @@ function karPickFolder(){
     ['#kar-sm-link', 'Search: Link',
      'Paste a YouTube address someone sent you, and Cantoria downloads that exact version into the library. Once it arrives under New Songs, press Queue on its row to put it in the singing queue.'],
     ['#kar-mode-s', 'Simple',
-     'Strips the screen back to search, key, play and stop — for singers who simply want to sing.'],
+     'Strips the screen back to search, pitch, play and stop — for singers who simply want to sing.'],
     ['#kar-mode-c', 'Complete',
      'Shows everything: singers’ lists, the singing queue, downloads and guest requests.'],
     ['#kar-now-song', 'Now playing',
-     'The song playing on this Mac right now. The controls along this bar act on it: move within the song, change its key or speed, start it again, stop it, or hide the lyrics screen.'],
+     'The song playing on this Mac right now. The controls along this bar act on it: move within the song, change its pitch or speed, start it again, stop it, or hide the lyrics screen.'],
     ['#kar-seek', 'Position in the song',
      'Drag to jump to any point in the song that is playing.'],
-    ['[onclick="karLiveAdj(-1)"]', 'Key down',
-     'Lowers the key one semitone while the song plays. It takes a few seconds to take effect, and lasts for this performance only — to keep a key for a singer, set it in their list.'],
-    ['[onclick="karLiveAdj(1)"]', 'Key up',
-     'Raises the key one semitone while the song plays. It takes a few seconds to take effect, and lasts for this performance only — to keep a key for a singer, set it in their list.'],
+    ['[onclick="karLiveAdj(-1)"]', 'Pitch down',
+     'Lowers the pitch one semitone while the song plays. It takes a few seconds to take effect, and lasts for this performance only — to keep a pitch for a singer, set it in their list.'],
+    ['[onclick="karLiveAdj(1)"]', 'Pitch up',
+     'Raises the pitch one semitone while the song plays. It takes a few seconds to take effect, and lasts for this performance only — to keep a pitch for a singer, set it in their list.'],
     ['#kar-tempo-down', 'Slower',
-     'Slows the song by 5% without changing the key. For tonight only — not saved.'],
+     'Slows the song by 5% without changing the pitch. For tonight only — not saved.'],
     ['#kar-tempo-up', 'Faster',
-     'Speeds the song up by 5% without changing the key. For tonight only — not saved.'],
+     'Speeds the song up by 5% without changing the pitch. For tonight only — not saved.'],
     ['#kar-start-btn', 'Start',
-     'Starts the current song again from the beginning, at the key now shown.'],
+     'Starts the current song again from the beginning, at the pitch now shown.'],
     ['#kar-lyrics-btn', 'Lyrics Screen',
      'Hides the lyrics screen, or brings it back in front of everything else.'],
     ['#kar-stop-btn', 'Stop',
@@ -4237,7 +4237,7 @@ function karPickFolder(){
     ['#kar-qr-btn', 'Guest QR',
      'Shows a code guests scan with their phone’s camera — no app to install. From their phone they can search the library and put themselves in the queue. If their song is not there, they can find it on YouTube: Cantoria downloads it in a few minutes, adds it to the library, and puts them in the queue to sing it. Each guest can have up to 2 new songs on the way at a time; once one is sung, they can add another.'],
     ['#kar-upd-now', 'Update',
-     'A newer version of Cantoria is ready. One click installs it and reloads the page. Songs, singers, keys and settings are not touched. This button appears by itself: Cantoria checks for a new version when the page opens, whenever you come back to it, and every 5 minutes.'],
+     'A newer version of Cantoria is ready. One click installs it and reloads the page. Songs, singers, pitch settings and other settings are not touched. This button appears by itself: Cantoria checks for a new version when the page opens, whenever you come back to it, and every 5 minutes.'],
     ['#kar-guide-btn', 'Guide',
      'How everything on this page works, explained topic by topic — from setting up a Mac to running a party.'],
     ['[onclick="location.reload()"]', 'Refresh',

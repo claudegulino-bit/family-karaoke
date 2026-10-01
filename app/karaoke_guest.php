@@ -215,7 +215,7 @@ $_db = $tokenOk ? kar_catalog() : [];
     <div id="g-dls" style="margin-top:6px"></div>
     <p style="margin:8px 0 0;color:#64748b;font-size:10.5px">The song downloads in a few minutes, joins the party list under your name, and you join the queue to sing it. Up to 2 new songs at a time — sing one and you can add another.</p>
   </div>
-  <p style="color:#64748b;font-size:11px;margin-top:18px">Up to 3 songs waiting per person. Songs play at the original key — the host can adjust the pitch live.</p>
+  <p style="color:#64748b;font-size:11px;margin-top:18px">Up to 3 songs waiting per person. Songs play at their original pitch — the host can adjust it live.</p>
 <script>
   var G_DB = <?= json_encode($_db, JSON_UNESCAPED_UNICODE) ?>;
   var G_TOK = <?= json_encode($tok) ?>;
