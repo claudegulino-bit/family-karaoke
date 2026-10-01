@@ -4204,10 +4204,10 @@ function karPickFolder(){
      'This singer’s full name as the announcer says it, Man or Woman, and the photo shown on screen when they are called up.'],
     ['#kar-search', 'Search',
      'Songs come from three places — pick one with the three buttons on the right:\n' +
-     '1 · Song Database — the songs already on this Mac. This is the normal setting: the list narrows as you type.\n' +
-     '2 · YouTube — type the song or artist, then press YouTube. Choose a version and Cantoria downloads it.\n' +
-     '3 · Link — paste a YouTube address you already have, then press Link, and Cantoria downloads it.\n' +
-     'Found the song? Press Queue on its row to put it in the singing queue. Esc clears the box.'],
+     '1 · Song Database — the songs already on this Mac. This is the normal setting: the list narrows as you type. It searches whichever list is showing — the whole Song Database, New Songs, or the selected singer’s list (all of A, B and C).\n' +
+     '2 · YouTube — type the song or artist, then press YouTube. Karaoke versions are listed, and Cantoria warns you if you may already have the song. Choose a version and it downloads in a minute or two, then appears under New Songs.\n' +
+     '3 · Link — paste a YouTube address you already have, then press Link. Only YouTube addresses are accepted. It downloads the same way and appears under New Songs.\n' +
+     'Found the song? Press Queue on its row to put it in the singing queue. Esc clears the box; switching back to Song Database clears it too.'],
     ['#kar-sm-list', 'Search: Song Database',
      'Search the songs already on this Mac. When you find the one you want, press Queue on its row to put it in the singing queue, or Play to sing it now.'],
     ['#kar-sm-yt', 'Search: YouTube',
