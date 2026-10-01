@@ -531,8 +531,8 @@ if ($KAR_LOCAL) {
           <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
           <option value="<?= h($_kbp) ?>">Singer: <?= h($_kbp) ?> - <?= count($_kjBestBy[$_kbp]) ?></option>
           <?php endforeach; ?>
-          <option value="__add__">＋ Add a person…</option>
-          <option value="__remove__">− Remove a person…</option>
+          <option value="__add__">＋ Add a singer…</option>
+          <option value="__remove__">− Remove a singer…</option>
         </select>
         <!-- Which of this singer's lists to show, as a dropdown joined to the Singer box so the
              two read as one control (the owner, 2026-09-28: "a drop down as an extension of the
@@ -1333,7 +1333,7 @@ if ($KAR_LOCAL) {
     }
     function karWhoChange(sel){
       if (sel.value === '__add__') {
-        var nn = prompt('Name of the person for the new Singer list:');
+        var nn = prompt('Name of the new singer:');
         sel.value = karWho;  // put the select back first, in case they cancel
         if (nn === null) return;
         nn = nn.trim();
@@ -1360,7 +1360,7 @@ if ($KAR_LOCAL) {
         // to the audit log server-side, so it can be brought back if this was a mistake).
         sel.value = karWho;  // put the select back first
         var gone = karWho;
-        if (!gone) { alert('There is nobody on the list yet — add a person first.'); return; }
+        if (!gone) { alert('There is nobody on the list yet — add a singer first.'); return; }
         var cnt = (KAR_BEST_BY[gone] || []).length;
         if (!confirm('Remove "' + gone + '" from the list?\n\nTheir Singer list (' + cnt + ' song' + (cnt === 1 ? '' : 's') + ') is removed too — a copy is kept in the log, so it can be brought back if you change your mind.')) return;
         var fdR = new FormData();
@@ -4192,7 +4192,7 @@ function karPickFolder(){
     ['#kar-chip-new', 'New Songs',
      'Songs downloaded in the last 5 days. They are kept here for 5 days so they can be reviewed and brought into line with the naming conventions, and so any song flagged as a possible duplicate can be dealt with. These songs are also in the Song Database — they are the same songs, not copies, so renaming one here renames it there too. Press ✓ Checked when a song is done and it leaves this list early; otherwise it leaves after 5 days.'],
     ['#kar-who', 'Singer',
-     'Shows this singer’s Singer List — every song they know — so nobody has to search the whole library at a party. Keys are kept per singer: a key set here is remembered for this singer only. Pick a name, or add a new person.'],
+     'Shows this singer’s Singer List — every song they know — so nobody has to search the whole library at a party. Permanent pitch settings are kept here: a pitch change made in this list is remembered for this singer only. Pick a name, or add a new singer.'],
     ['#kar-tier-sel', 'Which list',
      'A singer’s list is every song they know, in three groups: A for the songs they sing best, B for the next best, C for the rest. Choose one, or All to see them together. The number beside each shows how many songs it holds.'],
     ['[onclick^="karTierClearShow"]', 'Clear a list',
