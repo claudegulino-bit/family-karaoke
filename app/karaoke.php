@@ -704,7 +704,7 @@ if ($KAR_LOCAL) {
         $_karCards[] = ['update', $_num('Software updates'), $KAR_LOCAL ? 'Installing the latest version.' : 'How the other Macs receive a release.', 'Setting up'];
         $_karCards[] = ['sing',  $_num('Play a song'),          'Search, playback and key.', 'Using it'];
         $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: key, speed, restart and stop.', 'Using it'];
-        $_karCards[] = ['songs', $_num('Managing songs'),       'Best lists, new arrivals, renaming and removal.', 'Using it'];
+        $_karCards[] = ['songs', $_num('Managing songs'),       'Singer lists, new arrivals, renaming and removal.', 'Using it'];
         $_karCards[] = ['party', $_num('Party controls'),       'The singing queue, guest requests and downloads.', 'At a party'];
         // The three party panels each get a card of their own. Their words live HERE and
         // nowhere else — the floating "?" beside each panel borrows this same text rather
@@ -756,7 +756,7 @@ if ($KAR_LOCAL) {
           <ul style="margin:0;padding-left:20px">
             <li><b>Choose a list.</b> The three boxes under <b>Songs and singers</b> select what the page shows: <b>Song Database</b> (everything), <b>New Songs</b> (added in the last 30 days) and <b>Singer:</b> (one person's songs — the dropdown chooses who). The one on a shaded background is the list currently on screen.</li>
             <li><b>Search</b> — filters the list on screen by title, artist or singer's name. Esc clears it.</li>
-            <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Best list renumbers it from 1.</li>
+            <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Singer list renumbers it from 1.</li>
             <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> or a <b>double-click</b> switches full screen on and off; <b>Q</b> or the window's red <b>✕</b> closes the player.</li>
             <li><b>Pitch</b> — the key the song starts in. Use − and + to transpose by semitones. On <b>Song Database</b> and <b>New Songs</b> it always starts at 0 and is never saved — a one-time change for whatever gets played or queued next. On a <b>singer's own list</b>, it saves as that singer's own pitch for the song.</li>
             <li><b>A B C</b> puts the song on list A, B or C of the person named in the dropdown; clicking the lit letter again takes it off. The list on screen does not move while you do this. <b>Show: All / A / B / C</b> at the top of a singer's list chooses which of their songs appear.</li>
@@ -792,7 +792,7 @@ if ($KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-songs" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Managing songs</h3>
           <ul style="margin:0;padding-left:20px">
-            <li><b>⭐ Best lists</b> — one per person. The dropdown at the top is that list: its menu names every person with the number of songs they have, and selecting a name opens their list. <b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu.</li>
+            <li><b>⭐ Singer lists</b> — one per person. The dropdown at the top is that list: its menu names every person with the number of songs they have, and selecting a name opens their list. <b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu.</li>
             <li><b>Adding to a list</b> — with the person selected, click <b>⭐</b> on a song's row to add it, and again to remove it. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
             <li><b>🆕 New Songs</b> — every song added in the last 30 days. The <b>Duplicate</b> column flags songs that appear to match one already in the library.</li>
             <li><b>Click a song’s name</b> to rename it. The same box has <b>🗑 Delete file</b>, which removes the song from Cantoria after asking: the file is moved to a Deleted folder, not destroyed, and can be restored. The <b>✕</b> beside A B C only takes a song off the selected singer’s list.</li>
@@ -1064,7 +1064,7 @@ if ($KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-update" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Software updates</h3>
           <p style="margin:0 0 8px"><b>Usually you do not need this page.</b> When a new version is published, a gold <b style="color:#D2AD6C">⬆︎ Update</b> button appears on the gold bar, next to Guide. Press it once: the new version installs and the page reloads by itself.</p>
-          <p style="margin:0 0 8px">The button below does the same thing, any time. <b>Songs, settings, Best lists and saved keys are preserved</b>; only the program is replaced.</p>
+          <p style="margin:0 0 8px">The button below does the same thing, any time. <b>Songs, settings, Singer lists and saved keys are preserved</b>; only the program is replaced.</p>
           <button type="button" onclick="karUpdate()" id="kar-upd-btn" style="font-family:inherit;margin:2px 0;background:rgba(210,173,108,.12);border:1px solid #D2AD6C;color:#D2AD6C;cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:8px">⬆︎ Cantoria Software Update</button>
           <div id="kar-upd-state" style="display:none;margin-top:8px;padding:9px 13px;border-radius:8px;font-size:13px;font-weight:700;line-height:1.6"></div>
           <span id="kar-upd-msg" style="display:block;margin-top:6px;color:#94a3b8;font-size:12px">Installed version: <b id="kar-upd-ver" style="color:#cbd5e1"><?= h(kar_installed_version()) ?></b></span>
@@ -1079,7 +1079,7 @@ if ($KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Software updates</h3>
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">This Mac</b> — the development machine. Changes are made here directly and released from here, so there is nothing to retrieve and no update button on this copy.</div>
         <div><b style="color:#D2AD6C">Every other Mac</b> — opens its own <b>📖 Guide → Software updates</b> and presses <b style="color:#6ee7b7">⬆︎ Cantoria Software Update</b>. Each machine installs the release itself; nothing is sent to it from here.</div>
-        <div><b style="color:#D2AD6C">What is preserved</b> — on those machines the songs, settings, Best lists and saved keys are kept. Only the program is replaced.</div>
+        <div><b style="color:#D2AD6C">What is preserved</b> — on those machines the songs, settings, Singer lists and saved keys are kept. Only the program is replaced.</div>
         <?php
           // ⚠ ONE FILE. Written ONLY by publish_karaoke.php, on the server, outside the
           // webroot - never edited on any Mac. Every other machine shows its OWN version
@@ -1239,14 +1239,14 @@ if ($KAR_LOCAL) {
          delete 48 with the section's 10px gaps = 236, inset 9px (the section band's 8px padding +
          1px border) — and the spacer runs to where the ＋ Add button starts. -->
     <div id="kar-bands" style="display:flex;align-items:flex-end;gap:0;margin-top:14px;padding:0 16px 0 23px;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase">
-      <span style="flex:0 0 auto;width:236px;margin-left:9px;text-align:center;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Best list, and removing it">Set up</span>
+      <span style="flex:0 0 auto;width:236px;margin-left:9px;text-align:center;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="How the song is set up: its key, whether it is on someone&#39;s Singer list, and removing it">Set up</span>
       <span style="flex:0 0 auto;width:70px"></span>
       <span style="flex:1;min-width:0;color:#6ee7b7;border-bottom:1px solid rgba(110,231,183,.35);padding-bottom:3px" title="Singing it: queue it for someone, play it now, or rename it">Play and sing</span>
     </div>
-    <div style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px 0 23px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
+    <div id="kar-heads" style="display:flex;align-items:flex-end;gap:12px;margin-top:6px;padding:0 16px 0 23px;font-size:10.5px;font-weight:700;letter-spacing:.04em;line-height:1.3;text-transform:uppercase;color:#94a3b8">
       <span class="kar-sect kar-sect-a">
       <span style="flex:0 0 auto;width:84px;text-align:center" title="The pitch the Play button uses. − / + change it a semitone at a time, or type a number. On Song Database and New Songs it always starts at 0 and is never saved — a one-time change for whatever gets played or queued next. On a singer's own list, it saves (gold = your saved pitch).">Pitch</span>
-      <span style="flex:0 0 auto;width:84px;text-align:center" title="A / B / C = which of the selected singer's lists the song is on. Click a letter to put it there; click the lit one again to take it off.">Best<br>List</span>
+      <span style="flex:0 0 auto;width:84px;text-align:center" title="Which of the selected singer’s lists this song is on: A for the songs they sing best, B for the next best, C for the rest. Click a letter to put the song there; click the lit letter again to take it off.">Singer<br>List</span>
       <span id="kar-h-del" style="flex:0 0 auto;width:48px;text-align:center" title="✕ takes the song off the selected singer's list. The file itself is not touched — to delete a file, click the song's name and use 🗑 Delete file.">Off<br>list</span>
       </span>
       <span class="kar-sectgap"></span>
@@ -1254,7 +1254,7 @@ if ($KAR_LOCAL) {
       <span id="kar-h-add" style="flex:0 0 auto;width:58px;text-align:center" title="Adds the song to the singing queue, for the singer picked in the dropdown, at the pitch shown">Queue</span>
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
-      <span id="kar-h-seq" style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Best list and it counts again from 1.">Seq<br>Number</span>
+      <span id="kar-h-seq" style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Singer list and it counts again from 1.">Seq<br>Number</span>
       <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it (or delete the file, with 🗑 in the same box). Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
       <span id="kar-h-chk" style="flex:0 0 auto;width:96px;display:none" title="Once you have checked a song, take it off this list. It stays in the song database — nothing is deleted.">Checked</span>
@@ -1333,7 +1333,7 @@ if ($KAR_LOCAL) {
     }
     function karWhoChange(sel){
       if (sel.value === '__add__') {
-        var nn = prompt('Name of the person for the new Best list:');
+        var nn = prompt('Name of the person for the new Singer list:');
         sel.value = karWho;  // put the select back first, in case they cancel
         if (nn === null) return;
         nn = nn.trim();
@@ -1362,7 +1362,7 @@ if ($KAR_LOCAL) {
         var gone = karWho;
         if (!gone) { alert('There is nobody on the list yet — add a person first.'); return; }
         var cnt = (KAR_BEST_BY[gone] || []).length;
-        if (!confirm('Remove "' + gone + '" from the list?\n\nTheir Best list (' + cnt + ' song' + (cnt === 1 ? '' : 's') + ') is removed too — a copy is kept in the log, so it can be brought back if you change your mind.')) return;
+        if (!confirm('Remove "' + gone + '" from the list?\n\nTheir Singer list (' + cnt + ' song' + (cnt === 1 ? '' : 's') + ') is removed too — a copy is kept in the log, so it can be brought back if you change your mind.')) return;
         var fdR = new FormData();
         fdR.append('form_type', 'karaoke_best_remove_person');
         fdR.append('person', gone);
@@ -1794,7 +1794,7 @@ if ($KAR_LOCAL) {
           + '</span>'                                   // end SING
           + '</div>');
       }
-      var lbl = karView === 'db' ? 'song database' : (karView === 'new' ? 'new downloads (last 30 days)' : (karWho + '’s Best list'));
+      var lbl = karView === 'db' ? 'song database' : (karView === 'new' ? 'new downloads (last 30 days)' : (karWho + '’s Singer list'));
       // While a search is active this line stops being a quiet caption and becomes a notice you
       // cannot miss, with a one-click way out — the old 11.5px grey was easy to walk past, which
       // is exactly how a forgotten search made a view look empty for no visible reason.
@@ -3652,7 +3652,7 @@ function karPickFolder(){
       }).catch(function(){ alert('Network error — the play was not sent.'); });
     }
     function karQClear(){
-      if (!confirm('Clear the whole singing queue?\n\nOnly the requests list empties — songs, pitches and Best lists are untouched.')) return;
+      if (!confirm('Clear the whole singing queue?\n\nOnly the requests list empties — songs, pitches and Singer lists are untouched.')) return;
       var fd = new FormData(); fd.append('form_type', 'karaoke_q_clear');
       karQPost(fd).catch(function(){ alert('Network error.'); });
     }
@@ -4157,5 +4157,116 @@ function karPickFolder(){
   karSingerBadges(); setInterval(karSingerBadges, 20000);
 </script>
 <?php endif; ?>
+<!-- HOVER EXPLANATIONS for the controls along the top (the owner, 2026-09-30: "if you put your mouse
+     over Song Database, a box opens that says what it is ... for every button on top, explain what
+     they do and the reason for the button"). ALL the wording lives in KAR_TIPS below, one place.
+     A control listed here loses its plain title= so two tooltips never show at once. Register:
+     professional documentation, like the Guide - clear and precise, never chatty. -->
+<style>
+  #kar-tipbox{position:fixed;z-index:10050;max-width:330px;background:#0f172a;border:1px solid #D2AD6C;
+    border-radius:10px;padding:10px 13px;box-shadow:0 10px 28px rgba(0,0,0,.5);pointer-events:none;
+    opacity:0;transform:translateY(3px);transition:opacity .12s ease,transform .12s ease;font-family:inherit}
+  #kar-tipbox.is-on{opacity:1;transform:none}
+  #kar-tipbox b{display:block;color:#D2AD6C;font-size:13px;font-weight:800;margin-bottom:4px}
+  #kar-tipbox span{display:block;color:#cbd5e1;font-size:12.5px;line-height:1.5}
+</style>
+<div id="kar-tipbox" role="tooltip" aria-hidden="true"><b></b><span></span></div>
+<script>
+(function(){
+  var KAR_TIPS = [
+    ['#kar-chip-db', 'Song Database',
+     'Every song in this Mac’s song folder — the complete library. Find any song here and add it to a singer’s list with A, B or C. A key set in this view applies to that one play only; a singer’s own keys are kept in their list.'],
+    ['#kar-chip-new', 'New Songs',
+     'Songs added in the last 30 days, newest first. They are already in the Song Database as well. This list exists so new arrivals can be checked while they are fresh — the name, the key, and any song Cantoria flags as a possible duplicate of one you already have. After 30 days a song simply drops off this list. A key set here applies to one play only.'],
+    ['#kar-who', 'Singer',
+     'Shows this singer’s Singer List — every song they know — so nobody has to search the whole library at a party. Keys are kept per singer: a key set here is remembered for this singer only. Pick a name, or add a new person.'],
+    ['#kar-tier-sel', 'Which list',
+     'A singer’s list is every song they know, in three groups: A for the songs they sing best, B for the next best, C for the rest. Choose one, or All to see them together. The number beside each shows how many songs it holds.'],
+    ['[onclick^="karTierClearShow"]', 'Clear a list',
+     'Empties one of this singer’s lists (A, B or C) after you choose which one and confirm. The song files are never touched — the songs only come off that list.'],
+    ['#kar-singer-btn', 'Singer details',
+     'This singer’s full name as the announcer says it, Man or Woman, and the photo shown on screen when they are called up.'],
+    ['#kar-search', 'Search',
+     'With Song Database selected on the right, type part of a song or artist and the list below narrows as you type — in the Song Database, New Songs or a singer’s list, whichever is showing. With YouTube selected, it searches YouTube instead; with Link, paste an address here. Esc clears it.'],
+    ['#kar-sm-list', 'Search: Song Database',
+     'Search the songs already on this Mac.'],
+    ['#kar-sm-yt', 'Search: YouTube',
+     'Find a song you do not have yet. Choose a version and Cantoria downloads it, names it, checks it plays with a picture, and adds it to the Song Database — where it also appears under New Songs.'],
+    ['#kar-sm-link', 'Search: Link',
+     'Paste a YouTube address someone sent you, and Cantoria downloads that exact version into the library.'],
+    ['#kar-mode-s', 'Simple',
+     'Strips the screen back to search, key, play and stop — for singers who simply want to sing.'],
+    ['#kar-mode-c', 'Complete',
+     'Shows everything: singers’ lists, the singing queue, downloads and guest requests.'],
+    ['#kar-now-song', 'Now playing',
+     'The song playing on this Mac right now. The controls along this bar act on it: move within the song, change its key or speed, start it again, stop it, or hide the lyrics screen.'],
+    ['#kar-seek', 'Position in the song',
+     'Drag to jump to any point in the song that is playing.'],
+    ['[onclick="karLiveAdj(-1)"]', 'Key down',
+     'Lowers the key one semitone while the song plays. It takes a few seconds to take effect, and lasts for this performance only — to keep a key for a singer, set it in their list.'],
+    ['[onclick="karLiveAdj(1)"]', 'Key up',
+     'Raises the key one semitone while the song plays. It takes a few seconds to take effect, and lasts for this performance only — to keep a key for a singer, set it in their list.'],
+    ['#kar-tempo-down', 'Slower',
+     'Slows the song by 5% without changing the key. For tonight only — not saved.'],
+    ['#kar-tempo-up', 'Faster',
+     'Speeds the song up by 5% without changing the key. For tonight only — not saved.'],
+    ['#kar-start-btn', 'Start',
+     'Starts the current song again from the beginning, at the key now shown.'],
+    ['#kar-lyrics-btn', 'Lyrics Screen',
+     'Hides the lyrics screen, or brings it back in front of everything else.'],
+    ['#kar-stop-btn', 'Stop',
+     'Stops the song where it is; press again to carry on from the same place. To end the song, close the lyrics screen.'],
+    ['#kar-q-btn', 'Queue',
+     'The singing queue: who sings next, in order. Add songs to it from any list. With Scheduling fairness switched on, everyone sings once before anyone sings twice.'],
+    ['#kar-qr-btn', 'Guest QR',
+     'Shows a code guests scan with their phone’s camera. They can search the library and request songs from their own phone, with no app to install.'],
+    ['#kar-upd-now', 'Update',
+     'A newer version of Cantoria is ready. One click installs it and reloads the page. Songs, singers, keys and settings are not touched.'],
+    ['#kar-guide-btn', 'Guide',
+     'How everything on this page works, explained topic by topic — from setting up a Mac to running a party.'],
+    ['[onclick="location.reload()"]', 'Refresh',
+     'Reloads the page so it shows the latest song lists — for example after new songs have been added.']
+  ];
+  var box = document.getElementById('kar-tipbox'), timer = null, cur = null;
+  function hide(){ clearTimeout(timer); timer = null; cur = null; box.classList.remove('is-on'); box.setAttribute('aria-hidden','true'); }
+  function show(el){
+    box.firstChild.textContent = el.getAttribute('data-tip-t');
+    box.lastChild.textContent = el.getAttribute('data-tip-b');
+    box.style.left = '0px'; box.style.top = '0px'; box.classList.add('is-on'); box.setAttribute('aria-hidden','false');
+    var r = el.getBoundingClientRect(), bw = box.offsetWidth, bh = box.offsetHeight, m = 8;
+    var x = Math.min(Math.max(m, r.left + r.width / 2 - bw / 2), window.innerWidth - bw - m);
+    var y = r.bottom + 8; if (y + bh > window.innerHeight - m) y = Math.max(m, r.top - bh - 8);
+    box.style.left = x + 'px'; box.style.top = y + 'px';
+  }
+  function arm(el){
+    if (el.getAttribute('data-tip-t') === null) return;
+    el.addEventListener('mouseenter', function(){ clearTimeout(timer); cur = el; timer = setTimeout(function(){ if (cur === el) show(el); }, 450); });
+    el.addEventListener('mouseleave', hide);
+    el.addEventListener('mousedown', hide);
+    el.addEventListener('focus', function(){ clearTimeout(timer); cur = el; timer = setTimeout(function(){ if (cur === el) show(el); }, 450); });
+    el.addEventListener('blur', hide);
+  }
+  function init(){
+    // The column headings and the two band labels above them keep their explanations in their
+    // own title= (written beside the column they describe); they get the same box, headed by
+    // the label itself ("Singer<br>List" reads "Singer List").
+    document.querySelectorAll('#kar-bands > span[title], #kar-heads .kar-sect > span[title]').forEach(function(el){
+      var lab = (el.innerHTML || '').replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/[▲▼]/g, '').trim();
+      if (!lab) return;
+      el.setAttribute('data-tip-t', lab); el.setAttribute('data-tip-b', el.getAttribute('title'));
+      el.removeAttribute('title'); arm(el);
+    });
+    KAR_TIPS.forEach(function(t){
+      document.querySelectorAll(t[0]).forEach(function(el){
+        el.setAttribute('data-tip-t', t[1]); el.setAttribute('data-tip-b', t[2]);
+        el.removeAttribute('title'); arm(el);
+      });
+    });
+    window.addEventListener('scroll', hide, true);
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') hide(); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
 </body>
 </html>
