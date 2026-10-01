@@ -4190,7 +4190,7 @@ function karPickFolder(){
     ['#kar-chip-db', 'Song Database',
      'This is the complete song database: every song Cantoria can play. Find any song here and add it to a singer’s list with A, B or C — first choose the singer in the Singer box. You can also change the pitch in this view, but the change applies to one play only. Permanent pitch changes are made in the singer’s own list.'],
     ['#kar-chip-new', 'New Songs',
-     'Songs added in the last 5 days, newest first. They are already in the Song Database as well. This list exists so new arrivals can be checked while they are fresh — the name, the key, and any song Cantoria flags as a possible duplicate of one you already have. After 5 days a song drops off this list by itself, so the songs from one weekend are gone before the next. A key set here applies to one play only.'],
+     'Songs downloaded in the last 5 days. They are kept here for 5 days so they can be reviewed and brought into line with the naming conventions, and so any song flagged as a possible duplicate can be dealt with. These songs are also in the Song Database — they are the same songs, not copies, so renaming one here renames it there too. Press ✓ Checked when a song is done and it leaves this list early; otherwise it leaves after 5 days.'],
     ['#kar-who', 'Singer',
      'Shows this singer’s Singer List — every song they know — so nobody has to search the whole library at a party. Keys are kept per singer: a key set here is remembered for this singer only. Pick a name, or add a new person.'],
     ['#kar-tier-sel', 'Which list',
