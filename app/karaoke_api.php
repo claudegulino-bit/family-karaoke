@@ -677,7 +677,9 @@ try {
         $cache = kar_data_dir() . '/update_check.json';
         $c = @json_decode((string)@file_get_contents($cache), true);
         if (!is_array($c) || empty($c['at']) || time() - (int)$c['at'] > 600 || !empty($_POST['fresh'])) {
-            $url = 'https://api.github.com/repos/claudegulino-bit/family-karaoke/contents/app/VERSION?ref=main';
+            // "&_=" defeats GitHub's own short cache, which otherwise answers "no update" for up to a
+            // minute after a release - the same trap update.sh already guards against (2026-09-30).
+            $url = 'https://api.github.com/repos/claudegulino-bit/family-karaoke/contents/app/VERSION?ref=main&_=' . time();
             $raw = (string)@shell_exec('curl -fsS -m 6 -H ' . escapeshellarg('Accept: application/vnd.github.raw') . ' ' . escapeshellarg($url) . ' 2>/dev/null');
             $latest = preg_match('/^\d{4}-\d{2}-\d{2}\.[0-9a-f]{7}$/', trim($raw)) ? trim($raw) : '';
             $c = ['at' => time(), 'latest' => $latest];

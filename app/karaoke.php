@@ -2963,7 +2963,16 @@ function karPickFolder(){
           document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 6000);
         }
         karUpdateCheck(true);   // fresh on every page load, so Refresh shows a new release at once
-        setInterval(function(){ karUpdateCheck(false); }, 10 * 60 * 1000);
+        // ALSO fresh whenever the page comes back into view - switching to the Cantoria window, or
+        // the Mac waking up - and every 5 minutes otherwise (2026-09-30: the owner found the Update
+        // button only ever appeared after pressing Refresh; a page left open checked every 10 min
+        // against a 10-min cache, so a release could take ~20 min to show). Fresh checks are
+        // spaced at least 60 s apart: GitHub allows each house ~60 unauthenticated asks an hour.
+        var karUpdLast = Date.now();
+        function karUpdFresh(){ if (Date.now() - karUpdLast < 60000) return; karUpdLast = Date.now(); karUpdateCheck(true); }
+        document.addEventListener('visibilitychange', function(){ if (!document.hidden) karUpdFresh(); });
+        window.addEventListener('focus', karUpdFresh);
+        setInterval(karUpdFresh, 5 * 60 * 1000);
       });
     }
     function karCheckTools(){
@@ -4227,11 +4236,11 @@ function karPickFolder(){
     ['#kar-qr-btn', 'Guest QR',
      'Shows a code guests scan with their phone’s camera — no app to install. From their phone they can search the library and put themselves in the queue. If their song is not there, they can find it on YouTube: Cantoria downloads it in a few minutes, adds it to the library, and puts them in the queue to sing it. Each guest can have up to 2 new songs on the way at a time; once one is sung, they can add another.'],
     ['#kar-upd-now', 'Update',
-     'A newer version of Cantoria is ready. One click installs it and reloads the page. Songs, singers, keys and settings are not touched.'],
+     'A newer version of Cantoria is ready. One click installs it and reloads the page. Songs, singers, keys and settings are not touched. This button appears by itself: Cantoria checks for a new version when the page opens, whenever you come back to it, and every 5 minutes.'],
     ['#kar-guide-btn', 'Guide',
      'How everything on this page works, explained topic by topic — from setting up a Mac to running a party.'],
     ['[onclick="location.reload()"]', 'Refresh',
-     'Reloads the page so it shows the latest song lists — for example after new songs have been added.']
+     'Reloads the page so it shows the latest song lists — for example after new songs have been added. It also checks at once for a new version of Cantoria; if there is one, the gold Update button appears beside it.']
   ];
   var box = document.getElementById('kar-tipbox'), timer = null, cur = null;
   function hide(){ clearTimeout(timer); timer = null; cur = null; box.classList.remove('is-on'); box.setAttribute('aria-hidden','true'); }
