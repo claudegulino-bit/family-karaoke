@@ -4188,7 +4188,7 @@ function karPickFolder(){
 (function(){
   var KAR_TIPS = [
     ['#kar-chip-db', 'Song Database',
-     'Every song in this Mac’s song folder — the complete library. Find any song here and add it to a singer’s list with A, B or C. A key set in this view applies to that one play only; a singer’s own keys are kept in their list.'],
+     'This is the Song Database: the complete library — every song Cantoria can play. Find any song here.'],
     ['#kar-chip-new', 'New Songs',
      'Songs added in the last 5 days, newest first. They are already in the Song Database as well. This list exists so new arrivals can be checked while they are fresh — the name, the key, and any song Cantoria flags as a possible duplicate of one you already have. After 5 days a song drops off this list by itself, so the songs from one weekend are gone before the next. A key set here applies to one play only.'],
     ['#kar-who', 'Singer',
