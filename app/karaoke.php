@@ -4197,8 +4197,9 @@ function karPickFolder(){
      'A singer’s list is every song they know, in three groups: A for the songs they sing best, B for the next best, C for the rest. Choose one, or All to see them together. The number beside each shows how many songs it holds.'],
     ['[onclick^="karTierClearShow"]', 'Clear a list',
      function(){ var w = (typeof karWho === 'string' && karWho) ? karWho : '';
-       return (w ? 'This clears one of ' + w + '’s lists. ' : '') +
-              'Choose the singer first, in the Singer box to the left — Clear works on whoever is shown there. Then pick which of their lists to empty (A, B or C) and confirm. The song files are never touched; the songs only come off that singer’s list.'; }],
+       // Worded by the owner, 2026-09-30: say whose list it is, then what to do - no repetition.
+       if (!w) return 'Choose a singer in the Singer box first. Clear then empties one of that singer’s lists — A, B or C — after you confirm. The song files are never touched.';
+       return 'This clears one of ' + w + '’s lists. Choose the list you want to empty — A, B or C — and confirm. To clear a different singer’s list, first choose that singer in the Singer box. The song files are never touched; the songs only come off ' + w + '’s Singer List.'; }],
     ['#kar-singer-btn', 'Singer details',
      'This singer’s full name as the announcer says it, Man or Woman, and the photo shown on screen when they are called up.'],
     ['#kar-search', 'Search',
