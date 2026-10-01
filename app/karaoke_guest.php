@@ -110,9 +110,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $url  = trim($_POST['url'] ?? '');
             if ($name === '' || mb_strlen($name) > 40 || strpos($name, '/') !== false || strpos($name, '\\') !== false) throw new Exception('Please enter your name first (up to 40 letters).');
             if (strlen($url) > 500 || !preg_match('#^https://(www\.|m\.|music\.)?(youtube\.com/(watch\?|shorts/)|youtu\.be/)[^\s]+$#', $url)) throw new Exception('That does not look like a YouTube link — in YouTube tap Share, then Copy link, and paste it here.');
-            $mine = $pdo->prepare("SELECT COUNT(*) FROM karaoke_downloads WHERE requested_by = ? AND requested_at > $KAR_12H AND status <> 'Error'");
-            $mine->execute([$name]);
-            if ((int)$mine->fetchColumn() >= 2) throw new Exception('You already brought 2 new songs tonight — enjoy those first!');
+            // TWO AT A TIME, not two a night (the owner, 2026-09-30: "up to two songs at a time... after
+            // you sing those two songs, you can put two more in"). What counts is what this guest
+            // has IN FLIGHT: new songs still downloading, plus the ones they brought that are
+            // downloaded and still waiting in the queue to be sung. Once one is sung, there is room
+            // for another. (It was 2 per night until 2026-09-30.)
+            $fly = $pdo->prepare("SELECT COUNT(*) FROM karaoke_downloads WHERE requested_by = ? AND requested_at > $KAR_12H
+                                  AND status IN ('Queued','Pending','Downloading')");
+            $fly->execute([$name]);
+            $wait = $pdo->prepare("SELECT COUNT(DISTINCT q.id) FROM karaoke_sing_queue q JOIN karaoke_downloads d
+                                     ON d.filename = q.filename AND d.requested_by = q.singer
+                                   WHERE q.singer = ? AND q.status = 'Waiting' AND d.requested_at > $KAR_12H");
+            $wait->execute([$name]);
+            if ((int)$fly->fetchColumn() + (int)$wait->fetchColumn() >= 2) throw new Exception('You already have 2 new songs on the way — sing one, then add another!');
             $all = $pdo->query("SELECT COUNT(*) FROM karaoke_downloads WHERE requested_by IS NOT NULL AND requested_at > $KAR_12H AND status <> 'Error'")->fetchColumn();
             if ((int)$all >= 15) throw new Exception('The download list is full for tonight — ask the host to add it.');
             $dup = $pdo->prepare("SELECT COUNT(*) FROM karaoke_downloads WHERE url = ? AND status IN ('Queued','Pending','Downloading')");
@@ -203,7 +213,7 @@ $_db = $tokenOk ? kar_catalog() : [];
     </div>
     <div id="g-ytres" style="margin-top:10px"></div>
     <div id="g-dls" style="margin-top:6px"></div>
-    <p style="margin:8px 0 0;color:#64748b;font-size:10.5px">The song downloads in a few minutes, joins the party list under your name, and you join the queue to sing it. Up to 2 new songs per person per night.</p>
+    <p style="margin:8px 0 0;color:#64748b;font-size:10.5px">The song downloads in a few minutes, joins the party list under your name, and you join the queue to sing it. Up to 2 new songs at a time — sing one and you can add another.</p>
   </div>
   <p style="color:#64748b;font-size:11px;margin-top:18px">Up to 3 songs waiting per person. Songs play at the original key — the host can adjust the pitch live.</p>
 <script>
