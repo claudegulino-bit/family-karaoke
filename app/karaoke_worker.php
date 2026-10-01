@@ -266,12 +266,26 @@ if ($job === 'mcvoice') {
         $log = [];
         // The finished announcement per song: presenter wording, stretched first name, stadium FX.
         $ff = kar_tool('ffmpeg');
+        // The renderer's own error output is KEPT now (2026-10-01): it used to go to /dev/null, so a
+        // failure could only ever say "FAILED" with no reason - one family Mac failed ~1 in 6 for days
+        // and nothing could say why. It goes to a file beside the jobs; when anything fails, its
+        // last lines are written into the log with the failure.
+        $ef = $tmp . '/stderr.txt';
         @exec('FFMPEG=' . escapeshellarg($ff !== '' ? $ff : 'ffmpeg') . ' ' . escapeshellarg($dir . '/.venv/bin/python') . ' '
-            . escapeshellarg($dir . '/cantoria_mc_intro.py') . ' ' . escapeshellarg($jf) . ' 2>/dev/null', $log);
+            . escapeshellarg($dir . '/cantoria_mc_intro.py') . ' ' . escapeshellarg($jf) . ' 2>' . escapeshellarg($ef), $log, $rc);
         foreach ($log as $line) if (strpos($line, 'heard') === 0 || strpos($line, 'WARNING: the name') === 0) kar_log('mcvoice', $line);
+        $failed = 0;
         foreach ($jobs as $j) {
             $ok = is_file($j['out']) && filesize($j['out']) > 0;
+            if (!$ok) $failed++;
             kar_log('mcvoice', ($ok ? 'ready: ' : 'FAILED: ') . $j['who']);
+        }
+        if ($failed) {
+            $err = array_values(array_filter(array_map('trim', @file($ef) ?: []), function ($l) {
+                return $l !== '' && stripos($l, 'warning') === false && stripos($l, 'it/s]') === false;
+            }));
+            kar_log('mcvoice', 'why (exit ' . (int)$rc . '): ' . ($err ? implode(' | ', array_slice($err, -4)) : 'the renderer printed no error'));
+            @copy($ef, kar_data_dir() . '/mc/cb/last_failure.txt');   // the full text, for a closer look
         }
         kar_log('mcvoice', sprintf('%d announcement(s) in %.0fs', count($jobs), microtime(true) - $t0));
     }

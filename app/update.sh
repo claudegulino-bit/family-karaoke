@@ -157,6 +157,52 @@ AS
     echo "The Cantoria icon now opens Chrome directly."
   fi
 fi
+# THE ANNOUNCER'S OWN BACKGROUND JOB (2026-10-01). Preparing the announcements used to move
+# ONLY while a Cantoria page was open (the page nudged it every 20 s) - one family Mac sat at 37%
+# for days because nobody had the page up. This nudges the same worker every 2 minutes on its
+# own. Same rule as the start-by-itself server: desktop Macs only (where that service exists) -
+# a laptop never renders on battery. The worker itself exits at once when there is nothing to
+# do, when another copy holds its lock, or while a song is being sung.
+# ⚠ KEEP IN STEP: the same block lives in update.sh (publish_karaoke.php) and install.sh.
+MCPL="$HOME/Library/LaunchAgents/com.familykaraoke.mcvoice.plist"
+if [ -f "$HOME/Library/LaunchAgents/com.familykaraoke.server.plist" ] && [ -x "$DEST/announcer/.venv/bin/python" ]; then
+  PHPB="$(command -v php || true)"
+  [ -z "$PHPB" ] && [ -x /opt/homebrew/bin/php ] && PHPB=/opt/homebrew/bin/php
+  [ -z "$PHPB" ] && [ -x /usr/local/bin/php ]    && PHPB=/usr/local/bin/php
+  if [ -n "$PHPB" ]; then
+    mkdir -p "$HOME/Library/LaunchAgents"
+    MCTMP="$(mktemp -t cantoria-mcvoice)"
+    cat > "$MCTMP" <<MCP
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.familykaraoke.mcvoice</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$PHPB</string>
+    <string>$DEST/karaoke_worker.php</string>
+    <string>$DEST/karaoke_standalone.json</string>
+    <string>mcvoice</string>
+  </array>
+  <key>WorkingDirectory</key><string>$DEST</string>
+  <key>StartInterval</key><integer>120</integer>
+  <key>RunAtLoad</key><true/>
+  <key>Nice</key><integer>5</integer>
+  <key>StandardOutPath</key><string>/dev/null</string>
+  <key>StandardErrorPath</key><string>$DEST/logs/mcvoice_agent.log</string>
+</dict>
+</plist>
+MCP
+    if ! cmp -s "$MCTMP" "$MCPL"; then
+      cp "$MCTMP" "$MCPL"
+      launchctl bootout "gui/$(id -u)/com.familykaraoke.mcvoice" 2>/dev/null || true
+      launchctl bootstrap "gui/$(id -u)" "$MCPL" 2>/dev/null || launchctl load "$MCPL" 2>/dev/null || true
+      echo "The announcer now keeps preparing in the background, with or without Cantoria open."
+    fi
+    rm -f "$MCTMP"
+  fi
+fi
 # VERSION IS WRITTEN LAST (2026-09-29): it is this Mac's claim that the update finished. An
 # update that died halfway once wrote it first, so the Mac reported the new version while
 # running the old program, hid its own Update button, and every retry failed the same way.
