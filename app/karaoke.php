@@ -1014,7 +1014,7 @@ if ($KAR_LOCAL) {
       <div id="kar-searchbar" style="flex:1 1 255px;min-width:255px;display:flex;align-items:center">
         <div id="kar-bar" style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:36px;background:rgba(148,163,184,.07);border:1px solid rgba(148,163,184,.18);border-radius:9px;padding:0 5px 0 12px">
           <span id="kar-sicon" style="flex:0 0 auto;font-size:14px;line-height:1;pointer-events:none;opacity:.65">&#x1F50D;</span>
-          <input id="kar-search" type="text" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" title="Type here. Esc clears it." style="flex:1;min-width:50px;background:none;border:none;outline:none;color:#e2e8f0;font-size:14px;font-weight:600;padding:0">
+          <input id="kar-search" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search a song or an artist…" oninput="karSearchInput()" onkeydown="karSearchKey(event)" style="flex:1;min-width:50px;background:none;border:none;outline:none;color:#e2e8f0;font-size:14px;font-weight:600;padding:0">
           <span style="flex:0 0 auto;display:flex;align-items:center;gap:3px">
             <button type="button" class="kar-smode kar-on" id="kar-sm-list" onclick="karSetMode('list')" title="Search the song database — the songs you already have"><svg class="kar-vinyl" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="flex:0 0 auto"><circle cx="12" cy="12" r="10.5" fill="#111"/><circle cx="12" cy="12" r="8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="5.8" fill="none" stroke="#4b5563" stroke-width=".8"/><circle cx="12" cy="12" r="3.6" fill="#6ee7b7"/><circle cx="12" cy="12" r="1" fill="#111"/><path d="M6 7.5 A7.5 7.5 0 0 1 12 4.5" stroke="#fff" stroke-opacity=".35" stroke-width="1.2" fill="none"/></svg>Song Database</button>
             <button type="button" class="kar-smode" id="kar-sm-yt" onclick="karSetMode('yt')" title="Search YouTube for a song you do not have yet">▶&#xFE0E; YouTube</button>
@@ -1552,7 +1552,7 @@ if ($KAR_LOCAL) {
     <div id="kar-dl-panel" style="display:none;margin-top:10px;background:#20171d;border:1px solid rgba(239,68,68,.5);border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.55)">
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
         <button type="button" onclick="karDlAdd()" id="kar-dl-add" title="Download the pasted YouTube link now" style="font-family:inherit;background:#3f4757;border:1px solid #566072;color:#e2e8f0;cursor:pointer;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap;width:186px">⬇ Download this link</button>
-        <input id="kar-dl-url" type="text" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+        <input id="kar-dl-url" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste the YouTube link of the song here…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
         <div class="kar-dlrt"></div>
       </div>
       <!-- The search box sits ON the header line rather than in a section of its own: the
@@ -1563,7 +1563,7 @@ if ($KAR_LOCAL) {
            guest page has had since 2026-09-08. -->
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <button type="button" onclick="karYtSearch()" id="kar-yt-btn" title="Search YouTube for a song" style="font-family:inherit;background:#EF4444;border:1px solid #EF4444;color:#fff;cursor:pointer;font-size:13px;font-weight:800;padding:8px 16px;border-radius:8px;white-space:nowrap;width:186px">▶ Search YouTube</button>
-        <input id="kar-yt-q" type="text" placeholder="Type a singer or a song…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
+        <input id="kar-yt-q" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Type a singer or a song…" style="font-family:inherit;flex:1;min-width:240px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:13px;padding:8px 12px">
         <!-- Ticked, which is the normal case, this does TWO things: YouTube is asked for the
              karaoke version, and results that name none of karaoke / lyrics / testo are held
              back behind a count. Unticked, the words go to YouTube exactly as typed and
@@ -4451,9 +4451,9 @@ function karPickFolder(){
     <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:4px">Name in the list</label>
     <div id="kar-sw-name" style="font-size:15px;font-weight:700;margin-bottom:12px"></div>
     <label for="kar-sw-full" style="display:block;font-size:12px;color:#94a3b8;margin-bottom:4px">Full name for the announcer</label>
-    <input id="kar-sw-full" type="text" maxlength="80" placeholder="Maria Rossi" style="width:100%;box-sizing:border-box;height:36px;border-radius:8px;border:1px solid #3b4a63;background:#111827;color:#f1f5f9;padding:0 10px;font-size:14px;margin-bottom:12px">
+    <input id="kar-sw-full" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="80" placeholder="Maria Rossi" style="width:100%;box-sizing:border-box;height:36px;border-radius:8px;border:1px solid #3b4a63;background:#111827;color:#f1f5f9;padding:0 10px;font-size:14px;margin-bottom:12px">
     <label for="kar-sw-full-it" style="display:block;font-size:12px;color:#94a3b8;margin-bottom:4px">Name for Italian songs (optional — leave blank to use the name above)</label>
-    <input id="kar-sw-full-it" type="text" maxlength="80" placeholder="Giovanni Rossi" style="width:100%;box-sizing:border-box;height:36px;border-radius:8px;border:1px solid #3b4a63;background:#111827;color:#f1f5f9;padding:0 10px;font-size:14px;margin-bottom:12px">
+    <input id="kar-sw-full-it" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="80" placeholder="Giovanni Rossi" style="width:100%;box-sizing:border-box;height:36px;border-radius:8px;border:1px solid #3b4a63;background:#111827;color:#f1f5f9;padding:0 10px;font-size:14px;margin-bottom:12px">
     <label style="display:block;font-size:12px;color:#94a3b8;margin-bottom:6px">Man or woman (the person singing, not who recorded the song)</label>
     <div style="display:flex;gap:16px;margin-bottom:14px;font-size:14px">
       <label style="cursor:pointer"><input type="radio" name="kar-sw-var" value="male"> Man</label>
@@ -4690,12 +4690,6 @@ function karPickFolder(){
        return 'This clears one of ' + w + '’s lists. Choose the list you want to empty — A, B or C — and confirm. To clear a different singer’s list, first choose that singer in the Singer box. The songs stay in the Song Database; they only come off ' + w + '’s list.'; }],
     ['#kar-singer-btn', 'Singer details',
      'This singer’s full name as the announcer says it, Man or Woman, and the photo shown on screen when they are called up.'],
-    ['#kar-search', 'Search',
-     'Songs come from three places — pick one with the three buttons on the right:\n' +
-     '1 · Song Database — the songs already on this Mac. This is the normal setting: the list narrows as you type. It searches whichever list is showing — the whole Song Database, New Songs, or the selected singer’s list (all of A, B and C).\n' +
-     '2 · YouTube — type the song or artist, then press YouTube. Karaoke versions are listed, and Cantoria warns you if you may already have the song. Choose a version and it downloads in a minute or two, then appears under New Songs.\n' +
-     '3 · Link — paste a YouTube address you already have, then press Link. Only YouTube addresses are accepted. It downloads the same way and appears under New Songs.\n' +
-     'Found the song? Press Queue on its row to put it in the singing queue. Esc clears the box; switching back to Song Database clears it too.'],
     ['#kar-sm-list', 'Search: Song Database',
      'Search the songs already on this Mac. When you find the one you want, press Queue on its row to put it in the singing queue, or Play to sing it now.'],
     ['#kar-sm-yt', 'Search: YouTube',

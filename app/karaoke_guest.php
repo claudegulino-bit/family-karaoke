@@ -201,14 +201,14 @@ $_db = $tokenOk ? kar_catalog() : [];
   <div class="g-sec" style="background:rgba(96,165,250,.07);border-color:rgba(96,165,250,.35)">
     <p class="g-sec-t" style="color:#93c5fd">🎵 Search for your song in our library</p>
     <p class="g-sec-s"><b style="color:#cbd5e1"><?= count($_db) ?> songs</b> are already here. Start typing and they appear — no button to press.</p>
-    <input id="g-search" type="text" placeholder="Type an artist or a song title…" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:16px;padding:11px 12px">
+    <input id="g-search" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Type an artist or a song title…" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:16px;padding:11px 12px">
     <div id="g-results" style="margin-top:8px"></div>
   </div>
   <div class="g-sec" style="background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.35)">
     <p class="g-sec-t" style="color:#fca5a5">▶ Search for your song on YouTube</p>
     <p class="g-sec-s">If your song is not in the list above, look for it on YouTube. It is fetched for you and added to the queue under your name — it takes a few minutes.</p>
     <div style="display:flex;gap:8px">
-      <input id="g-yt" type="text" placeholder="e.g. Volare, or Andrea Bocelli" maxlength="120" style="flex:1;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:14px;padding:10px 12px">
+      <input id="g-yt" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="e.g. Volare, or Andrea Bocelli" maxlength="120" style="flex:1;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:14px;padding:10px 12px">
       <button type="button" id="g-ytbtn" onclick="gYt()" style="flex:0 0 auto;font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:700;padding:10px 16px;border-radius:10px">Search</button>
     </div>
     <div id="g-ytres" style="margin-top:10px"></div>
