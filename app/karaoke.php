@@ -1041,6 +1041,7 @@ if ($KAR_LOCAL) {
       </span>
       </div>
     </div>
+    <?php if (!$KAR_LOCAL): ?><div id="kar-ipad-st" style="display:none;font-size:12px;margin-top:6px;line-height:1.3"></div><?php endif; ?>
     <div id="kar-now-bar" style="position:sticky;top:8px;z-index:40;margin-top:10px;background:#28241a;border:1px solid rgba(210,173,108,.45);border-radius:10px;padding:9px 6px 9px 16px;box-shadow:0 4px 16px rgba(0,0,0,.45)">
       <!-- Four labelled sections, divided by a rule, so the eye can find "the key" or "the
            tempo" without reading the whole bar (the owner, 2026-09-12: "no sections... you
@@ -1101,6 +1102,11 @@ if ($KAR_LOCAL) {
         <span style="display:flex;align-items:center;gap:7px;padding:0 0 0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <button type="button" onclick="karQToggle()" id="kar-q-btn" class="kar-tool kar-tile" title="The singing queue — who sings next, in order"><span style="font-size:15px">&#x1F3A4;</span>Queue <span id="kar-q-count" class="kar-cnt">0</span></button>
           <button type="button" onclick="karQrToggle()" id="kar-qr-btn" class="kar-tool kar-tile" title="The code guests scan to request or bring songs from their own phones"><span style="font-size:15px">&#x1F4F1;</span>Guest QR</button>
+          <?php if (!$KAR_LOCAL): ?>
+          <!-- "Update iPad" (the owner, 2026-10-02): after tuning pitches / lists, one press makes the iPad copy match them. Moved to this lower bar 2026-10-02 to free the top row for the search.
+               Only the casAI edition has it - the laptop does the work (scripts/ipad_pack_poll.py). -->
+          <button type="button" id="kar-ipad-btn" onclick="karIpadGo()" class="kar-tool kar-tile" title="Make the iPad copy match your lists and pitches now (otherwise it happens by itself at 3:20 every night)" style="position:relative"><span style="font-size:15px">&#x1F4F2;</span>iPad<span id="kar-ipad-n" style="display:none;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px;background:#fbbf24;color:#1a1f2c"></span></button>
+          <?php endif; ?>
         </span>
         <!-- Guide and Refresh live DOWN HERE, not in the top row. the owner, 2026-09-18: "we
              don't have enough space on the top bar... the song database, the YouTube, a link
@@ -1994,6 +2000,40 @@ if ($KAR_LOCAL) {
       if (ev.target.closest && ev.target.closest('.kar-tierclear-btn')) return;
       karTierClearHide();
     });
+    // ---- Update iPad button (casAI edition only) ----
+    var karIpadTimer = null;
+    function karIpadAsk(op){
+      var fd = new FormData(); fd.append('form_type', 'karaoke_ipad_sync'); fd.append('op', op);
+      return fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); });
+    }
+    function karIpadPaint(d){
+      var el = document.getElementById('kar-ipad-st'), b = document.getElementById('kar-ipad-btn'), nb = document.getElementById('kar-ipad-n'); if (!el || !d) return;
+      var st = d.state || {}, pend = st.pending || null, lr = st.last_run || null, txt = '', busy = false, col = '#94a3b8', show = false;
+      var ageS = st.checked_at ? (Date.now() - new Date(st.checked_at).getTime()) / 1000 : 1e9;
+      var waiting = pend ? (pend.build || 0) + (pend.copy || 0) + (pend.retire || 0) : 0;
+      var bits = []; if (pend) { if (pend.build) bits.push(pend.build + ' to make'); if (pend.copy) bits.push(pend.copy + ' to copy'); if (pend.retire) bits.push(pend.retire + ' to retire'); }
+      var tip = 'Update iPad — makes the iPad copy match your lists and pitches. ' + (pend ? (waiting ? 'Waiting: ' + bits.join(', ') + '.' : 'The iPad copy is up to date.') : '');
+      if (st.state === 'working') { txt = '📱 iPad: making songs… (a few minutes)'; busy = true; col = '#fbbf24'; show = true; }
+      else if (d.requested) { txt = '📱 iPad: asked — waiting for the laptop'; busy = true; col = '#fbbf24'; show = true; }
+      else if (ageS > 240) { txt = '📱 iPad: the laptop is not answering — it will run when the laptop is awake'; col = '#fbbf24'; show = true; }
+      else if (st.state === 'failed' && lr) { var f = (lr.failed || []).length; txt = '📱 iPad: ⚠ last update — ' + (f ? f + ' song(s) failed' : (lr.error || 'problem')) + ' — tell Claude'; col = '#f87171'; show = true; }
+      else if (lr && lr.at && (Date.now() - new Date(lr.at).getTime()) < 180000) { txt = '📱 iPad: ✓ done — ' + (lr.built || 0) + ' made' + (lr.retired ? ', ' + lr.retired + ' retired' : '') + '. On the iPad, tap Check for new songs.'; col = '#34d399'; show = true; }
+      el.textContent = txt; el.style.color = col; el.style.display = show ? '' : 'none';
+      if (nb) { nb.textContent = waiting; nb.style.display = (waiting && !busy) ? '' : 'none'; }
+      if (b) { b.disabled = busy; b.style.opacity = busy ? '.55' : '1'; b.title = tip; }
+    }
+    function karIpadPoll(){
+      if (!document.getElementById('kar-ipad-btn')) return;
+      karIpadAsk('status').then(karIpadPaint).catch(function(){});
+    }
+    function karIpadGo(){
+      var b = document.getElementById('kar-ipad-btn'); if (b) { b.disabled = true; b.style.opacity = '.55'; }
+      karIpadAsk('request').then(function(d){ karIpadPaint(d); setTimeout(karIpadPoll, 4000); }).catch(function(){ alert('Network error — the request was not sent.'); if (b) { b.disabled = false; b.style.opacity = '1'; } });
+    }
+    if (document.getElementById('kar-ipad-btn')) {
+      karIpadPoll();
+      karIpadTimer = setInterval(function(){ if (!document.hidden) karIpadPoll(); }, 10000);
+    }
     function karTierClearPick(t){
       karTierClearHide();
       var letter = ['', 'A', 'B', 'C'][t];
