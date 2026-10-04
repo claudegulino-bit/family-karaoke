@@ -57,8 +57,8 @@ end, { repeatable = true })
 -- The user's own volume keys (9/0) still work on top of this.
 -- ---------------------------------------------------------------------------------------------
 local utils = require "mp.utils"
-local TARGET_LUFS = -14.0
-local HEADROOM_DB = 1.0
+local TARGET_LUFS = -16.0   -- was -14 until 2026-10-04: the owner heard it slightly too loud on a family Mac
+local HEADROOM_DB = 1.5
 local MAX_CUT_DB = 20.0
 
 local script_dir = (debug.getinfo(1, "S").source:match("^@(.*)/[^/]*$")) or "."
