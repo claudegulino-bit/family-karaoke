@@ -76,10 +76,14 @@ local function norm(s)  -- file names are compared as given; macOS may hand us t
     return s
 end
 
-local function lookup(name)
+local function lookup(name, size)
     if not table_data then table_data = read_json(script_dir .. "/song_loudness.json") or {} end
     if not cache_data then cache_data = read_json(cache_path) or {} end
-    return table_data[name] or cache_data[name]
+    if table_data[name] then return table_data[name] end
+    local c = cache_data[name]
+    -- a remembered level is only valid for the file it was measured on: a song REPLACED under the same name has a different size, so it is measured again
+    if c and (c[3] == nil or c[3] == size) then return c end
+    return nil
 end
 
 local function find_ffmpeg()
@@ -100,9 +104,9 @@ local function measure(path)
     return nil
 end
 
-local function remember(name, vals)
+local function remember(name, vals, size)
     cache_data = cache_data or {}
-    cache_data[name] = vals
+    cache_data[name] = { vals[1], vals[2], size }
     local f = io.open(cache_path, "w")
     if f then f:write(utils.format_json(cache_data)); f:close() end
 end
@@ -120,10 +124,11 @@ mp.add_hook("on_preloaded", 50, function()
     -- only a real song: not looping, long enough, and an .mp4 file
     if loop ~= "no" or dur < 60 or not path:lower():match("%.mp4$") then set_gain(0); return end
     local name = path:match("([^/]+)$") or path
-    local vals = lookup(name)
+    local fi = utils.file_info(path); local size = fi and fi.size or nil
+    local vals = lookup(name, size)
     if not vals then
         vals = measure(path)
-        if vals then remember(name, vals) end
+        if vals then remember(name, vals, size) end
     end
     if not vals then set_gain(0); return end
     local cut = math.min(0, TARGET_LUFS - vals[1], -HEADROOM_DB - vals[2])
