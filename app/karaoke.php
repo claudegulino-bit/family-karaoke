@@ -659,7 +659,7 @@ if ($KAR_LOCAL) {
   select.kar-chip { display:inline-block; }
   /* Singers icon (two people): a <select> cannot hold an <svg>, so it is a background image. ID selector so the
      .kar-chip background SHORTHAND on hover/on cannot wipe it (shorthand at lower specificity never beats a longhand here). */
-  #kar-who { background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2026%2022%27%3E%3Ccircle%20cx%3D%279%27%20cy%3D%276%27%20r%3D%273.6%27%20fill%3D%27%2386CAFA%27/%3E%3Cpath%20d%3D%27M2.5%2020c0-4%202.9-6.8%206.5-6.8s6.5%202.8%206.5%206.8z%27%20fill%3D%27%2386CAFA%27/%3E%3Ccircle%20cx%3D%2718%27%20cy%3D%277.5%27%20r%3D%273%27%20fill%3D%27%23F472B6%27/%3E%3Cpath%20d%3D%27M12.8%2020.5c.4-3.4%202.5-5.6%205.2-5.6s4.8%202.2%205.2%205.6z%27%20fill%3D%27%23F472B6%27/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:11px center; background-size:21px 18px; padding-left:39px; }
+  #kar-who { background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2026%2022%27%3E%3Ccircle%20cx%3D%279%27%20cy%3D%276%27%20r%3D%273.6%27%20fill%3D%27%2386CAFA%27/%3E%3Cpath%20d%3D%27M2.5%2020c0-4%202.9-6.8%206.5-6.8s6.5%202.8%206.5%206.8z%27%20fill%3D%27%2386CAFA%27/%3E%3Ccircle%20cx%3D%2718%27%20cy%3D%277.5%27%20r%3D%273%27%20fill%3D%27%23F472B6%27/%3E%3Cpath%20d%3D%27M12.8%2020.5c.4-3.4%202.5-5.6%205.2-5.6s4.8%202.2%205.2%205.6z%27%20fill%3D%27%23F472B6%27/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2010%206%27%3E%3Cpath%20d%3D%27M1%201l4%204%204-4%27%20fill%3D%27none%27%20stroke%3D%27%2386CAFA%27%20stroke-width%3D%271.6%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27/%3E%3C/svg%3E"); background-repeat:no-repeat, no-repeat; background-position:11px center, right 8px center; background-size:21px 18px, 9px 6px; padding-left:39px; padding-right:24px; }
   .kar-smode:hover, .kar-ref:hover { color:#cbd5e1; background:rgba(148,163,184,.14); }
   .kar-chip option { color:#0f172a; background:#f8fafc; font-size:15px; }
   /* the typing field matches the buttons. Kept in CSS, NOT inline: a double-quoted font
@@ -763,7 +763,8 @@ if ($KAR_LOCAL) {
      cannot diagnose in a room full of people. Do not hide it again. #kar-sec-key stays
      hidden: that was his own call — "you decide the pitch, you set it, and you sing" — and
      the per-song Pitch box and Reset are both visible in Simple mode. */
-  .kar-simple #kar-sec-key,
+  /* #kar-sec-key (the live Pitch - 0 + control) was hidden here from 2026-09-18 (his call, "you decide the pitch, you set it, and you sing"); brought back 2026-10-04 at his request
+     now that the compact view has the room. */
   .kar-simple #kar-lbl-playback,
   .kar-simple #kar-lyrics-btn,
   .kar-simple #kar-bands,
@@ -960,6 +961,91 @@ if ($KAR_LOCAL) {
     <?php if ($_kj === null): ?>
     <p style="color:#94a3b8;font-size:13px">The karaoke song list hasn't been published to the server yet — ask Claude to run <code>karaoke_sync.py</code> and it will appear here.</p>
     <?php else: ?>
+    <!-- COMPACT VIEW (the owner, 2026-10-04: "make the buttons more concise, like QMidi ... put Queue, Guest QR, iPad and Guide in a drop-down like File / Edit /
+         Window"). A menu bar of five drop-downs; the less-used buttons live in them and are hidden from the two bars while the view is on. NOTHING was removed:
+         every menu item calls the very same function the old button called, and "Classic layout" (Help menu) puts every button back. Remembered per browser. -->
+    <style>
+      #kar-menubar{display:none}
+      #karaoke-page.kar-compact #kar-menubar{display:flex;align-items:center;gap:2px;position:relative;z-index:45;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid rgba(148,163,184,.18)}
+      #kar-menubar .kar-mb-t{font-size:16px;font-weight:800;color:#D2AD6C;margin-right:12px;letter-spacing:.02em}
+      .kar-mb-btn{appearance:none;-webkit-appearance:none;background:none;border:0;color:#cbd5e1;font-family:inherit;font-size:15.5px;font-weight:600;padding:6px 13px;border-radius:7px;cursor:pointer}
+      .kar-mb-btn:hover,.kar-mb-btn.is-open{background:rgba(148,163,184,.18);color:#f1f5f9}
+      .kar-mb-menu{display:none;position:absolute;top:100%;margin-top:3px;min-width:250px;background:#0f172a;border:1px solid #D2AD6C;border-radius:9px;padding:5px;box-shadow:0 10px 28px rgba(0,0,0,.55);z-index:70}
+      .kar-mb-menu.is-open{display:block}
+      .kar-mb-item{display:block;width:100%;text-align:left;appearance:none;-webkit-appearance:none;background:none;border:0;color:#e2e8f0;font-family:inherit;font-size:14.5px;font-weight:500;padding:8px 12px;border-radius:6px;cursor:pointer}
+      .kar-mb-item:hover{background:rgba(148,163,184,.2)}
+      .kar-mb-sep{height:1px;background:rgba(148,163,184,.2);margin:4px 2px}
+      .kar-mb-item small{display:block;margin-top:2px;color:#93a4bb;font-size:12px;font-weight:400;line-height:1.3;white-space:normal}
+      .kar-mb-note{padding:7px 12px;color:#aab6c8;font-size:12.5px;line-height:1.4;white-space:normal}
+      .kar-mb-note b{color:#e2e8f0;font-weight:700}
+      .kar-mb-badge{margin-left:6px;background:#fbbf24;color:#1a1f2c;border-radius:9px;padding:0 6px;font-size:11px;font-weight:800}
+      #kar-compact-on{display:inline-flex}
+      #karaoke-page.kar-compact #kar-compact-on{display:none!important}
+      /* the two bars, compact: smaller buttons, no section captions, tighter spacing */
+      #karaoke-page.kar-compact .kar-chip,#karaoke-page.kar-compact .kar-smode,#karaoke-page.kar-compact .kar-tool,#karaoke-page.kar-compact .kar-ref{height:28px!important;padding:0 9px!important;font-size:12.5px!important;border-radius:7px!important;gap:5px!important}
+      #karaoke-page.kar-compact #kar-guide-btn,#karaoke-page.kar-compact #kar-q-btn,#karaoke-page.kar-compact #kar-qr-btn,#karaoke-page.kar-compact #kar-ipad-btn,#karaoke-page.kar-compact [onclick^="karTierClearShow"],#karaoke-page.kar-compact #kar-singer-btn{display:none!important}
+      #karaoke-page.kar-compact #kar-who{padding-left:31px!important;padding-right:22px!important;background-position:8px center, right 7px center!important;background-size:17px 15px, 8px 5px!important}   /* the two-people icon is a background image: the text must clear it */
+      /* the right end of the playing bar, evenly spaced: the 100% control, Restart and Stop, then Refresh - a bigger round icon with its name written underneath */
+      #karaoke-page.kar-compact #kar-sec-q{display:none!important}
+      #karaoke-page.kar-compact #kar-sec-tempo{padding:0 22px!important}
+      #karaoke-page.kar-compact #kar-sec-pb{padding:0 22px!important}
+      #karaoke-page.kar-compact #kar-sec-pb>span+span{gap:12px!important}
+      #karaoke-page.kar-compact #kar-sec-ref{padding:0 22px!important;gap:0!important}
+      #karaoke-page.kar-compact #kar-refresh-btn{width:30px!important;min-width:30px;height:30px!important;padding:0!important;border-radius:50%!important;justify-content:center;font-size:0!important;gap:0!important}
+      #karaoke-page.kar-compact #kar-refresh-btn svg{width:17px!important;height:17px!important}
+      #karaoke-page.kar-compact #kar-bar{height:30px!important}
+      #karaoke-page.kar-compact #kar-lbl-playback{display:none!important}
+      #karaoke-page.kar-compact #kar-sec-key,#karaoke-page.kar-compact #kar-sec-tempo{flex-direction:row!important;align-items:center!important;gap:7px!important}
+      #karaoke-page.kar-compact #kar-sec-key>span:first-child,#karaoke-page.kar-compact #kar-sec-tempo>span:first-child{font-size:9.5px!important;text-align:left!important}
+      #karaoke-page.kar-compact #kar-now-bar{padding:5px 6px 5px 12px!important;margin-top:6px!important}
+      #karaoke-page.kar-compact #kar-now-bar>*{gap:6px!important}
+      #karaoke-page.kar-compact #kar-sec-key,#karaoke-page.kar-compact #kar-sec-tempo{padding:0 10px!important}
+      #karaoke-page.kar-compact #kar-sec-key button,#karaoke-page.kar-compact #kar-sec-tempo button{width:26px!important;height:26px!important;font-size:14px!important;padding:0!important}
+      #karaoke-page.kar-compact #kar-lyrics-btn,#karaoke-page.kar-compact #kar-start-btn,#karaoke-page.kar-compact #kar-stop-btn{height:28px!important;padding:0 10px!important;font-size:12.5px!important}
+      #karaoke-page.kar-compact #kar-live-val{font-size:14px!important;width:26px!important}
+      #karaoke-page.kar-compact #kar-tempo-val{font-size:13px!important;width:44px!important}
+    </style>
+    <div id="kar-menubar" role="menubar">
+      <span class="kar-mb-t">Cantoria</span>
+      <button type="button" class="kar-mb-btn" data-menu="singers" id="kar-mb-singers">Singers &#9662;</button>
+      <button type="button" class="kar-mb-btn" data-menu="queue">Queue &#9662;<span id="kar-mb-q-n" class="kar-mb-badge" style="display:none"></span></button>
+      <button type="button" class="kar-mb-btn" data-menu="qr">Guest QR &#9662;</button>
+      <?php if (!$KAR_LOCAL): ?><button type="button" class="kar-mb-btn" data-menu="ipad">iPad &#9662;<span id="kar-mb-ipad-n" class="kar-mb-badge" style="display:none"></span></button><?php endif; ?>
+      <button type="button" class="kar-mb-btn" data-menu="help">Help &#9662;</button>
+      <span id="kar-mb-right" style="margin-left:auto;display:flex;align-items:center;gap:7px"></span>
+      <div class="kar-mb-menu" data-for="singers">
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karMbWho('__add__')})">Add a singer&hellip;</button>
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karMbWho('__remove__')})">Remove a singer&hellip;</button>
+        <div class="kar-mb-sep"></div>
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karSingerOpen(karWho)})">Singer details and photo</button>
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karTierClearShow(document.getElementById('kar-mb-singers'))})">Clear a list&hellip;</button>
+      </div>
+      <div class="kar-mb-menu" data-for="queue" style="min-width:360px">
+        <div class="kar-mb-note" id="kar-mb-q-list">Nobody is waiting.</div>
+        <div class="kar-mb-sep"></div>
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karQToggle()})">Open the full queue<small>Reorder, remove, and call the next singer.</small></button>
+      </div>
+      <div class="kar-mb-menu" data-for="qr">
+        <button type="button" class="kar-mb-item" id="kar-mb-qr-win" onclick="karMb(function(){karQrEnsure(karQrWindow)})">Turn the QR code on</button>
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karQrEnsure(karQrPrint)})">Print the QR code on paper</button>
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karQrEnsure(karMbWifi)})">Wi-Fi name on the printout&hellip;</button>
+        <div class="kar-mb-sep"></div>
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karQrRotate()})">New code&hellip;<small>The old QR code stops working</small></button>
+      </div>
+      <?php if (!$KAR_LOCAL): ?>
+      <div class="kar-mb-menu" data-for="ipad" style="min-width:320px">
+        <div class="kar-mb-note" id="kar-mb-ipad-status">Checking&hellip;</div>
+        <div class="kar-mb-sep"></div>
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karIpadGo()})">Update the iPad copy now<small>Makes the changed pitch songs, checks them, and sends them to the server.</small></button>
+        <div class="kar-mb-note">Then, on the iPad, tap <b>Check for new songs</b>. The laptop also does this by itself every night at 3:20.</div>
+      </div>
+      <?php endif; ?>
+      <div class="kar-mb-menu" data-for="help">
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karGuideToggle()})">Guide</button>
+        <div class="kar-mb-sep"></div>
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karSetCompact(false)})">Classic layout</button>
+      </div>
+    </div>
     <!-- ONE row of pills, every control the same height. the owner, 2026-09-18, looking at the two
          white bars and the 56px tiles: "I don't really like them... hopefully the smaller sizes,
          but more fun... colors that are lively, but they all match. Not all these different
@@ -973,7 +1059,7 @@ if ($KAR_LOCAL) {
         <button id="kar-chip-new" type="button" class="kar-chip" onclick="karSwitch('new',this)" title="Everything downloaded in the last 5 days, newest first"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="flex:0 0 auto"><path d="M12 1.5l2.4 5.2 5.6.6-4.2 3.8 1.2 5.5L12 13.8l-5 2.8 1.2-5.5L4 7.3l5.6-.6z" fill="#FBBF24"/><path d="M19.5 15.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="#FDE68A"/><path d="M4 17l.6 1.3 1.3.6-1.3.6L4 20.8l-.6-1.3-1.3-.6 1.3-.6z" fill="#FDE68A"/></svg>New Songs <span id="kar-new-count" class="kar-cnt"><?= count($_kjNew) ?></span></button>
         <select id="kar-who" class="kar-chip" onchange="karWhoChange(this)" onmousedown="karWhoTouch()" title="Which singer&#39;s songs to show — the ones they know. Pick a name, or add a new person.">
           <?php foreach (array_keys($_kjBestBy) as $_kbp): ?>
-          <option value="<?= h($_kbp) ?>">Singer: <?= h($_kbp) ?> - <?= count($_kjBestBy[$_kbp]) ?></option>
+          <option value="<?= h($_kbp) ?>"><?= h($_kbp) ?> &middot; <?= count($_kjBestBy[$_kbp]) ?></option>
           <?php endforeach; ?>
           <option value="__add__">＋ Add a singer…</option>
           <option value="__remove__">− Remove a singer…</option>
@@ -1087,7 +1173,7 @@ if ($KAR_LOCAL) {
             <button type="button" id="kar-tempo-up" onclick="karTempoAdj(5)" title="Speed the song up by 5%. The pitch stays true. For tonight only — not saved." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
           </span>
         </span>
-        <span style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+        <span id="kar-sec-pb" style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <span id="kar-lbl-playback" style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Playback</span>
           <span style="display:flex;align-items:center;gap:8px">
             <button id="kar-lyrics-btn" type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics screen, or bring it back in front of everything" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:11px;font-weight:800;line-height:1.1;padding:0 10px;height:36px;border-radius:8px;white-space:nowrap">🎬 Lyrics<br>Screen</button>
@@ -1099,7 +1185,7 @@ if ($KAR_LOCAL) {
              of space... move the queue and the guest QR to the bar below... right before the
              guide, after we start and stop") — same reasoning as the Guide/Refresh move below:
              free up the crowded top bar, land them where there's room. -->
-        <span style="display:flex;align-items:center;gap:7px;padding:0 0 0 16px;border-left:1px solid rgba(210,173,108,.28)">
+        <span id="kar-sec-q" style="display:flex;align-items:center;gap:7px;padding:0 0 0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <button type="button" onclick="karQToggle()" id="kar-q-btn" class="kar-tool kar-tile" title="The singing queue — who sings next, in order"><span style="font-size:15px">&#x1F3A4;</span>Queue <span id="kar-q-count" class="kar-cnt">0</span></button>
           <button type="button" onclick="karQrToggle()" id="kar-qr-btn" class="kar-tool kar-tile" title="The code guests scan to request or bring songs from their own phones"><span style="font-size:15px">&#x1F4F1;</span>Guest QR</button>
           <?php if (!$KAR_LOCAL): ?>
@@ -1114,13 +1200,17 @@ if ($KAR_LOCAL) {
              That hands ~180px back to the search field. Reading right to left, as he put it:
              "Refresh will be the last one. Then it will be guide. And then it will be start and
              stop." No label above them — they say what they are. -->
-        <span style="display:flex;align-items:center;gap:7px;padding:0 0 0 16px;border-left:1px solid rgba(210,173,108,.28)">
+        <span id="kar-sec-ref" style="display:flex;align-items:center;gap:7px;padding:0 0 0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <?php if ($KAR_LOCAL): ?><button type="button" id="kar-upd-now" onclick="karUpdateNow(this)" title="A newer Cantoria is ready — one click installs it and reloads this page. Your songs, singers, pitch settings and other settings are not touched." style="display:none;font-family:inherit;background:#D2AD6C;border:1px solid #fde68a;color:#1A1F2C;cursor:pointer;font-size:12.5px;font-weight:800;padding:0 14px;height:36px;border-radius:8px;box-shadow:0 0 0 3px rgba(210,173,108,.28)">⬆︎ Update</button><?php endif; ?>
+          <button type="button" id="kar-compact-on" class="kar-ref" onclick="karSetCompact(true)" title="Switch to the compact layout: smaller buttons and a menu bar">Compact view</button>
           <button type="button" onclick="karGuideToggle()" id="kar-guide-btn" class="kar-ref kar-tile" title="How everything on this page works — all the rules in one readable place"><span style="font-size:15px">&#x1F4D6;</span>Guide</button>
-          <button type="button" onclick="location.reload()" class="kar-ref" title="Refresh — reload the song lists from the server"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 12a8.5 8.5 0 1 1-2.49-6.01"/><path d="M20.5 4v5.5h-5.5"/></svg>Refresh</button>
+          <button type="button" id="kar-refresh-btn" onclick="location.reload()" class="kar-ref" title="Refresh — reload the song lists from the server"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 12a8.5 8.5 0 1 1-2.49-6.01"/><path d="M20.5 4v5.5h-5.5"/></svg>Refresh</button>
         </span>
       </div>
     </div>
+    <!-- UP NEXT strip (the owner, 2026-10-04: "a small bar on top that shows ... the person singing next plus the next one, the top two, and nothing else"). One slim line under the
+         playing bar; appears by itself while anyone is waiting in the singing queue and disappears when nobody is. A click opens the full queue. Nothing else on the page moves. -->
+    <div id="kar-upnext" role="button" tabindex="0" onclick="karQToggle()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();karQToggle();}" title="Open the singing queue" style="display:none;align-items:center;gap:14px;margin-top:6px;padding:4px 12px;background:#161c28;border:1px solid rgba(148,163,184,.2);border-radius:8px;cursor:pointer;font-size:12.5px;line-height:1.3;transition:border-color .2s, background .2s;overflow:hidden;white-space:nowrap"></div>
     <div id="kar-guide-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:16px 22px;max-height:calc(100vh - 220px);overflow-y:auto">
       <div style="display:flex;align-items:center;gap:10px">
         <h2 style="margin:0;font-size:16px;font-weight:800;color:#f3f4f6">🎤 Cantoria Guide</h2>
@@ -1620,8 +1710,8 @@ if ($KAR_LOCAL) {
       <div id="kar-q-now" style="display:none;margin-top:10px;color:#D2AD6C;font-size:13.5px;font-weight:700"></div>
       <div id="kar-q-list" style="margin-top:4px"></div>
     </div>
-    <div id="kar-qr-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(192,132,252,.4);border-radius:10px;padding:16px 18px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <div id="kar-qr-panel" style="display:none;margin-top:6px;background:#121620;border:1px solid rgba(192,132,252,.4);border-radius:10px;padding:5px 14px 10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
         <span style="font-size:13.5px;font-weight:800;color:#c084fc">📱 Guest QR</span>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
         <button type="button" id="kar-helpbtn-qr" onclick="karHelpToggle('qr')" class="kar-helpbtn" style="margin-left:0" title="Show or hide how this panel works — your choice is remembered on this computer"><span class="kar-helpico kar-helpico-big"></span></button>
@@ -1632,11 +1722,11 @@ if ($KAR_LOCAL) {
       <div id="kar-help-qr" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('qr')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
 
       </div>
-      <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">
-        <div id="kar-qr-code" style="background:#fff;padding:12px;border-radius:10px"></div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+        <div id="kar-qr-code" style="background:#fff;padding:7px;border-radius:8px"></div>
         <div style="flex:1;min-width:240px">
           <p style="margin:0;color:#e2e8f0;font-size:15px;font-weight:800">📱 Guests: scan this with your phone camera</p>
-          <p id="kar-qr-url" style="margin:10px 0 0;color:#64748b;font-size:10.5px;word-break:break-all"></p>
+          <p id="kar-qr-url" style="margin:6px 0 0;color:#64748b;font-size:10.5px;word-break:break-all"></p>
           <p style="margin:12px 0 5px;color:#94a3b8;font-size:11.5px">Wi-Fi network printed on the sheet. This is <b style="color:#cbd5e1">per computer</b> — each Mac keeps its own, because each one sits on its own network. macOS will not tell us the name, so type it once:</p>
           <input id="kar-qr-wifi" type="text" maxlength="60" placeholder="your Wi-Fi network name" onchange="karQrSaveWifi()" style="font-family:inherit;width:230px;background:#0d1118;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:12.5px;padding:7px 10px;transition:border-color .2s">
           <button type="button" onclick="karQrPrint()" title="Print one page with a big code — tape it on the wall so guests scan it there instead of crowding the Mac" style="margin-top:12px;margin-right:8px;font-family:inherit;background:rgba(192,132,252,.14);border:1px solid #c084fc;color:#e9d5ff;cursor:pointer;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:8px">🖨 Print it</button>
@@ -1760,7 +1850,7 @@ if ($KAR_LOCAL) {
       var sel = document.getElementById('kar-who');
       if (sel) {
         var o = sel.querySelector('option[value="' + (karWho || '').replace(/"/g, '\\"') + '"]');
-        if (o) o.textContent = 'Singer: ' + karWho + ' - ' + pairs.length;
+        if (o) o.textContent = karWho + ' \u00b7 ' + pairs.length;
         if (sel.value !== karWho) sel.value = karWho;
       }
       var tierCounts = { 0: pairs.length, 1: 0, 2: 0, 3: 0 };
@@ -1791,7 +1881,7 @@ if ($KAR_LOCAL) {
         if (!KAR_BEST_BY[nn]) {
           KAR_BEST_BY[nn] = [];
           var opt = document.createElement('option');
-          opt.value = nn; opt.textContent = 'Singer: ' + nn + ' - 0';
+          opt.value = nn; opt.textContent = nn + ' \u00b7 0';
           // Keep the list alphabetical: insert before the first name that sorts after it.
           var before = sel.querySelector('option[value="__add__"]');
           for (var oi = 0; oi < sel.options.length; oi++) {
@@ -2020,6 +2110,7 @@ if ($KAR_LOCAL) {
       else if (lr && lr.at && (Date.now() - new Date(lr.at).getTime()) < 180000) { txt = '📱 iPad: ✓ done — ' + (lr.built || 0) + ' made' + (lr.retired ? ', ' + lr.retired + ' retired' : '') + '. On the iPad, tap Check for new songs.'; col = '#34d399'; show = true; }
       el.textContent = txt; el.style.color = col; el.style.display = show ? '' : 'none';
       if (nb) { nb.textContent = waiting; nb.style.display = (waiting && !busy) ? '' : 'none'; }
+      var mb = document.getElementById('kar-mb-ipad-n'); if (mb) { mb.textContent = waiting; mb.style.display = (waiting && !busy) ? '' : 'none'; }
       if (b) { b.disabled = busy; b.style.opacity = busy ? '.55' : '1'; b.title = tip; }
     }
     function karIpadPoll(){
@@ -4280,7 +4371,7 @@ function karPickFolder(){
         document.getElementById('kar-qr-url').textContent = d.url;
         var holder = document.getElementById('kar-qr-code');
         holder.innerHTML = '';
-        new QRCode(holder, { text: d.url, width: 216, height: 216, correctLevel: QRCode.CorrectLevel.M });
+        new QRCode(holder, { text: d.url, width: 144, height: 144, correctLevel: QRCode.CorrectLevel.M });   // was 216: smaller panel (2026-10-04); the printed and lyrics-screen codes keep their own sizes
       }).catch(function(){ alert('Network error — could not load the guest code.'); });
     }
     try { var _qp = localStorage.getItem('kar_q_player'); if (_qp) document.getElementById('kar-q-player').value = _qp; } catch(e){}
@@ -4658,6 +4749,224 @@ function karPickFolder(){
   karSingerBadges(); setInterval(karSingerBadges, 20000);
 </script>
 <?php endif; ?>
+<style>
+  /* LIST DRUM (the owner, 2026-10-04): the A/B/C box is a small drum, the SAME size as the box it replaced. It has three faces, A, B and C: each click on it rolls to the
+     next one (A, B, C, A ...). "All" is shown by clicking the singer's NAME; while All is on, the drum rests on a dim "ABC". The old <select> stays in the page, invisible,
+     as the place the rest of the code reads and writes (value, counts, shown/hidden). */
+  #kar-tier-sel{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;margin:0!important;padding:0!important;border:0!important}
+  #kar-drum{position:relative;box-sizing:border-box;width:78px;padding:0!important;margin-left:-7px;border-left:1px solid rgba(169,217,255,.35)!important;border-top-left-radius:0!important;border-bottom-left-radius:0!important;
+    overflow:hidden;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;display:block;flex:0 0 auto}
+  #kar-drum:focus-visible{outline:2px solid #A9D9FF;outline-offset:1px}
+  #kar-drum .kd-strip{position:absolute;left:0;right:0;top:0;transition:transform .16s ease-out}
+  #kar-drum .kd-face{box-sizing:border-box;width:100%;display:grid;grid-template-columns:26px 1fr;align-items:center;padding:0 13px 0 8px;font-variant-numeric:tabular-nums}
+  #kar-drum .kd-l{text-align:center;font-weight:800;font-size:13px}
+  #kar-drum .kd-l.kd-abc{font-size:9px;letter-spacing:.02em}
+  #kar-drum .kd-n{text-align:right;font-size:12.5px;font-weight:700}
+  #kar-drum .kd-idle{opacity:.55}
+  #kar-drum .kd-shade{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;background:linear-gradient(to bottom,rgba(10,15,25,.5),rgba(10,15,25,0) 28%,rgba(10,15,25,0) 72%,rgba(10,15,25,.5))}
+</style>
+<script>
+// Faces: A, B, C. Click (or swipe up / wheel down / ArrowDown) = next; wheel up / swipe down / ArrowUp = previous. A pick goes through the SAME function the drop-down used
+// (karTierFilterToggle). Every face has the same two slots (letter, number) and the number slot holds four digits, so no list size can change the drum's width.
+(function(){
+  var sel = document.getElementById('kar-tier-sel'); if (!sel) return;
+  var LAB = { 1: 'A', 2: 'B', 3: 'C' }, cur = 1, H = 28, counts = { 0: '0', 1: '0', 2: '0', 3: '0' }, wheelAt = 0, idle = true;
+  var drum = document.createElement('div');
+  drum.id = 'kar-drum'; drum.className = 'kar-chip'; drum.tabIndex = 0; drum.setAttribute('role', 'spinbutton'); drum.setAttribute('aria-label', 'Which of this singer\u2019s lists to show');
+  drum.style.display = 'none';
+  drum.innerHTML = '<div class="kd-strip"></div><div class="kd-face kd-idle" style="position:absolute;left:0;top:0"><span class="kd-l kd-abc">ABC</span><span class="kd-n"></span></div><div class="kd-shade"></div>';
+  sel.parentNode.insertBefore(drum, sel.nextSibling);
+  var strip = drum.firstChild, idleEl = drum.children[1];
+  [3, 1, 2, 3, 1].forEach(function(t){                       // C (duplicate), A, B, C, A (duplicate): the duplicates make the wrap-around roll one step
+    var f = document.createElement('div'); f.className = 'kd-face'; f.setAttribute('data-t', t);
+    f.innerHTML = '<span class="kd-l">' + LAB[t] + '</span><span class="kd-n"></span>'; strip.appendChild(f);
+  });
+  function metrics(){ H = drum.clientHeight || 28; for (var i = 0; i < strip.children.length; i++) strip.children[i].style.height = H + 'px'; idleEl.style.height = H + 'px'; idleEl.style.width = '100%'; }
+  function setPos(anim){ strip.style.transition = anim ? '' : 'none'; strip.style.transform = 'translateY(-' + (cur * H) + 'px)'; if (!anim) void strip.offsetHeight; }
+  function showIdle(on){ idle = on; idleEl.style.display = on ? 'grid' : 'none'; strip.style.visibility = on ? 'hidden' : 'visible'; drum.classList.toggle('kar-on', !on && sel.classList.contains('kar-on')); }
+  function sync(){
+    drum.style.display = (sel.style.display === 'none') ? 'none' : 'block';
+    for (var oi = 0; oi < sel.options.length; oi++) { var v = parseInt(sel.options[oi].value, 10), m = String(sel.options[oi].textContent || '').match(/(\d+)\s*$/); counts[v] = m ? m[1] : '0'; }
+    var fs = strip.children; for (var i = 0; i < fs.length; i++) fs[i].lastChild.textContent = counts[parseInt(fs[i].getAttribute('data-t'), 10)];
+    idleEl.lastChild.textContent = counts[0];
+    var t = parseInt(sel.value, 10); if (isNaN(t)) t = 0;
+    metrics();
+    if (t === 0) { showIdle(true); cur = 1; } else { showIdle(false); cur = t; }   // strip index: 1 = A, 2 = B, 3 = C
+    setPos(false);
+    drum.setAttribute('aria-valuetext', t === 0 ? 'all lists' : LAB[t] + ' ' + counts[t]);
+  }
+  function commit(t){ sel.value = String(t); karTierFilterToggle(t); }
+  function roll(d){
+    var t0 = parseInt(sel.value, 10); if (isNaN(t0)) t0 = 0;
+    if (t0 === 0) { var first = d > 0 ? 1 : 3; showIdle(false); cur = first; setPos(false); commit(first); return; }   // from All: next = A, previous = C
+    if (cur === 0) { cur = 3; setPos(false); } else if (cur === 4) { cur = 1; setPos(false); }   // still on a duplicate from the last wrap
+    var n = cur + d; cur = n; setPos(true);
+    var t = n === 0 ? 3 : (n === 4 ? 1 : n); commit(t);
+    setTimeout(function(){ cur = t; setPos(false); }, 180);
+  }
+  drum.addEventListener('click', function(){ roll(1); });
+  drum.addEventListener('wheel', function(ev){ ev.preventDefault(); var now = Date.now(); if (now - wheelAt < 140) return; wheelAt = now; roll(ev.deltaY > 0 ? 1 : -1); }, { passive: false });
+  drum.addEventListener('keydown', function(ev){ if (ev.key === 'ArrowDown' || ev.key === 'ArrowRight' || ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); roll(1); } else if (ev.key === 'ArrowUp' || ev.key === 'ArrowLeft') { ev.preventDefault(); roll(-1); } });
+  var sy = null, moved = false;
+  drum.addEventListener('touchstart', function(ev){ sy = ev.touches[0].clientY; moved = false; }, { passive: true });
+  drum.addEventListener('touchmove', function(ev){ if (sy === null) return; var dy = ev.touches[0].clientY - sy; if (Math.abs(dy) > 14) { moved = true; roll(dy < 0 ? 1 : -1); sy = ev.touches[0].clientY; } ev.preventDefault(); }, { passive: false });
+  drum.addEventListener('touchend', function(ev){ sy = null; if (moved) { ev.preventDefault(); moved = false; } });
+  new MutationObserver(sync).observe(sel, { attributes: true, attributeFilter: ['style', 'class'], childList: true, characterData: true, subtree: true });
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(function(){ metrics(); setPos(false); }).observe(drum);
+  var _paint = window.karPaintTierFilter; if (typeof _paint === 'function') window.karPaintTierFilter = function(){ _paint.apply(this, arguments); sync(); };
+  // The singer's NAME shows all three lists together; only the small arrow at its right end opens the list of people.
+  var who = document.getElementById('kar-who');
+  function nameZone(clientX){ var r = who.getBoundingClientRect(); return clientX < r.right - 26; }
+  function showAll(){ karWhoTouch(); commit(0); }
+  if (who) {
+    who.addEventListener('mousedown', function(ev){ if (nameZone(ev.clientX)) { ev.preventDefault(); who.focus(); showAll(); } }, true);
+    who.addEventListener('touchstart', function(ev){ if (nameZone(ev.touches[0].clientX)) { ev.preventDefault(); showAll(); } }, { capture: true, passive: false });
+  }
+  sync();
+})();
+</script>
+<script>
+// Tidy song title for the one-line views: drops the file extension, "(Karaoke)" / "(Lyrics)", and the trailing singer codes, singer names and "(0)" numbers that live in the file name.
+function karNice(song){
+  var t = String(song || '').replace(/\.[a-z0-9]{2,4}$/i, '').replace(/\s*\((?:Karaoke|Lyrics|Original)(?:\s+Version)?\)/ig, '');
+  var names = []; try { names = Object.keys(KAR_BEST_BY || {}); } catch (e) {}
+  names = names.filter(function(n){ return n && n.length < 40; }).map(function(n){ return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+  var re = new RegExp('(\\s+CSG\\d*|\\s+(?:Lyrics|Karaoke)|\\s+\\(-?\\d+\\)' + (names.length ? '|\\s+(?:' + names.join('|') + ')' : '') + ')$', 'i');
+  for (var i = 0; i < 6 && re.test(t); i++) t = t.replace(re, '');
+  return t.trim() || String(song || '');
+}
+// ---- Queue menu: who is singing and who is waiting (read-only; the full queue opens from the menu) ----
+function karMbQFill(){
+  var box = document.getElementById('kar-mb-q-list'), badge = document.getElementById('kar-mb-q-n'); if (!box || typeof karQ === 'undefined') return;
+  var w = karQ.filter(function(e){ return e.status === 'Waiting'; }), sg = karQ.filter(function(e){ return e.status === 'Singing'; })[0];
+  function nm(e){ var song = karNice(e.song); var p = (e.pitch !== 0 && e.pitch != null) ? ' (' + (e.pitch > 0 ? '+' : '') + e.pitch + ')' : '';
+    return '<b style="color:#D2AD6C">' + karEsc(e.singer) + '</b> &mdash; ' + karEsc(song.length > 46 ? song.slice(0, 45) + '\u2026' : song) + karEsc(p); }
+  var L = [];
+  if (sg) L.push('<b>Now singing:</b> ' + nm(sg));
+  if (!w.length) L.push(sg ? 'Nobody is waiting.' : 'The queue is empty.');
+  else { L.push('<b>' + w.length + ' waiting:</b>'); w.slice(0, 6).forEach(function(e, i){ L.push((i + 1) + '. ' + nm(e)); }); if (w.length > 6) L.push('+' + (w.length - 6) + ' more'); }
+  box.innerHTML = L.join('<br>');
+  if (badge) { badge.textContent = w.length; badge.style.display = w.length ? '' : 'none'; }
+}
+// ---- UP NEXT strip: the first two people waiting in the singing queue ----
+var karUpPrev = null;
+function karUpNext(){
+  var el = document.getElementById('kar-upnext'); if (!el || typeof karQ === 'undefined') return;
+  var w = karQ.filter(function(e){ return e.status === 'Waiting'; });
+  try { karMbQFill(); } catch (e) {}
+  if (!w.length) { el.style.display = 'none'; el.innerHTML = ''; karUpPrev = 0; return; }
+  function item(n, e){
+    var song = karNice(e.song);
+    var pitch = (e.pitch !== 0 && e.pitch != null) ? ' <span style="color:#7f8ca3">(' + (e.pitch > 0 ? '+' : '') + e.pitch + ')</span>' : '';
+    return '<span style="display:inline-flex;align-items:baseline;gap:6px;min-width:0;max-width:42%"><b style="color:#7f8ca3;font-weight:800">' + n + '</b>'
+      + '<span style="color:#D2AD6C;font-weight:800;flex:0 0 auto">' + karEsc(e.singer) + '</span>'
+      + '<span style="color:#e2e8f0;overflow:hidden;text-overflow:ellipsis">' + karEsc(song) + pitch + '</span></span>';
+  }
+  var h = '<span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;flex:0 0 auto">Up next</span>' + item(1, w[0]);
+  if (w.length > 1) h += item(2, w[1]);
+  if (w.length > 2) h += '<span style="color:#7f8ca3;flex:0 0 auto;margin-left:auto">+' + (w.length - 2) + ' more</span>';
+  el.innerHTML = h; el.style.display = 'flex';
+  if (karUpPrev !== null && w.length > karUpPrev) {            // somebody just joined: a brief gold glow on the strip and the Queue button
+    el.style.borderColor = '#D2AD6C'; el.style.background = '#241f12';
+    var qb = document.getElementById('kar-q-btn'); if (qb) qb.style.boxShadow = '0 0 0 2px #D2AD6C';
+    setTimeout(function(){ el.style.borderColor = ''; el.style.background = ''; if (qb) qb.style.boxShadow = ''; }, 1400);
+  }
+  karUpPrev = w.length;
+}
+(function(){ var _r = window.karQRender; if (typeof _r === 'function') { window.karQRender = function(){ var o = _r.apply(this, arguments); try { karUpNext(); } catch (e) {} return o; }; } })();
+// COMPACT VIEW — menu bar + smaller buttons. Every menu item calls the original button's own function.
+var KAR_COMPACT = true;
+try { if (localStorage.getItem('kar_compact') === '0') KAR_COMPACT = false; } catch (e) {}
+function karMbClose(){
+  document.querySelectorAll('.kar-mb-menu.is-open,.kar-mb-btn.is-open').forEach(function(x){ x.classList.remove('is-open'); });
+}
+function karMb(fn){ karMbClose(); try { fn(); } catch (e) { alert('That did not work: ' + (e && e.message || e)); } }
+// Guest QR menu: Print / Show on the lyrics screen need the code to be loaded first (the panel it used to live in is no longer opened from the compact view).
+function karQrEnsure(cb){
+  var u = document.getElementById('kar-qr-url');
+  if (u && u.textContent) { cb(); return; }
+  karQrLoad('get'); var n = 0;
+  (function w(){ if (u && u.textContent) { cb(); return; } if (++n > 25) { alert('The guest code did not load. Please try again.'); return; } setTimeout(w, 150); })();
+}
+function karMbWifi(){
+  var v = prompt('Wi-Fi network name to print under the QR code (leave empty to print none):', KAR_WIFI || '');
+  if (v === null) return;
+  var el = document.getElementById('kar-qr-wifi'); if (el) { el.value = v; karQrSaveWifi(); }
+}
+function karMbIpadFill(d){
+  var box = document.getElementById('kar-mb-ipad-status'); if (!box || !d) return;
+  var st = d.state || {}, pend = st.pending || null, lr = st.last_run || null, L = [];
+  function nm(f){ return karEsc(String(f).replace(/\.mp4$/i, '').slice(0, 52)); }
+  if (st.state === 'working') L.push('<b>Making songs now&hellip;</b> a few minutes.');
+  else if (d.requested) L.push('<b>Asked</b> &mdash; waiting for the laptop (it checks every minute).');
+  else if (pend && (pend.build || pend.copy || pend.retire)) {
+    var bits = []; if (pend.build) bits.push(pend.build + ' to make'); if (pend.copy) bits.push(pend.copy + ' to copy'); if (pend.retire) bits.push(pend.retire + ' to retire');
+    L.push('<b>Waiting:</b> ' + bits.join(', ') + '.');
+    var names = (st.pending_names && st.pending_names.build) || [];
+    names.slice(0, 3).forEach(function(f){ L.push('&bull; ' + nm(f)); });
+  } else if (pend) L.push('<b>The iPad copy is up to date.</b>');
+  else L.push('Status not available yet.');
+  if (lr && lr.at) L.push('Last update: ' + String(lr.at).slice(5, 16).replace('T', ' ') + ' &mdash; ' + (lr.built || 0) + ' made' + (lr.retired ? ', ' + lr.retired + ' retired' : '') + '.');
+  box.innerHTML = L.join('<br>');
+}
+function karMbOpened(name){
+  if (name === 'qr') { var b = document.getElementById('kar-mb-qr-win'); if (b) b.textContent = karQrOnScreen ? 'Turn the QR code off' : 'Turn the QR code on'; }
+  else if (name === 'ipad' && typeof karIpadAsk === 'function') karIpadAsk('status').then(karMbIpadFill).catch(function(){});
+  else if (name === 'queue') { karMbQFill(); if (typeof karQFetch === 'function') karQFetch(); }
+}
+function karMbWho(v){ var sel = document.getElementById('kar-who'); if (!sel) return; sel.value = v; karWhoChange(sel); }
+function karMbSearch(mode){
+  karSetMode(mode);
+  var el = document.getElementById('kar-search'); if (el) { el.focus(); el.select(); }
+}
+function karSetCompact(on){
+  KAR_COMPACT = !!on;
+  try { localStorage.setItem('kar_compact', on ? '1' : '0'); } catch (e) {}
+  var page = document.getElementById('karaoke-page'); if (!page) return;
+  page.classList.toggle('kar-compact', KAR_COMPACT);
+  var slot = document.getElementById('kar-mb-right');
+  var ids = [];     // these stay visible as buttons beside the menus; nothing is repeated in a menu
+  if (slot) {
+    if (KAR_COMPACT) {
+      ids.forEach(function(id){ var b = document.getElementById(id); if (!b) return; if (!b._kHome) { b._kHome = b.parentNode; b._kNext = b.nextSibling; } slot.appendChild(b); });
+    } else {
+      ids.slice().reverse().map(function(id){ return document.getElementById(id); }).forEach(function(b){ if (!b || !b._kHome || b.parentNode === b._kHome) return;
+        try { b._kHome.insertBefore(b, b._kNext); } catch (e) { b._kHome.appendChild(b); } });
+    }
+  }
+  karMbClose();
+}
+(function(){
+  var bar = document.getElementById('kar-menubar'); if (!bar) return;
+  var leaveT = null;
+  function openMenu(b, menu){ karMbClose(); menu.style.left = b.offsetLeft + 'px'; menu.classList.add('is-open'); b.classList.add('is-open'); try { karMbOpened(b.getAttribute('data-menu')); } catch (e) {} }
+  function armLeave(){ clearTimeout(leaveT); }
+  function startLeave(){ clearTimeout(leaveT); leaveT = setTimeout(karMbClose, 280); }      // pointer left the title and the menu: close it, no second click needed
+  bar.querySelectorAll('.kar-mb-btn[data-menu]').forEach(function(b){
+    var name = b.getAttribute('data-menu'), menu = bar.querySelector('.kar-mb-menu[data-for="' + name + '"]'), viaMouse = false, wasOpen = false;
+    b.addEventListener('mousedown', function(ev){
+      if (ev.button !== 0) return;
+      viaMouse = true; wasOpen = menu.classList.contains('is-open');
+      if (!wasOpen) openMenu(b, menu);
+      function up(e2){                                                    // pressed, dragged onto an item, released there: choose it, like a Mac menu
+        document.removeEventListener('mouseup', up, true);
+        var it = e2.target.closest && e2.target.closest('.kar-mb-item');
+        if (it) { e2.preventDefault(); e2.stopPropagation(); it.click(); }                  // a release on an item can only come from a drag: choose it
+      }
+      document.addEventListener('mouseup', up, true);
+    });
+    b.addEventListener('click', function(ev){                             // a quick click leaves the menu open; a second click on the title closes it
+      ev.stopPropagation();
+      if (viaMouse) { viaMouse = false; if (wasOpen) karMbClose(); return; }
+      if (menu.classList.contains('is-open')) karMbClose(); else openMenu(b, menu);     // keyboard
+    });
+    [b, menu].forEach(function(el){ el.addEventListener('mouseenter', armLeave); el.addEventListener('mouseleave', startLeave); });
+  });
+  document.addEventListener('click', function(ev){ if (!bar.contains(ev.target)) karMbClose(); });
+  document.addEventListener('keydown', function(ev){ if (ev.key === 'Escape') karMbClose(); });
+  karSetCompact(KAR_COMPACT);
+})();
+</script>
 <!-- HOVER EXPLANATIONS for the controls along the top (the owner, 2026-09-30: "if you put your mouse
      over Song Database, a box opens that says what it is ... for every button on top, explain what
      they do and the reason for the button"). ALL the wording lives in KAR_TIPS below, one place.
@@ -4680,9 +4989,9 @@ function karPickFolder(){
     ['#kar-chip-new', 'New Songs',
      'Songs downloaded in the last 5 days. They are kept here for 5 days so they can be reviewed and brought into line with the naming conventions, and so any song flagged as a possible duplicate can be dealt with. These songs are also in the Song Database — they are the same songs, not copies, so renaming one here renames it there too. Press ✓ Checked when a song is done and it leaves this list early; otherwise it leaves after 5 days.'],
     ['#kar-who', 'Singer',
-     'Shows this singer’s Singer List — every song they know — so nobody has to search the whole library at a party. Permanent pitch settings are kept here: a pitch change made in this list is remembered for this singer only. Pick a name, or add a new singer.'],
-    ['#kar-tier-sel', 'Which list',
-     'A singer’s list is every song they know, in three groups: A for the songs they sing best, B for the next best, C for the rest. Choose one, or All to see them together. The number beside each shows how many songs it holds.'],
+     'Click the name to see all of this singer’s songs, lists A, B and C together. The small arrow at the right changes the singer or adds a new one. Pitch changes made in a singer’s list are remembered for that singer only.'],
+    ['#kar-drum', 'Which list',
+     'Click to go through the lists A, B and C, one after the other. To see all three together, click the singer’s name.'],
     ['[onclick^="karTierClearShow"]', 'Clear a list',
      function(){ var w = (typeof karWho === 'string' && karWho) ? karWho : '';
        // Worded by the owner, 2026-09-30: say whose list it is, then what to do - no repetition.
@@ -4737,7 +5046,13 @@ function karPickFolder(){
   function show(el){
     box.firstChild.textContent = el.getAttribute('data-tip-t');
     var fn = el._karTipFn;
-    box.lastChild.textContent = fn ? fn() : el.getAttribute('data-tip-b');
+    var _body = fn ? fn() : el.getAttribute('data-tip-b');
+    var _pg = document.getElementById('karaoke-page');
+    if (_pg && _pg.classList.contains('kar-compact')) {   // compact view: one short sentence; the long text stays in the Guide
+      var _l = String(_body || '').split(/\n/)[0], _m = _l.match(/^[\s\S]*?[.!?](\s|$)/); _l = (_m ? _m[0] : _l).trim();
+      _body = _l.length > 150 ? _l.slice(0, 147) + '\u2026' : _l;
+    }
+    box.lastChild.textContent = _body;
     box.style.left = '0px'; box.style.top = '0px'; box.classList.add('is-on'); box.setAttribute('aria-hidden','false');
     var r = el.getBoundingClientRect(), bw = box.offsetWidth, bh = box.offsetHeight, m = 8;
     var x = Math.min(Math.max(m, r.left + r.width / 2 - bw / 2), window.innerWidth - bw - m);
