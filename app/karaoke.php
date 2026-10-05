@@ -4863,9 +4863,9 @@ function karUpNext(){
   function item(n, e){
     var song = karNice(e.song);
     var pitch = (e.pitch !== 0 && e.pitch != null) ? ' <span style="color:#7f8ca3">(' + (e.pitch > 0 ? '+' : '') + e.pitch + ')</span>' : '';
-    return '<span style="display:inline-flex;align-items:baseline;gap:6px;min-width:0;max-width:42%"><b style="color:#7f8ca3;font-weight:800">' + n + '</b>'
-      + '<span style="color:#D2AD6C;font-weight:800;flex:0 0 auto">' + karEsc(e.singer) + '</span>'
-      + '<span style="color:#e2e8f0;overflow:hidden;text-overflow:ellipsis">' + karEsc(song) + pitch + '</span></span>';
+    return '<span style="display:inline-flex;align-items:baseline;gap:6px;flex:1 1 0;min-width:0;overflow:hidden"><b style="color:#7f8ca3;font-weight:800;flex:0 0 auto">' + n + '</b>'
+      + '<span style="color:#D2AD6C;font-weight:800;flex:0 0 auto;max-width:40%;overflow:hidden;text-overflow:ellipsis">' + karEsc(e.singer) + '</span>'
+      + '<span style="color:#e2e8f0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + karEsc(song) + pitch + '</span></span>';   // both entries share the line equally, so a long name can never push the second one out of sight
   }
   var h = '<span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;flex:0 0 auto">Up next</span>' + item(1, w[0]);
   if (w.length > 1) h += item(2, w[1]);
