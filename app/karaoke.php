@@ -1023,7 +1023,7 @@ if ($KAR_LOCAL) {
       <div class="kar-mb-menu" data-for="queue" style="min-width:360px">
         <div class="kar-mb-note" id="kar-mb-q-list">Nobody is waiting.</div>
         <div class="kar-mb-sep"></div>
-        <button type="button" class="kar-mb-item" onclick="karMb(function(){karQToggle()})">Open the full queue<small>Reorder, remove, and call the next singer.</small></button>
+        <button type="button" class="kar-mb-item" id="kar-mb-q-open" onclick="karMb(function(){karQToggle()})">Open the full queue<small>Reorder, remove, and call the next singer.</small></button>
       </div>
       <div class="kar-mb-menu" data-for="qr">
         <button type="button" class="kar-mb-item" id="kar-mb-qr-win" onclick="karMb(function(){karQrEnsure(karQrWindow)})">Turn the QR code on</button>
@@ -1041,7 +1041,7 @@ if ($KAR_LOCAL) {
       </div>
       <?php endif; ?>
       <div class="kar-mb-menu" data-for="help">
-        <button type="button" class="kar-mb-item" onclick="karMb(function(){karGuideToggle()})">Guide</button>
+        <button type="button" class="kar-mb-item" id="kar-mb-guide" onclick="karMb(function(){karGuideToggle()})">Guide</button>
         <div class="kar-mb-sep"></div>
         <button type="button" class="kar-mb-item" onclick="karMb(function(){karSetCompact(false)})">Classic layout</button>
       </div>
@@ -1210,7 +1210,7 @@ if ($KAR_LOCAL) {
     </div>
     <!-- UP NEXT strip (the owner, 2026-10-04: "a small bar on top that shows ... the person singing next plus the next one, the top two, and nothing else"). One slim line under the
          playing bar; appears by itself while anyone is waiting in the singing queue and disappears when nobody is. A click opens the full queue. Nothing else on the page moves. -->
-    <div id="kar-upnext" role="button" tabindex="0" onclick="karQToggle()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();karQToggle();}" title="Open the singing queue" style="display:none;align-items:center;gap:14px;margin-top:6px;padding:4px 12px;background:#161c28;border:1px solid rgba(148,163,184,.2);border-radius:8px;cursor:pointer;font-size:12.5px;line-height:1.3;transition:border-color .2s, background .2s;overflow:hidden;white-space:nowrap"></div>
+    <div id="kar-upnext" role="button" tabindex="0" onclick="karQToggle()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();karQToggle();}" title="Open or close the singing queue" style="display:none;align-items:center;gap:14px;margin-top:6px;padding:4px 12px;background:#161c28;border:1px solid rgba(148,163,184,.2);border-radius:8px;cursor:pointer;font-size:12.5px;line-height:1.3;transition:border-color .2s, background .2s;overflow:hidden;white-space:nowrap"></div>
     <div id="kar-guide-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:16px 22px;max-height:calc(100vh - 220px);overflow-y:auto">
       <div style="display:flex;align-items:center;gap:10px">
         <h2 style="margin:0;font-size:16px;font-weight:800;color:#f3f4f6">🎤 Cantoria Guide</h2>
@@ -4909,7 +4909,10 @@ function karMbIpadFill(d){
   if (lr && lr.at) L.push('Last update: ' + String(lr.at).slice(5, 16).replace('T', ' ') + ' &mdash; ' + (lr.built || 0) + ' made' + (lr.retired ? ', ' + lr.retired + ' retired' : '') + '.');
   box.innerHTML = L.join('<br>');
 }
+function karMbPanelOpen(id){ var p = document.getElementById(id); return !!p && p.style.display !== 'none'; }
 function karMbOpened(name){
+  var qi = document.getElementById('kar-mb-q-open'); if (qi) qi.firstChild.textContent = karMbPanelOpen('kar-q-panel') ? 'Close the full queue' : 'Open the full queue';
+  var gi = document.getElementById('kar-mb-guide'); if (gi) gi.textContent = karMbPanelOpen('kar-guide-panel') ? 'Close the Guide' : 'Guide';
   if (name === 'qr') { var b = document.getElementById('kar-mb-qr-win'); if (b) b.textContent = karQrOnScreen ? 'Turn the QR code off' : 'Turn the QR code on'; }
   else if (name === 'ipad' && typeof karIpadAsk === 'function') karIpadAsk('status').then(karMbIpadFill).catch(function(){});
   else if (name === 'queue') { karMbQFill(); if (typeof karQFetch === 'function') karQFetch(); }
