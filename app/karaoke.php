@@ -4860,6 +4860,8 @@ function karUpNext(){
   var w = karQ.filter(function(e){ return e.status === 'Waiting'; });
   try { karMbQFill(); } catch (e) {}
   if (!w.length) { el.style.display = 'none'; el.innerHTML = ''; karUpPrev = 0; return; }
+  var qp = document.getElementById('kar-q-panel');
+  if (qp && qp.style.display !== 'none') { el.style.display = 'none'; karUpPrev = w.length; return; }   // the full queue is open and lists everyone: no need to show the first two a second time
   function item(n, e, more){
     var song = karNice(e.song);
     var pitch = (e.pitch !== 0 && e.pitch != null) ? ' <span style="color:#7f8ca3">(' + (e.pitch > 0 ? '+' : '') + e.pitch + ')</span>' : '';
@@ -4880,6 +4882,7 @@ function karUpNext(){
   }
   karUpPrev = w.length;
 }
+(function(){ var qp = document.getElementById('kar-q-panel'); if (qp && window.MutationObserver) new MutationObserver(function(){ try { karUpNext(); } catch (e) {} }).observe(qp, { attributes: true, attributeFilter: ['style'] }); })();
 (function(){ var _r = window.karQRender; if (typeof _r === 'function') { window.karQRender = function(){ var o = _r.apply(this, arguments); try { karUpNext(); } catch (e) {} return o; }; } })();
 // COMPACT VIEW — menu bar + smaller buttons. Every menu item calls the original button's own function.
 var KAR_COMPACT = true;
