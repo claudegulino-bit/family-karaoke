@@ -4860,16 +4860,18 @@ function karUpNext(){
   var w = karQ.filter(function(e){ return e.status === 'Waiting'; });
   try { karMbQFill(); } catch (e) {}
   if (!w.length) { el.style.display = 'none'; el.innerHTML = ''; karUpPrev = 0; return; }
-  function item(n, e){
+  function item(n, e, more){
     var song = karNice(e.song);
     var pitch = (e.pitch !== 0 && e.pitch != null) ? ' <span style="color:#7f8ca3">(' + (e.pitch > 0 ? '+' : '') + e.pitch + ')</span>' : '';
-    return '<span style="display:inline-flex;align-items:baseline;gap:6px;flex:1 1 0;min-width:0;overflow:hidden"><b style="color:#7f8ca3;font-weight:800;flex:0 0 auto">' + n + '</b>'
-      + '<span style="color:#D2AD6C;font-weight:800;flex:0 0 auto;max-width:40%;overflow:hidden;text-overflow:ellipsis">' + karEsc(e.singer) + '</span>'
-      + '<span style="color:#e2e8f0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + karEsc(song) + pitch + '</span></span>';   // both entries share the line equally, so a long name can never push the second one out of sight
+    return '<div style="display:flex;align-items:baseline;gap:8px;min-width:0;overflow:hidden;white-space:nowrap"><b style="color:#7f8ca3;font-weight:800;flex:0 0 14px">' + n + '</b>'
+      + '<span style="color:#D2AD6C;font-weight:800;flex:0 0 auto;max-width:35%;overflow:hidden;text-overflow:ellipsis">' + karEsc(e.singer) + '</span>'
+      + '<span style="color:#e2e8f0;min-width:0;overflow:hidden;text-overflow:ellipsis">' + karEsc(song) + pitch + '</span>'
+      + (more ? '<span style="color:#7f8ca3;flex:0 0 auto;margin-left:auto;padding-left:12px">' + more + '</span>' : '') + '</div>';
   }
-  var h = '<span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;flex:0 0 auto">Up next</span>' + item(1, w[0]);
-  if (w.length > 1) h += item(2, w[1]);
-  if (w.length > 2) h += '<span style="color:#7f8ca3;flex:0 0 auto;margin-left:auto">+' + (w.length - 2) + ' more</span>';
+  // Two lines, one under the other (his call: two entries side by side put number 2 "in the middle of the page"): UP NEXT  1 ...  /  2 ...  +N more
+  var more = w.length > 2 ? '+' + (w.length - 2) + ' more' : '';
+  var h = '<span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;flex:0 0 auto;align-self:flex-start;padding-top:2px">Up next</span>'
+        + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">' + item(1, w[0], w.length === 1 ? '' : '') + (w.length > 1 ? item(2, w[1], more) : (more ? '' : '')) + '</div>';
   el.innerHTML = h; el.style.display = 'flex';
   if (karUpPrev !== null && w.length > karUpPrev) {            // somebody just joined: a brief gold glow on the strip and the Queue button
     el.style.borderColor = '#D2AD6C'; el.style.background = '#241f12';
