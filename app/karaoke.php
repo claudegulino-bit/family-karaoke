@@ -1036,8 +1036,8 @@ if ($KAR_LOCAL) {
       <div class="kar-mb-menu" data-for="ipad" style="min-width:320px">
         <div class="kar-mb-note" id="kar-mb-ipad-status">Checking&hellip;</div>
         <div class="kar-mb-sep"></div>
-        <button type="button" class="kar-mb-item" onclick="karMb(function(){karIpadGo()})">Update the iPad copy now<small>Makes the changed pitch songs, checks them, and sends them to the server.</small></button>
-        <div class="kar-mb-note">Then, on the iPad, tap <b>Check for new songs</b>. The laptop also does this by itself every night at 3:20.</div>
+        <button type="button" class="kar-mb-item" onclick="karMb(function(){karIpadGo()})">Prepare songs for the iPad on this Mac<small>Makes the changed pitch songs, checks them, and sends them to the server. This Mac also does it by itself every night at 3:20.</small></button>
+        <div class="kar-mb-note"><b>Update the iPad:</b> on the iPad, tap <b>Check for new songs</b> to bring the changes over.</div>
       </div>
       <?php endif; ?>
       <div class="kar-mb-menu" data-for="help">
@@ -1686,19 +1686,13 @@ if ($KAR_LOCAL) {
         <div class="kar-dlrt"><button type="button" onclick="karDlClear()" title="Empties the whole list at once — removes the links only, no files are touched" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px">Clear the list</button></div>
       </div>
     </div>
-    <div id="kar-q-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:14px 16px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <div id="kar-q-panel" style="display:none;margin-top:6px;background:#121620;border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:6px 14px 10px">
+      <!-- ONE row at the top (2026-10-04, "we're wasting a little bit of space on top ... the Next singer button could be raised also"): the title, ▶ Next singer and its options on the left,
+           Clear / Close / help on the right. Used to be two rows with a tall help icon. -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
         <span style="font-size:13.5px;font-weight:800;color:#D2AD6C">🎶 Singing Queue</span>
-        <button type="button" onclick="karQClear()" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">Clear the queue</button>
-        <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
-        <button type="button" id="kar-helpbtn-q" onclick="karHelpToggle('q')" class="kar-helpbtn" style="margin-left:0" title="Show or hide how this panel works — your choice is remembered on this computer"><span class="kar-helpico kar-helpico-big"></span></button>
-      </div>
-      <div id="kar-help-q" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('q')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
-
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <button type="button" onclick="karQNext()" id="kar-q-next" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:800;padding:9px 20px;border-radius:8px">▶ Next singer</button>
-        <select id="kar-q-player" onchange="try{localStorage.setItem('kar_q_player',this.value)}catch(e){}" title="Which player the Next-singer button uses" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;font-size:12.5px;font-weight:700;padding:8px 10px;border-radius:8px">
+        <button type="button" onclick="karQNext()" id="kar-q-next" style="font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:14px;font-weight:800;padding:6px 16px;border-radius:8px">▶ Next singer</button>
+        <select id="kar-q-player" onchange="try{localStorage.setItem('kar_q_player',this.value)}catch(e){}" title="Which player the Next-singer button uses" style="font-family:inherit;background:#1e293b;border:1px solid #334155;color:#94a3b8;font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:8px">
           <option value="qmidi">plays in QMidi</option>
           <option value="mpv">plays in casAI player</option>
         </select>
@@ -1706,8 +1700,15 @@ if ($KAR_LOCAL) {
           <input type="checkbox" id="kar-q-fair" onchange="try{localStorage.setItem('kar_q_fair',this.checked?'1':'')}catch(e){}">
           Scheduling fairness
         </label>
+
+        <button type="button" onclick="karQClear()" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">Clear the queue</button>
+        <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
+        <button type="button" id="kar-helpbtn-q" onclick="karHelpToggle('q')" class="kar-helpbtn" style="margin-left:0" title="Show or hide how this panel works — your choice is remembered on this computer"><span class="kar-helpico kar-helpico-big" style="width:30px!important;height:27px!important"></span></button>
       </div>
-      <div id="kar-q-now" style="display:none;margin-top:10px;color:#D2AD6C;font-size:13.5px;font-weight:700"></div>
+      <div id="kar-help-q" class="kar-help" style="display:none"><button type="button" onclick="karHelpToggle('q')" title="Close" style="float:right;margin:-2px -4px 0 8px;font-family:inherit;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;font-weight:700;line-height:1">✕</button>
+
+      </div>
+      <div id="kar-q-now" style="display:none;margin-top:6px;color:#D2AD6C;font-size:13.5px;font-weight:700"></div>
       <div id="kar-q-list" style="margin-top:4px"></div>
     </div>
     <div id="kar-qr-panel" style="display:none;margin-top:6px;background:#121620;border:1px solid rgba(192,132,252,.4);border-radius:10px;padding:5px 14px 10px">
@@ -4897,16 +4898,18 @@ function karMbIpadFill(d){
   var box = document.getElementById('kar-mb-ipad-status'); if (!box || !d) return;
   var st = d.state || {}, pend = st.pending || null, lr = st.last_run || null, L = [];
   function nm(f){ return karEsc(String(f).replace(/\.mp4$/i, '').slice(0, 52)); }
-  if (st.state === 'working') L.push('<b>Making songs now&hellip;</b> a few minutes.');
-  else if (d.requested) L.push('<b>Asked</b> &mdash; waiting for the laptop (it checks every minute).');
+  function when(iso){ var t = new Date(iso); if (isNaN(t)) return String(iso); return t.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  if (st.state === 'working') L.push('<b>Preparing songs now&hellip;</b> a few minutes.');
+  else if (d.requested) L.push('<b>Asked</b> &mdash; waiting for this Mac (it checks every minute).');
   else if (pend && (pend.build || pend.copy || pend.retire)) {
     var bits = []; if (pend.build) bits.push(pend.build + ' to make'); if (pend.copy) bits.push(pend.copy + ' to copy'); if (pend.retire) bits.push(pend.retire + ' to retire');
-    L.push('<b>Waiting:</b> ' + bits.join(', ') + '.');
+    L.push('<b>Waiting to be prepared:</b> ' + bits.join(', ') + '.');
     var names = (st.pending_names && st.pending_names.build) || [];
     names.slice(0, 3).forEach(function(f){ L.push('&bull; ' + nm(f)); });
-  } else if (pend) L.push('<b>The iPad copy is up to date.</b>');
-  else L.push('Status not available yet.');
-  if (lr && lr.at) L.push('Last update: ' + String(lr.at).slice(5, 16).replace('T', ' ') + ' &mdash; ' + (lr.built || 0) + ' made' + (lr.retired ? ', ' + lr.retired + ' retired' : '') + '.');
+  }
+  if (lr && lr.at) L.push('<b>Last update:</b> ' + when(lr.at) + ' &mdash; ' + (lr.built || 0) + ' made' + (lr.retired ? ', ' + lr.retired + ' retired' : '') + '.');
+  else if (!L.length) L.push('No update has been run yet.');
+  if (st.checked_at && !(pend && (pend.build || pend.copy || pend.retire)) && st.state !== 'working' && !d.requested) L.push('Nothing waiting when this Mac last checked, ' + when(st.checked_at) + '.');
   box.innerHTML = L.join('<br>');
 }
 function karMbPanelOpen(id){ var p = document.getElementById(id); return !!p && p.style.display !== 'none'; }
