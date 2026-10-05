@@ -898,13 +898,13 @@ if ($KAR_LOCAL) {
 </head>
 <body>
 <div class="kar-wrap">
-  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+  <div id="kar-head" style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap">
     <div style="margin:0">
       <h1 style="margin:0;font-size:22px;font-weight:800;color:#f3f4f6;letter-spacing:.01em">🎤 Cantoria</h1>
     </div>
     <?php if ($KAR_LOCAL): ?>
     <?php if ($KAR_HOST !== ''): ?><span title="The Mac this Cantoria is running on — its speakers, its songs, its singers" style="align-self:center;display:inline-flex;align-items:center;gap:6px;background:rgba(210,173,108,.14);border:1px solid #D2AD6C;color:#D2AD6C;font-size:13px;font-weight:700;padding:4px 12px;border-radius:999px;white-space:nowrap">🖥 <?= h($KAR_HOST) ?></span><?php endif; ?>
-    <span style="color:#64748b;font-size:12.5px">everything runs on this Mac — nothing to sign in to</span>
+    <span id="kar-head-sub" style="color:#64748b;font-size:12.5px">everything runs on this Mac — nothing to sign in to</span>
     <?php else: ?>
     <span style="color:#64748b;font-size:12.5px"><a href="/app.php" style="color:#60A5FA;text-decoration:none">← back to casAI</a></span>
     <?php endif; ?>
@@ -967,6 +967,10 @@ if ($KAR_LOCAL) {
     <style>
       #kar-menubar{display:none}
       #karaoke-page.kar-compact #kar-menubar{display:flex;align-items:center;gap:2px;position:relative;z-index:45;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid rgba(148,163,184,.18)}
+      /* compact view: the page title row is MERGED into the menu bar (the title, the back link or the Mac's name chip move in; the orange label and the grey sentence are not needed) */
+      #karaoke-page.kar-compact #kar-menubar .kar-mb-t,#karaoke-page.kar-compact #kar-menubar #kar-head-sub{display:none!important}
+      #karaoke-page.kar-compact #kar-menubar h1{font-size:19px!important;white-space:nowrap}
+      #karaoke-page.kar-compact #kar-menubar>div:first-child,#karaoke-page.kar-compact #kar-menubar>span.kar-hm{margin-right:12px}
       #kar-menubar .kar-mb-t{font-size:16px;font-weight:800;color:#D2AD6C;margin-right:12px;letter-spacing:.02em}
       .kar-mb-btn{appearance:none;-webkit-appearance:none;background:none;border:0;color:#cbd5e1;font-family:inherit;font-size:15.5px;font-weight:600;padding:6px 13px;border-radius:7px;cursor:pointer}
       .kar-mb-btn:hover,.kar-mb-btn.is-open{background:rgba(148,163,184,.18);color:#f1f5f9}
@@ -4930,6 +4934,19 @@ function karSetCompact(on){
   try { localStorage.setItem('kar_compact', on ? '1' : '0'); } catch (e) {}
   var page = document.getElementById('karaoke-page'); if (!page) return;
   page.classList.toggle('kar-compact', KAR_COMPACT);
+  var head = document.getElementById('kar-head'), mbar = document.getElementById('kar-menubar');
+  if (head && mbar) {
+    if (KAR_COMPACT) {
+      var lab = mbar.querySelector('.kar-mb-t');
+      [].slice.call(head.children).forEach(function(c, i){ c._kIdx = i; if (c._kHead === undefined) c._kHead = true; mbar.insertBefore(c, lab); });
+      var kids = [].slice.call(mbar.children).filter(function(c){ return c._kHead; }); kids.forEach(function(c){ if (c.tagName === 'SPAN') c.classList.add('kar-hm'); });
+      head.style.display = 'none';
+    } else {
+      var back = [].slice.call(mbar.children).filter(function(c){ return c._kHead; }).sort(function(a, b){ return a._kIdx - b._kIdx; });
+      back.forEach(function(c){ c.classList.remove('kar-hm'); head.appendChild(c); });
+      head.style.display = 'flex';                              // its own layout (the inline style said display:flex)
+    }
+  }
   var slot = document.getElementById('kar-mb-right');
   var ids = [];     // these stay visible as buttons beside the menus; nothing is repeated in a menu
   if (slot) {
