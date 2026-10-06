@@ -947,6 +947,10 @@ if ($KAR_LOCAL) {
   $_kjWho     = kar_best_default($_kjBestBy, $pdo);   // whose list opens first — never a hardcoded name
   // Stored working pitches (the editable pitch box) — override the filename pitch on ▶ plays.
   $_kjPitch = $pdo ? kar_pitch_map($pdo) : [];
+  // Song quality scores (speed / pitch / sound, each out of 10) - made by song_health.py on the laptop and published with the health report.
+  // casAI edition only; the standalone Macs have no scores yet, so the badge simply does not appear there.
+  $_kjScores = [];
+  if (!$KAR_LOCAL && is_file('/var/www/your-server/karaoke_scores.json')) { $_sc = json_decode((string)file_get_contents('/var/www/your-server/karaoke_scores.json'), true); if (is_array($_sc)) $_kjScores = $_sc; }
   // Per-singer pitch overrides (the owner, 2026-09-28): each singer's OWN saved pitch, on top of
   // the shared default above — only meaningful on a singer's own list, never on Song Database
   // or New Songs, which have no singer to personalize for.
@@ -999,12 +1003,18 @@ if ($KAR_LOCAL) {
       #karaoke-page.kar-compact #kar-refresh-btn svg{width:17px!important;height:17px!important}
       #karaoke-page.kar-compact #kar-bar{height:30px!important}
       #karaoke-page.kar-compact #kar-lbl-playback{display:none!important}
-      #karaoke-page.kar-compact #kar-sec-key,#karaoke-page.kar-compact #kar-sec-tempo{flex-direction:row!important;align-items:center!important;gap:7px!important}
-      #karaoke-page.kar-compact #kar-sec-key>span:first-child,#karaoke-page.kar-compact #kar-sec-tempo>span:first-child{font-size:9.5px!important;text-align:left!important}
+      #karaoke-page.kar-compact #kar-sec-tempo{flex-direction:column!important;align-items:center!important;gap:3px!important}     /* TWO rows like Pitch: - 100% + on top, the word TEMPO under it (narrower box) */
+      #karaoke-page.kar-compact #kar-sec-tempo>span:first-child{order:2!important;text-align:center!important}
+      #karaoke-page.kar-compact #kar-sec-key{flex-direction:column!important;align-items:center!important;gap:3px!important}     /* TWO rows: Pitch - 0 + on top, Save to list A under it */
+      #karaoke-page.kar-compact #kar-sec-tempo>span:first-child{font-size:9.5px!important}
       #karaoke-page.kar-compact #kar-now-bar{padding:5px 6px 5px 12px!important;margin-top:6px!important}
       #karaoke-page.kar-compact #kar-now-bar>*{gap:6px!important}
       #karaoke-page.kar-compact #kar-sec-key,#karaoke-page.kar-compact #kar-sec-tempo{padding:0 10px!important}
-      #karaoke-page.kar-compact #kar-sec-key button,#karaoke-page.kar-compact #kar-sec-tempo button{width:26px!important;height:26px!important;font-size:14px!important;padding:0!important}
+      #karaoke-page.kar-compact #kar-sec-key button:not(#kar-live-save),#karaoke-page.kar-compact #kar-sec-tempo button{width:26px!important;height:26px!important;font-size:14px!important;padding:0!important}
+      /* The Now playing bar's sections as separate little BOXES (the owner, 2026-10-06): Pitch, Tempo, Playback, queue tools and Refresh each sit on their own background. */
+      #karaoke-page #kar-sec-key,#karaoke-page #kar-sec-tempo,#karaoke-page #kar-sec-pb,#karaoke-page #kar-sec-q,#karaoke-page #kar-sec-ref,
+      #karaoke-page.kar-compact #kar-sec-key,#karaoke-page.kar-compact #kar-sec-tempo,#karaoke-page.kar-compact #kar-sec-pb,#karaoke-page.kar-compact #kar-sec-q,#karaoke-page.kar-compact #kar-sec-ref{
+        background:rgba(255,255,255,.05)!important;border:1px solid rgba(210,173,108,.34)!important;border-radius:10px!important;padding:5px 10px!important;margin-left:6px!important;justify-content:center}
       #karaoke-page.kar-compact #kar-lyrics-btn,#karaoke-page.kar-compact #kar-start-btn,#karaoke-page.kar-compact #kar-stop-btn{height:28px!important;padding:0 10px!important;font-size:12.5px!important}
       #karaoke-page.kar-compact #kar-live-val{font-size:14px!important;width:26px!important}
       #karaoke-page.kar-compact #kar-tempo-val{font-size:13px!important;width:44px!important}
@@ -1151,22 +1161,18 @@ if ($KAR_LOCAL) {
         <?php endif; ?>
         <span style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:220px;padding-right:16px;justify-content:center">
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">♪ Now playing</span>
-          <span style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span id="kar-now-song" style="color:#f3f4f6;font-size:13.5px;font-weight:700"></span><span id="kar-now-player" style="color:#8a8070;font-size:11px"></span></span>
+          <span style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span id="kar-now-song" style="color:#f3f4f6;font-size:13.5px;font-weight:700"></span><span id="kar-now-player" style="color:#8a8070;font-size:11px"></span><span id="kar-now-score" class="kar-score" style="font-size:12.5px;cursor:pointer;margin-left:6px" title="Quality of this song: speed · pitch · sound, out of 10. Click for details."></span></span>
           <span id="kar-prog" style="display:none;align-items:center;gap:10px;margin-top:2px">
             <span id="kar-time-pos" style="color:#cbd5e1;font-size:11px;font-variant-numeric:tabular-nums;width:34px;text-align:right">0:00</span>
             <input id="kar-seek" type="range" min="0" max="1000" value="0" title="Drag to move within the song" style="flex:1;min-width:160px;accent-color:#D2AD6C;cursor:pointer;margin:0">
             <span id="kar-time-dur" style="color:#8a8070;font-size:11px;font-variant-numeric:tabular-nums;width:34px">0:00</span>
           </span>
         </span>
-        <span id="kar-sec-key" style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+        <span id="kar-sec-key" style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+          <span style="display:flex;align-items:center;gap:6px"><button type="button" onclick="karLiveAdj(-1)" title="Lower the pitch one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button><span id="kar-live-val" style="color:#D2AD6C;font-size:16px;font-weight:800;width:32px;text-align:center">0</span><button type="button" onclick="karLiveAdj(1)" title="Raise the pitch one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button><button type="button" id="kar-live-save" onclick="karLiveSave()" title="Found the right pitch? Press to save the pitch shown here for the singer picked in the box, and put the song on their A list (from wherever it was). Nothing is saved until you press this. Works while a song is playing." style="font-family:inherit;cursor:pointer;background:#121620;border:1px solid #4b5563;color:#e2e8f0;font-size:11px;font-weight:700;padding:3px 10px;height:auto;width:auto;border-radius:6px;margin-left:4px;opacity:.4;white-space:nowrap">Save</button></span>
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Pitch</span>
-          <span style="display:flex;align-items:center;gap:6px">
-            <button type="button" onclick="karLiveAdj(-1)" title="Lower the pitch one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">−</button>
-            <span id="kar-live-val" style="color:#D2AD6C;font-size:16px;font-weight:800;width:32px;text-align:center">0</span>
-            <button type="button" onclick="karLiveAdj(1)" title="Raise the pitch one semitone while the song plays. Takes a few seconds; not saved to the song." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
-          </span>
         </span>
-        <span id="kar-sec-tempo" style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+        <span id="kar-sec-tempo" style="display:flex;flex-direction:column;justify-content:center;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Tempo</span>
           <span style="display:flex;align-items:center;gap:6px">
             <!-- −/+ buttons, not a slider. A slider went in on 2026-09-20 and the owner asked the
@@ -1177,7 +1183,7 @@ if ($KAR_LOCAL) {
             <button type="button" id="kar-tempo-up" onclick="karTempoAdj(5)" title="Speed the song up by 5%. The pitch stays true. For tonight only — not saved." style="font-family:inherit;width:34px;background:#121620;border:1px solid #4b5563;color:#e2e8f0;cursor:pointer;font-size:15px;font-weight:700;padding:2px 0;border-radius:6px">+</button>
           </span>
         </span>
-        <span id="kar-sec-pb" style="display:flex;flex-direction:column;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
+        <span id="kar-sec-pb" style="display:flex;flex-direction:column;justify-content:center;gap:5px;padding:0 16px;border-left:1px solid rgba(210,173,108,.28)">
           <span id="kar-lbl-playback" style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1;text-align:center">Playback</span>
           <span style="display:flex;align-items:center;gap:8px">
             <button id="kar-lyrics-btn" type="button" onclick="karLyricsToggle(this)" title="Hide the lyrics screen, or bring it back in front of everything" style="font-family:inherit;background:#334155;border:1px solid #475569;color:#e2e8f0;cursor:pointer;font-size:11px;font-weight:800;line-height:1.1;padding:0 10px;height:36px;border-radius:8px;white-space:nowrap">🎬 Lyrics<br>Screen</button>
@@ -1823,6 +1829,46 @@ if ($KAR_LOCAL) {
     // Per-person Best lists — editable via the ⭐ on each row; person picked in the dropdown.
     var KAR_BEST_BY = <?= json_encode((object)$_kjBestBy, JSON_UNESCAPED_UNICODE) ?>;
     var KAR_PITCH = <?= json_encode((object)$_kjPitch, JSON_UNESCAPED_UNICODE) ?>;
+    // Song quality: name -> [speed, pitch, sound, speedIsFirm, short reasons]. Each out of 10; null = could not be measured. (the owner, 2026-10-05)
+    var KAR_SCORES = <?= json_encode((object)$_kjScores, JSON_UNESCAPED_UNICODE) ?>;
+    function karScoreOf(full){ var k = String(full || '').normalize('NFC'); return KAR_SCORES[k] || KAR_SCORES[k.replace(/\.[a-z0-9]{2,4}$/i, '') + '.mp4'] || null; }
+    function karScoreCol(v){ return v === null || v === undefined ? '#64748b' : (v < 6 ? '#f87171' : (v < 8 ? '#fbbf24' : '#6ee7b7')); }
+    // 10 · 7 · 10  (speed · pitch · sound). Amber under 8, red under 6. "10*" = speed not compared with a YouTube original.
+    function karScoreHtml(full, withLabel){
+      var sc = karScoreOf(full); if (!sc) return '';
+      var one = function(v, star){ return '<b style="color:' + karScoreCol(v) + '">' + (v === null ? '–' : v) + (star && v !== null ? '<span style="font-weight:400;opacity:.8">*</span>' : '') + '</b>'; };
+      return one(sc[0], !sc[3]) + '<span style="color:#475569"> · </span>' + one(sc[1], false) + '<span style="color:#475569"> · </span>' + one(sc[2], false);
+    }
+    function karScoreOpen(full, anchor){
+      var sc = karScoreOf(full); if (!sc) return;
+      var old = document.getElementById('kar-score-pop'); if (old) old.remove();
+      var nm = ['Speed', 'Pitch', 'Sound'], why = [
+        sc[3] ? 'compared with the YouTube original and with the picture' : 'checked by sound-versus-picture length only (no YouTube original on record) - the * means it was not compared with an original',
+        'how close to standard tuning, and steady through the song', 'distortion, thin top end, low bitrate, dropouts'];
+      var h = '<div style="font-weight:800;color:#f3f4f6;margin-bottom:6px;font-size:12.5px;word-break:break-word">' + karEsc(String(full).replace(/\.[a-z0-9]{2,4}$/i, '')) + '</div>';
+      for (var i = 0; i < 3; i++) h += '<div style="margin:3px 0"><b style="color:' + karScoreCol(sc[i]) + ';font-size:15px">' + (sc[i] === null ? '–' : sc[i]) + '</b> <b style="color:#e2e8f0">' + nm[i] + '</b> <span style="color:#94a3b8">' + (sc[i] === null ? 'could not be measured for this song' : why[i]) + '</span></div>';
+      if (sc[4]) h += '<div style="margin-top:6px;color:#fcd34d">' + karEsc(sc[4]) + '</div>';
+      h += '<div style="margin-top:6px;color:#64748b;font-size:11px">10 is best. Amber under 8, red under 6.</div>';
+      if (!KAR_LOCAL) h += '<div style="margin-top:8px"><button type="button" id="kar-score-better" style="font-family:inherit;cursor:pointer;background:#3b3324;border:1px solid #D2AD6C;color:#f3d9a4;font-weight:700;font-size:12px;padding:5px 12px;border-radius:999px">Find a better one</button> <span id="kar-score-msg" style="color:#94a3b8;font-size:11.5px"></span></div>';
+      var d = document.createElement('div'); d.id = 'kar-score-pop';
+      d.style.cssText = 'position:fixed;z-index:9999;width:380px;max-width:92vw;background:#121620;border:1px solid #D2AD6C;border-radius:10px;padding:12px 14px;font-size:12px;box-shadow:0 8px 28px rgba(0,0,0,.55)';
+      d.innerHTML = h; document.body.appendChild(d);
+      var r = anchor.getBoundingClientRect(), top = r.bottom + 6; if (top + d.offsetHeight > window.innerHeight - 8) top = Math.max(8, r.top - d.offsetHeight - 6);
+      d.style.top = top + 'px'; d.style.left = Math.max(8, Math.min(r.left, window.innerWidth - d.offsetWidth - 8)) + 'px';
+      var b = document.getElementById('kar-score-better');
+      if (b) b.onclick = function(){
+        b.disabled = true; var fd = new FormData(); fd.append('form_type', 'karaoke_find_better'); fd.append('song', full);
+        fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(j){
+          document.getElementById('kar-score-msg').textContent = j.ok ? 'Asked. Candidates will appear in Control Room → Cantoria song health → Replacements.' : ('Not done: ' + (j.error || 'unknown'));
+        }).catch(function(){ document.getElementById('kar-score-msg').textContent = 'Could not reach the server.'; b.disabled = false; });
+      };
+    }
+    document.addEventListener('click', function(e){
+      var t = e.target.closest ? e.target.closest('.kar-score') : null;
+      var pop = document.getElementById('kar-score-pop');
+      if (t) { e.stopPropagation(); if (pop) pop.remove(); else karScoreOpen(t.getAttribute('data-song'), t); return; }
+      if (pop && !pop.contains(e.target)) pop.remove();
+    }, true);
     // Per-singer pitch overrides, nested by person (2026-09-28) - only consulted while a
     // specific singer's own list (karView === 'best') is showing; Song Database and New Songs
     // always use the shared KAR_PITCH above, since there is no singer there to personalize for.
@@ -2507,6 +2553,8 @@ if ($KAR_LOCAL) {
         sng.textContent = 'nothing yet — press ▶ Play on a song';
         sng.style.color = '#64748b'; sng.style.fontStyle = 'italic';
         document.getElementById('kar-now-player').textContent = '';
+        var _ns = document.getElementById('kar-now-score'); if (_ns) { _ns.innerHTML = ''; _ns.removeAttribute('data-song'); }
+        var _sb = document.getElementById('kar-live-save'); if (_sb) { _sb.disabled = true; _sb.style.opacity = '.4'; }
         document.getElementById('kar-live-val').textContent = '0';
         karTempoPaint(100);
         // Nothing to slow down or speed up until a song is playing — say so by greying it,
@@ -2518,6 +2566,8 @@ if ($KAR_LOCAL) {
       sng.style.color = '#e2e8f0'; sng.style.fontStyle = 'normal';
       sng.textContent = karNowPlaying.replace(/\.[a-z0-9]{2,4}$/i,'');
       document.getElementById('kar-now-player').textContent = karNowPlayingPlayer === 'mpv' ? '· casAI player' : '· QMidi';
+      var _nb = document.getElementById('kar-now-score'); if (_nb) { _nb.innerHTML = karScoreHtml(karNowPlaying); _nb.setAttribute('data-song', karNowPlaying); }
+      var _sb = document.getElementById('kar-live-save'); if (_sb) { _sb.disabled = false; _sb.style.opacity = '1'; _sb.textContent = 'Save'; }
       document.getElementById('kar-live-val').textContent = (karLivePitch > 0 ? '+' : '') + karLivePitch;
           try { karFitList(); } catch(e){}
     }
@@ -2591,6 +2641,38 @@ if ($KAR_LOCAL) {
         b.style.opacity = on ? '1' : '.4';
         b.style.cursor  = on ? 'pointer' : 'default';
       });
+    }
+    // "Save pitch" (the owner, 2026-10-06): after finding the right pitch with the live pitch, one press saves it for the singer picked in the dropdown AND puts the song on that
+    // singer's A list - from wherever it was (not on a list, B or C). Nothing is saved until the button is pressed. He can move it back to B or C later if he does not like it.
+    // A clean notice at the top of the screen (not inside the crowded Now playing bar, where the long text ran over its neighbours).
+    function karToast(text, ok){
+      var t = document.getElementById('kar-toast');
+      if (!t) { t = document.createElement('div'); t.id = 'kar-toast'; t.style.cssText = 'position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:9998;max-width:min(560px,92vw);background:#121620;color:#f3f4f6;border:1px solid #D2AD6C;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:700;line-height:1.35;text-align:center;box-shadow:0 8px 28px rgba(0,0,0,.55);cursor:pointer'; t.onclick = function(){ t.style.display = 'none'; }; document.body.appendChild(t); }
+      t.style.borderColor = ok === false ? '#f87171' : '#D2AD6C'; t.style.color = ok === false ? '#fecaca' : '#f3f4f6'; t.textContent = text; t.style.display = '';
+      clearTimeout(t._h); t._h = setTimeout(function(){ t.style.display = 'none'; }, ok === false ? 9000 : 7000);
+    }
+    function karLiveSave(){
+      if (!karNowPlaying) return;
+      var song = karNowPlaying, p = karLivePitch, who = karWho, b = document.getElementById('kar-live-save');
+      if (!who) { karToast('Pick a singer first.', false); return; }
+      b.disabled = true; var oldLbl = b.textContent; b.textContent = 'saving…';
+      var fd = new FormData(); fd.append('form_type', 'karaoke_set_pitch'); fd.append('song', song); fd.append('pitch', String(p)); fd.append('person', who);
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) throw new Error(d.error || 'pitch not saved');
+        var m = KAR_PITCH_BY[who] || (KAR_PITCH_BY[who] = {});
+        if (d.stored) m[song] = p; else delete m[song];
+        var f2 = new FormData(); f2.append('form_type', 'karaoke_best_toggle'); f2.append('song', song); f2.append('person', who); f2.append('tier', '1');
+        return fetch(KAR_API, {method:'POST', body: f2}).then(function(r){ return r.json(); });
+      }).then(function(d2){
+        if (!d2.ok) throw new Error(d2.error || 'could not put it on the A list');
+        var a = KAR_BEST_BY[who] || (KAR_BEST_BY[who] = []), ix = -1, was = 0;
+        for (var q = 0; q < a.length; q++) { if (a[q][0] === song) { ix = q; was = a[q][1]; break; } }
+        if (ix === -1) a.push([song, 1]); else a[ix][1] = 1;
+        try { karBestCounts(); } catch (e) {}
+        b.disabled = false; b.textContent = oldLbl;
+        karToast('Saved ' + (p > 0 ? '+' : '') + p + ' for ' + who + ' · on the A list' + (was === 1 ? ' (already there)' : (was ? ' (moved from ' + (was === 2 ? 'B' : 'C') + ')' : ' (added)')), true);
+        var l = document.getElementById('kar-list'), top = l ? l.scrollTop : 0; karRender(); if (l) l.scrollTop = top;
+      }).catch(function(e){ b.disabled = false; b.textContent = oldLbl; karToast('Not saved: ' + (e.message || e), false); });
     }
     function karLiveAdj(d){
       if (!karNowPlaying) return;

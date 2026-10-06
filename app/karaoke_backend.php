@@ -1917,7 +1917,8 @@ function kar_convention_name(string $title, ?array $artists = null, string $sing
     if (!isset($kn[kar_name_key($a)]) && (!preg_match(KAR_CAP_RE, $a) || !preg_match(KAR_CAP_RE, $t))) return '';
     $out = $a . ' - ' . $t . ' (' . $typ . ')';
     if ($singers !== '') $out .= ' ' . trim(preg_replace('/\s+/u', ' ', $singers));
-    return $out . ' (' . ($pitch === null ? '-0' : $pitch) . ')';
+    // No pitch number on a NEW name (the owner, 2026-10-05): his key lives in Cantoria's saved pitches. A name that already carries one keeps it.
+    return $pitch === null ? $out : $out . ' (' . $pitch . ')';
 }
 
 /** Rename a just-downloaded file to the convention. Returns the final basename — the
