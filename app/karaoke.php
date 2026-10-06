@@ -951,6 +951,17 @@ if ($KAR_LOCAL) {
   // casAI edition only; the standalone Macs have no scores yet, so the badge simply does not appear there.
   $_kjScores = [];
   if (!$KAR_LOCAL && is_file('/var/www/your-server/karaoke_scores.json')) { $_sc = json_decode((string)file_get_contents('/var/www/your-server/karaoke_scores.json'), true); if (is_array($_sc)) $_kjScores = $_sc; }
+  // A Mac's own Cantoria: the published update carries song_scores.json keyed by a one-way fingerprint of each file name (no titles). Hash this Mac's own songs and look them up.
+  if ($KAR_LOCAL && is_file(__DIR__ . '/song_scores.json')) {
+      $_hs = json_decode((string)file_get_contents(__DIR__ . '/song_scores.json'), true);
+      if (is_array($_hs) && !empty($_kjDb) && is_array($_kjDb)) {
+          foreach ($_kjDb as $_n) {
+              if (!is_string($_n)) continue;
+              $_f = [$_n]; if (class_exists('Normalizer')) { $_f[] = Normalizer::normalize($_n, Normalizer::FORM_C); }
+              foreach ($_f as $_x) { $_k = substr(sha1((string)$_x), 0, 16); if (isset($_hs[$_k])) { $_r = $_hs[$_k]; $_kjScores[class_exists('Normalizer') ? (Normalizer::normalize($_n, Normalizer::FORM_C) ?: $_n) : $_n] = [$_r[0], $_r[1], $_r[2], !empty($_r[3]), $_r[4] ?? '']; break; } }
+          }
+      }
+  }
   // Per-singer pitch overrides (the owner, 2026-09-28): each singer's OWN saved pitch, on top of
   // the shared default above — only meaningful on a singer's own list, never on Song Database
   // or New Songs, which have no singer to personalize for.
@@ -1161,7 +1172,7 @@ if ($KAR_LOCAL) {
         <?php endif; ?>
         <span style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:220px;padding-right:16px;justify-content:center">
           <span style="color:#b8a06a;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;line-height:1">♪ Now playing</span>
-          <span style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span id="kar-now-song" style="color:#f3f4f6;font-size:13.5px;font-weight:700"></span><span id="kar-now-player" style="color:#8a8070;font-size:11px"></span><span id="kar-now-score" class="kar-score" style="font-size:12.5px;cursor:pointer;margin-left:6px" title="Quality of this song: speed · pitch · sound, out of 10. Click for details."></span></span>
+          <span style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span id="kar-now-song" style="color:#f3f4f6;font-size:13.5px;font-weight:700"></span><span id="kar-now-player" style="color:#8a8070;font-size:11px"></span><span id="kar-now-score" class="kar-score" style="font-size:15px;cursor:pointer;margin-left:10px;font-variant-numeric:tabular-nums" title="Quality of this song: speed · pitch · sound, out of 10. Click for details."></span></span>
           <span id="kar-prog" style="display:none;align-items:center;gap:10px;margin-top:2px">
             <span id="kar-time-pos" style="color:#cbd5e1;font-size:11px;font-variant-numeric:tabular-nums;width:34px;text-align:right">0:00</span>
             <input id="kar-seek" type="range" min="0" max="1000" value="0" title="Drag to move within the song" style="flex:1;min-width:160px;accent-color:#D2AD6C;cursor:pointer;margin:0">
@@ -1831,7 +1842,7 @@ if ($KAR_LOCAL) {
     var KAR_PITCH = <?= json_encode((object)$_kjPitch, JSON_UNESCAPED_UNICODE) ?>;
     // Song quality: name -> [speed, pitch, sound, speedIsFirm, short reasons]. Each out of 10; null = could not be measured. (the owner, 2026-10-05)
     var KAR_SCORES = <?= json_encode((object)$_kjScores, JSON_UNESCAPED_UNICODE) ?>;
-    function karScoreOf(full){ var k = String(full || '').normalize('NFC'); return KAR_SCORES[k] || KAR_SCORES[k.replace(/\.[a-z0-9]{2,4}$/i, '') + '.mp4'] || null; }
+    function karScoreOf(full){ var raw = String(full || ''), k = raw.normalize('NFC'); return KAR_SCORES[k] || KAR_SCORES[raw] || KAR_SCORES[k.replace(/\.[a-z0-9]{2,4}$/i, '') + '.mp4'] || null; }
     function karScoreCol(v){ return v === null || v === undefined ? '#64748b' : (v < 6 ? '#f87171' : (v < 8 ? '#fbbf24' : '#6ee7b7')); }
     // 10 · 7 · 10  (speed · pitch · sound). Amber under 8, red under 6. "10*" = speed not compared with a YouTube original.
     function karScoreHtml(full, withLabel){
@@ -2566,7 +2577,7 @@ if ($KAR_LOCAL) {
       sng.style.color = '#e2e8f0'; sng.style.fontStyle = 'normal';
       sng.textContent = karNowPlaying.replace(/\.[a-z0-9]{2,4}$/i,'');
       document.getElementById('kar-now-player').textContent = karNowPlayingPlayer === 'mpv' ? '· casAI player' : '· QMidi';
-      var _nb = document.getElementById('kar-now-score'); if (_nb) { _nb.innerHTML = karScoreHtml(karNowPlaying); _nb.setAttribute('data-song', karNowPlaying); }
+      var _nb = document.getElementById('kar-now-score'); if (_nb) { var _sh = karScoreHtml(karNowPlaying); _nb.innerHTML = _sh ? '<span style="color:#b8a06a;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;margin-right:6px">Quality</span>' + _sh : ''; _nb.setAttribute('data-song', karNowPlaying); }
       var _sb = document.getElementById('kar-live-save'); if (_sb) { _sb.disabled = false; _sb.style.opacity = '1'; _sb.textContent = 'Save'; }
       document.getElementById('kar-live-val').textContent = (karLivePitch > 0 ? '+' : '') + karLivePitch;
           try { karFitList(); } catch(e){}
