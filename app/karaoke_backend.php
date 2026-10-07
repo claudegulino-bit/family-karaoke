@@ -2336,6 +2336,20 @@ function kar_best_lists(PDO $db): array {
             $out[$r['person']][] = [$r['filename'], (int)($r['tier'] ?: 1)];
         }
     } catch (Throwable $e) { /* table missing → empty lists, page still works */ }
+    // A Mac keeps its OWN lists, but its songs arrive from the shared library: when a song is deleted somewhere else (the quality clean-up of 2026-10-05) the file disappears
+    // here while the list still names it - and Play then says "not there" (the owner, Kitchen Mac, Gianni Morandi 'La fisarmonica'). So a list entry whose file is not in this Mac's
+    // library is HIDDEN (never deleted: if the songs folder is merely offline or still syncing, nothing is lost and the entries come back). Skipped when the library looks empty.
+    if (function_exists('kar_is_local') && kar_is_local()) {
+        try {
+            $have = [];
+            foreach (kar_songs() as $f) { $f = (string)$f; $have[$f] = true; if (class_exists('Normalizer')) { $have[Normalizer::normalize($f, Normalizer::FORM_C)] = true; $have[Normalizer::normalize($f, Normalizer::FORM_D)] = true; } }
+            if (count($have) >= 50) {
+                foreach ($out as $person => $rows) {
+                    $out[$person] = array_values(array_filter($rows, function ($r) use ($have) { $f = (string)$r[0]; return isset($have[$f]) || (class_exists('Normalizer') && isset($have[Normalizer::normalize($f, Normalizer::FORM_C)])); }));
+                }
+            }
+        } catch (Throwable $e) { /* never break the page over this */ }
+    }
     uksort($out, 'strcasecmp');
     return $out;
 }

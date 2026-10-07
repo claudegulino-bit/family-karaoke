@@ -958,7 +958,7 @@ if ($KAR_LOCAL) {
           foreach ($_kjDb as $_n) {
               if (!is_string($_n)) continue;
               $_f = [$_n]; if (class_exists('Normalizer')) { $_f[] = Normalizer::normalize($_n, Normalizer::FORM_C); }
-              foreach ($_f as $_x) { $_k = substr(sha1((string)$_x), 0, 16); if (isset($_hs[$_k])) { $_r = $_hs[$_k]; $_kjScores[class_exists('Normalizer') ? (Normalizer::normalize($_n, Normalizer::FORM_C) ?: $_n) : $_n] = [$_r[0], $_r[1], $_r[2], !empty($_r[3]), $_r[4] ?? '']; break; } }
+              foreach ($_f as $_x) { $_k = substr(sha1((string)$_x), 0, 16); if (isset($_hs[$_k])) { $_r = $_hs[$_k]; $_kjScores[class_exists('Normalizer') ? (Normalizer::normalize($_n, Normalizer::FORM_C) ?: $_n) : $_n] = [$_r[0], $_r[1], $_r[2], !empty($_r[3]), $_r[4] ?? '', $_r[5] ?? null]; break; } }
           }
       }
   }
@@ -1857,9 +1857,10 @@ if ($KAR_LOCAL) {
         sc[3] ? 'compared with the YouTube original and with the picture' : 'checked by sound-versus-picture length only (no YouTube original on record) - the * means it was not compared with an original',
         'how close to standard tuning, and steady through the song', 'distortion, thin top end, low bitrate, dropouts'];
       var h = '<div style="font-weight:800;color:#f3f4f6;margin-bottom:6px;font-size:12.5px;word-break:break-word">' + karEsc(String(full).replace(/\.[a-z0-9]{2,4}$/i, '')) + '</div>';
-      for (var i = 0; i < 3; i++) h += '<div style="margin:3px 0"><b style="color:' + karScoreCol(sc[i]) + ';font-size:15px">' + (sc[i] === null ? '–' : sc[i]) + '</b> <b style="color:#e2e8f0">' + nm[i] + '</b> <span style="color:#94a3b8">' + (sc[i] === null ? 'could not be measured for this song' : why[i]) + '</span></div>';
-      if (sc[4]) h += '<div style="margin-top:6px;color:#fcd34d">' + karEsc(sc[4]) + '</div>';
-      h += '<div style="margin-top:6px;color:#64748b;font-size:11px">10 is best. Amber under 8, red under 6.</div>';
+      var rs = (sc[5] && sc[5].length === 3) ? sc[5] : null;
+      for (var i = 0; i < 3; i++) h += '<div style="margin:5px 0"><b style="color:' + karScoreCol(sc[i]) + ';font-size:15px">' + (sc[i] === null ? '–' : sc[i]) + '</b> <b style="color:#e2e8f0">' + nm[i] + '</b> <span style="color:#94a3b8">' + (sc[i] === null ? 'could not be measured for this song' : (sc[i] >= 10 ? 'nothing wrong' : '')) + '</span>'
+        + (sc[i] !== null && sc[i] < 10 ? '<div style="color:#fcd34d;margin:1px 0 0 22px">' + karEsc(rs && rs[i] ? rs[i] : (sc[4] || 'a small deduction')) + '</div>' : '') + '</div>';
+      h += '<div style="margin-top:6px;color:#64748b;font-size:11px">10 is best. Amber under 8, red under 6.' + (sc[3] ? '' : ' * Speed was not compared with a YouTube original.') + '</div>';
       if (!KAR_LOCAL) h += '<div style="margin-top:8px"><button type="button" id="kar-score-better" style="font-family:inherit;cursor:pointer;background:#3b3324;border:1px solid #D2AD6C;color:#f3d9a4;font-weight:700;font-size:12px;padding:5px 12px;border-radius:999px">Find a better one</button> <span id="kar-score-msg" style="color:#94a3b8;font-size:11.5px"></span></div>';
       var d = document.createElement('div'); d.id = 'kar-score-pop';
       d.style.cssText = 'position:fixed;z-index:9999;width:380px;max-width:92vw;background:#121620;border:1px solid #D2AD6C;border-radius:10px;padding:12px 14px;font-size:12px;box-shadow:0 8px 28px rgba(0,0,0,.55)';
@@ -2729,15 +2730,22 @@ if ($KAR_LOCAL) {
       }).catch(function(){ btn.disabled = false; alert('Network error — nothing changed.'); });
     }
     // ── ⏹ Stop = pause; progress line; drag-to-seek (2026-09-12) ──────────────────────
+    // Stop is a TOGGLE (pause / resume). On casAI the player confirms a second or two later, so the label used to stay unchanged and it looked as if nothing had happened - he pressed
+    // again, which resumed the song: six presses in eight seconds, pause-resume-pause-resume (2026-10-06). Now the label flips AT ONCE and a second press is ignored for 3 seconds;
+    // the poll still corrects the label if the player ends up in a different state.
+    var karPauseCool = 0;
     function karPauseToggle(btn){
-      btn.disabled = true;
+      if (Date.now() < karPauseCool) return;
+      karPauseCool = Date.now() + 3000;
+      var wasPaused = /Resume/.test(btn.textContent || '');
+      karPauseLabel(!wasPaused);
+      btn.style.opacity = '.7'; setTimeout(function(){ btn.style.opacity = ''; }, 3000);
       var fd = new FormData(); fd.append('form_type', 'karaoke_pause'); fd.append('mac', karMac());
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
-        btn.disabled = false;
-        if (!d.ok) { alert('Could not reach the player — reload and try again.'); return; }
+        if (!d.ok) { karPauseCool = 0; karPauseLabel(wasPaused); btn.style.opacity = ''; alert('Could not reach the player — reload and try again.'); return; }
         if (d.note) karPauseLabel(d.note.indexOf('paused') !== -1);   // standalone answers at once; casAI via the poll
         karNowPollSoon();
-      }).catch(function(){ btn.disabled = false; alert('Network error — nothing changed.'); });
+      }).catch(function(){ karPauseCool = 0; karPauseLabel(wasPaused); btn.style.opacity = ''; alert('Network error — nothing changed.'); });
     }
     function karPauseLabel(paused){
       var b = document.getElementById('kar-stop-btn');
@@ -2786,7 +2794,7 @@ if ($KAR_LOCAL) {
           document.getElementById('kar-seek').value = karNowDur ? Math.round(st.pos / karNowDur * 1000) : 0;
           document.getElementById('kar-time-pos').textContent = karFmt(st.pos);
         }
-        karPauseLabel(!!st.paused);
+        if (Date.now() >= karPauseCool) karPauseLabel(!!st.paused);      // not during the 3 s after a press: the player has not caught up yet and would flip the label back
         // The Mac reports its player's ACTUAL speed. Believe it over anything this page
         // thinks, so a speed that is wrong for any reason shows itself within a second
         // instead of hiding behind a hard-coded "100%" (the owner, 2026-09-20).
