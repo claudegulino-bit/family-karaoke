@@ -191,12 +191,18 @@ try {
         $gp = function ($prop) { $r = (string)kar_mpv_send(['get_property', $prop]); $j = json_decode($r, true); return is_array($j) ? ($j['data'] ?? null) : null; };
         $path = $gp('path');
         if (!$path) kj(['ok'=>true, 'state'=>['playing'=>false]]);
+        try { kar_window_remember(); } catch (Throwable $e) { }
         // 'speed' is reported so the bar can show what the player is ACTUALLY doing rather
         // than assuming 100%. the owner, 2026-09-20: guests said songs were playing slow and
         // there was nothing on screen that could have told anyone otherwise.
         kj(['ok'=>true, 'state'=>['playing'=>true, 'file'=>basename((string)$path), 'pos'=>round((float)($gp('time-pos') ?? 0), 1),
                                   'dur'=>round((float)($gp('duration') ?? 0), 1), 'paused'=>(bool)$gp('pause'),
                                   'speed'=>round((float)($gp('speed') ?? 1), 3)]]);
+    }
+    case 'karaoke_reset_window': {
+        // Back to the standard spot (right side, 55% x 70%) — takes effect from the next time the player opens.
+        kar_cfg_save(['lyrics_window' => null]);
+        kj(['ok'=>true, 'error'=>'']);
     }
     case 'karaoke_live_tempo': {
         $t = trim((string)($_POST['tempo'] ?? ''));

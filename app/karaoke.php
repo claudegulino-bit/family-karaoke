@@ -1333,6 +1333,9 @@ if ($KAR_LOCAL) {
             <li><b>The progress line</b> under the song name shows how far through it is — drag it to move within the song.</li>
             <li><b>⏮ Restart</b> goes back to the beginning of the song. <b>⏹ Stop</b> pauses it where it is and becomes <b>▶ Resume</b>, which carries on from that point.</li>
             <li><b>🎬 Lyrics Screen</b> hides the lyrics window or brings it back. It otherwise stays in front of the browser while a song plays. To end a song, close that window — <b>Q</b> or its red <b>✕</b> on the Mac.</li>
+            <?php if ($KAR_LOCAL): ?>
+            <li><b>The words window remembers where you put it.</b> Drag it and resize it once while a song plays; every later song, and every later day, opens in that same place and size. A window in full screen (<b>F</b>) is never saved as the place. <a href="#" onclick="karResetWindow();return false" style="color:#D2AD6C;font-weight:700">Reset window position</a> puts it back to the standard spot on the right.</li>
+            <?php endif; ?>
             <li>Changes made in the gold bar apply to the current performance only. A song's saved pitch is the <b>Pitch</b> value on its row.</li>
           </ul>
         </div>
@@ -2640,6 +2643,12 @@ if ($KAR_LOCAL) {
       fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d2){
         if (!d2.ok) alert('The tempo change was not sent' + (d2.error ? ': ' + d2.error : '') + '.');
       }).catch(function(){ alert('Network error \u2014 the tempo change was not sent.'); });
+    }
+    function karResetWindow(){
+      var fd = new FormData(); fd.append('form_type', 'karaoke_reset_window'); fd.append('mac', karMac());
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d2){
+        karToast(d2.ok ? 'The words window will open in the standard place from the next song.' : 'Could not reset the window position.', !!d2.ok);
+      }).catch(function(){ karToast('Network error \u2014 nothing was changed.', false); });
     }
     // One tap on the number puts a wrong speed straight back to normal.
     function karTempoReset(){ if (karLiveTempo !== 100) karTempoSet(100); }

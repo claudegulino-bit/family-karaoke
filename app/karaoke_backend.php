@@ -502,6 +502,51 @@ function kar_words_on_top(): bool {
     return array_key_exists('words_on_top', $cfg) ? !empty($cfg['words_on_top']) : true;
 }
 
+// ---- WORDS WINDOW MEMORY (2026-10-08) ------------------------------------------------
+// the owner, on Mike's mini: "how do I make the window stay where I want, every time?"
+// mpv never saves its own window, so while the player is up the page's 1-second poll
+// reads the window's frame (CoreGraphics through osascript/JXA — no extra software, no
+// permission grant), keeps it in karaoke_standalone.json as "lyrics_window", and the next
+// launch turns it back into --geometry. Same fields as the casAI watcher's, so the QR code
+// placement above reads it too. Points vs pixels: mpv geometry is pixels and counts Y from
+// below the menu bar, so the screen scale and menu-bar height are stored with it.
+const KAR_WIN_JXA = "ObjC.import('CoreGraphics');ObjC.import('AppKit');var s=\$.NSScreen.mainScreen,f=s.frame,v=s.visibleFrame;"
+    . "var sc=s.backingScaleFactor,mb=f.size.height-(v.origin.y+v.size.height);"
+    . "var l=ObjC.deepUnwrap(ObjC.castRefToObject(\$.CGWindowListCopyWindowInfo(\$.kCGWindowListOptionOnScreenOnly,\$.kCGNullWindowID)));"
+    . "var best=0,out=null;l.forEach(function(w){if(w.kCGWindowOwnerName!=='mpv')return;var b=w.kCGWindowBounds,a=b.Width*b.Height;"
+    . "if(a>best&&b.Width>60&&b.Height>40){best=a;out={x:Math.round(b.X),y:Math.round(b.Y),w:Math.round(b.Width),h:Math.round(b.Height),"
+    . "scale:sc,menubar:mb,screen_w:Math.round(f.size.width),screen_h:Math.round(f.size.height)};}});JSON.stringify(out);";
+
+/** The mpv --geometry for the remembered words window, or the original right-side default. */
+function kar_lyrics_geometry(): string {
+    $d = kar_cfg()['lyrics_window'] ?? null;
+    if (is_array($d) && isset($d['x'], $d['y'], $d['w'], $d['h'], $d['scale'], $d['menubar'])) {
+        $sc = (float)$d['scale'] ?: 1.0;
+        $X = (int)round((float)$d['x'] * $sc); $Y = (int)round(((float)$d['y'] - (float)$d['menubar']) * $sc);
+        $W = (int)round((float)$d['w'] * $sc); $H = (int)round((float)$d['h'] * $sc);
+        if ($W > 100 && $H > 60) return '--geometry=' . $W . 'x' . $H . '+' . max($X, 0) . '+' . max($Y, 0);
+    }
+    return '--geometry=55%x70%-0+60';
+}
+
+/** Called from the page's poll while a song plays. Saves the words window's frame when it changes. */
+function kar_window_remember(): void {
+    if (kar_marker_path() === null || PHP_OS_FAMILY !== 'Darwin') return;
+    $stamp = sys_get_temp_dir() . '/kar_win_checked';
+    if (is_file($stamp) && time() - (int)@filemtime($stamp) < 3) return;      // at most every 3 seconds
+    @touch($stamp);
+    $out = @shell_exec('/usr/bin/osascript -l JavaScript -e ' . escapeshellarg(KAR_WIN_JXA) . ' 2>/dev/null');
+    $d = json_decode(trim((string)$out), true);
+    if (!is_array($d) || !isset($d['x'], $d['w'])) return;
+    if ($d['w'] >= $d['screen_w'] && $d['h'] >= $d['screen_h'] - 1) return;     // full screen (F) is a mode, not a size
+    if ($d['w'] < 480 || $d['h'] < 320) return;                                  // a minimising window shrinks toward the Dock
+    $min = (string)kar_mpv_send(['get_property', 'window-minimized']);
+    if (strpos($min, '"data":true') !== false) return;
+    $old = kar_cfg()['lyrics_window'] ?? null;
+    if (is_array($old) && ($old['x'] ?? null) === $d['x'] && ($old['y'] ?? null) === $d['y'] && ($old['w'] ?? null) === $d['w'] && ($old['h'] ?? null) === $d['h']) return;
+    kar_cfg_save(['lyrics_window' => $d]);
+}
+
 function kar_play(string $song, int $pitch, string $singer = ''): array {
     $path = kar_songs_dir() . '/' . $song;
     if (!is_file($path)) return [false, 'file not found in the songs folder'];
@@ -601,7 +646,7 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
     }
     // NOT fullscreen: the screen is shared — words on one side, the song list on the
     // other. F toggles fullscreen when the whole screen is wanted.
-    $args[] = '--geometry=55%x70%-0+60';
+    $args[] = kar_lyrics_geometry();
     // ⚠ THE PLAYER STAYS OPEN BETWEEN SONGS, and that is the point of these two options.
     // Left to itself mpv quits when a song ends and the next one opens a brand-new window
     // wherever the geometry says — so any arrangement of words-here, song-list-there is
