@@ -1268,6 +1268,7 @@ if ($KAR_LOCAL) {
         if (!$KAR_LOCAL) $_karCards[] = ['remote', $_num('Remote help'), 'Reach the other Macs from anywhere — one click.', 'Setting up'];
         $_karCards[] = ['update', $_num('Software updates'), $KAR_LOCAL ? 'Installing the latest version.' : 'How the other Macs receive a release.', 'Setting up'];
         $_karCards[] = ['sing',  $_num('Play a song'),          'Search, playback and pitch.', 'Using it'];
+        $_karCards[] = ['downloads', $_num('Searching for a song'), 'Your songs, YouTube, or a pasted link, and how they connect.', 'Using it'];
         $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: pitch, speed, restart and stop.', 'Using it'];
         $_karCards[] = ['songs', $_num('Managing songs'),       'Lists A, B and C, each singer\'s key and photo, and how songs reach the iPad.', 'Using it'];
         $_karCards[] = ['party', $_num('Party controls'),       'The singing queue, guest requests and downloads.', 'At a party'];
@@ -1275,7 +1276,6 @@ if ($KAR_LOCAL) {
         // nowhere else — the floating "?" beside each panel borrows this same text rather
         // than keeping a second copy that would quietly drift out of step with it.
         $_karCards[] = ['upnext',    $_num('Singing Queue'), 'Who sings next, and scheduling fairness.', 'At a party'];
-        $_karCards[] = ['downloads', $_num('YouTube Downloads'), 'Searching YouTube and adding songs.', 'At a party'];
         $_karCards[] = ['guestqr',   $_num('Guest QR'),  'Song requests from guests\' phones.', 'At a party'];
         $_karCards[] = ['credits',   $_num('Credits'),  'Where the announcer voice comes from.', 'Setting up'];
         $_karCards[] = ['voiceprog', $_num('Announcer progress'), 'How many songs are ready per singer.', 'Setting up'];
@@ -1476,7 +1476,7 @@ if ($KAR_LOCAL) {
           <ul style="margin:0;padding-left:20px">
             <li><b>🎶 Singing Queue</b> — who sings next. Click <span style="display:inline-block;border:1px solid #60A5FA;background:rgba(96,165,250,.14);color:#93c5fd;font-weight:800;border-radius:5px;padding:0 7px;line-height:1.6">＋</span> on a song to add a singer; press <b>▶ Next singer</b> to start each performance. <a href="#" onclick="karGuideOpen('upnext');return false" style="color:#D2AD6C">Open the Singing Queue card</a>.</li>
             <li><b>📱 Guest QR</b> — guests request songs from their own phones. <a href="#" onclick="karGuideOpen('guestqr');return false" style="color:#D2AD6C">Open the Guest QR card</a>.</li>
-            <li><b>▶ YouTube Downloads</b> — search YouTube and add songs to the library. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Open the YouTube Downloads card</a>.</li>
+            <li><b>&#9654; Searching for a song</b> &mdash; type in the search box; if the song is not in your library, Cantoria offers YouTube. <a href="#" onclick="karGuideOpen('downloads');return false" style="color:#D2AD6C">Open the Searching for a song card</a>.</li>
             <li><b>📖 Guide</b> — this page.</li>
             <li><b>Closing a panel</b> — press its button again, press <b>✕ Close</b> inside it, or press Esc.</li>
             <li>The purple strip below the buttons reports activity, such as a guest's song arriving.</li>
@@ -1545,16 +1545,45 @@ if ($KAR_LOCAL) {
         </div>
 
         <div class="kar-gs" id="kar-gs-downloads" style="display:none">
-          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">YouTube Downloads</h3>
-          <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#fca5a5">1 · Search</b> — enter an artist or a title and press <b style="color:#fca5a5">▶ Search YouTube</b>. Each result carries its duration, its channel, and a warning where the song already exists in your library.</div>
-        <div><b style="color:#fca5a5">Karaoke &amp; lyrics only</b> — the checkbox beside the search box, normally ticked. YouTube is asked for the karaoke version, and of the thirty results returned, those shown are the ones naming <b>karaoke</b>, <b>lyrics</b> or <b>testo</b> in the title or the channel — all of them, however many that is. The rest are counted beside the heading and <b>Show them</b> displays them. Untick it to search for the ordinary record instead: your words go to YouTube exactly as typed and every result is shown. The setting is remembered on this computer.</div>
-        <div><b style="color:#fca5a5">2 · Download it</b> — <b style="color:#fca5a5">⬇ Download</b> starts it immediately. <b>▶ Watch</b> opens the video on YouTube in a new tab first. Every row you open stays marked — the most recent in red, the earlier ones as <b>✓ watched</b> — so after trying several you can see which they were and download whichever you chose. A row you have sent to the list is marked in green. To send a link to somebody, open it with <b>▶ Watch</b> and copy it from the address bar.</div>
-        <div><b style="color:#fca5a5">Or paste a link</b> — paste a YouTube address into the box and press <b>⬇ Download this link</b>. <b>open YouTube ↗</b> opens YouTube in a new tab for videos you prefer to find there.</div>
-        <div><b style="color:#fca5a5">3 · It downloads straight away</b> — no second button. Songs are fetched one at a time, typically a minute or two each, and the panel may be closed while this runs. Tap several and they queue up behind one another. <b>Clear the list</b> tidies away anything finished or failed.</div>
-        <div><b style="color:#fca5a5">4 · Result</b> — a completed row reads <b style="color:#10B981">✓ Completed</b> and tells you the song is now under <b style="color:#c084fc">🆕 New Songs</b>, which is where songs are renamed, given a pitch or removed, and where they stay for 5 days. Completed rows remain here while anything else is still downloading — so you can see a whole batch arrive — and clear themselves a couple of minutes after the last one lands. A <b style="color:#f87171">failed</b> download does not clear: it stays here in red with the reason, because a song that never arrived cannot appear under 🆕 New Songs and this is the only place you would ever find out.</div>
-        <div><b style="color:#fca5a5">Closing the panel</b> — the <b>YouTube Downloads</b> button closes it and keeps the search results. <b style="color:#fca5a5">✕ Clear</b> discards the search results and closes.</div>
-        <div><b style="color:#fca5a5">Guest requests</b> — songs requested from guests’ phones appear here under the guest’s name and download automatically.</div>
-          </div>
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Searching for a song</h3>
+          <p style="margin:0 0 10px;color:#cbd5e1">There is one search box, and it can look for a song <b>three ways</b>. The buttons at its right end say which: the <b>song database</b>, <b>&#9654; YouTube</b>, and <b>Link</b>. You start in the song database every time; the other two are errands you go on and come back from.</p>
+
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">1 &middot; Search your songs (the database)</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>Start typing a title, an artist or a singer's name. The list narrows as you type. <b>Esc</b> clears it.</li>
+            <li>This searches the songs you already have, which is where you will find most of what you want. Press <b>Play</b> on the row.</li>
+          </ul>
+
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">2 &middot; The song is not there: Cantoria offers YouTube</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>When nothing in your library matches, the list says <b>No song called &ldquo;&hellip;&rdquo; in your library</b>. It first suggests <b>&ldquo;Did you mean&hellip;&rdquo;</b> spellings of songs you do have, in case it is only a typing slip.</li>
+            <li>Below that is a button, <b>Search YouTube for it</b>. One press and the same words are searched on YouTube. You do not retype anything.</li>
+            <li>Even when the search <i>does</i> find songs, a line at the bottom of the results reads <b>Not the one you want? Search YouTube for &ldquo;&hellip;&rdquo;</b>. (Searching a band whose name matches many songs is the usual reason.)</li>
+            <li>You can also press the <b>&#9654; YouTube</b> button yourself at any time. It searches whatever is already in the box.</li>
+          </ul>
+
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">3 &middot; Choosing a version from YouTube</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>The results are <b>karaoke and lyrics versions</b> only: titles or channels that name karaoke, lyrics or <i>testo</i>. Every one is shown, not just the first few.</li>
+            <li>Each row has a picture, the title, and two buttons: <b>&#9654; Watch</b> and <b>Get this one</b>.</li>
+            <li><b>&#9654; Watch</b> opens that video on YouTube in a new tab so you can <b>listen to it first</b>. When you come back, the row you opened is marked in red as the one playing, and every earlier one carries a grey <b>&#10003; watched</b> mark, so after trying several you can tell which was which.</li>
+            <li><b>Get this one</b> downloads it straight away. The row turns green and says <b>downloading</b>.</li>
+            <li><b>The warning to look for:</b> if Cantoria thinks a result is a song you already own, the row says <b>&#9888; you may already have this</b> and names the song in your library. That is what catches a misspelt search that turned up nothing, and saves a second copy.</li>
+          </ul>
+
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">4 &middot; Paste a link</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>If somebody has given you a link, press <b>Link</b>, paste the address (it starts with <b>http</b>), and press <b>Enter</b> or <b>Link</b> again. It is added exactly as a YouTube result is.</li>
+            <li>To send a link to somebody else, open the video with <b>&#9654; Watch</b> and copy the address from the browser.</li>
+          </ul>
+
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">What happens after you choose</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>Songs download <b>one at a time</b>, usually a minute or two each. Choose several and they queue up behind each other. You can carry on using Cantoria meanwhile.</li>
+            <li>A finished song lands under <b>🆕 New Songs</b> and stays there for 5 days. That is where you <b>rename</b> it, set its <b>key</b> and see the duplicate warning. It is not offered for playing the moment it arrives, so you can do those first.</li>
+            <li>If a download fails, the purple strip under the buttons says so, with the reason. A song that never arrived can never appear under New Songs, so that strip is the only place you would find out.</li>
+            <li>Songs requested from guests' phones are downloaded the same way, automatically.</li>
+          </ul>
         </div>
 
         <div class="kar-gs" id="kar-gs-guestqr" style="display:none">
