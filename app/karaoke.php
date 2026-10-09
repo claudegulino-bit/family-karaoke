@@ -1279,6 +1279,14 @@ if ($KAR_LOCAL) {
         $_karCards[] = ['guestqr',   $_num('Guest QR'),  'Song requests from guests\' phones.', 'At a party'];
         $_karCards[] = ['credits',   $_num('Credits'),  'Where the announcer voice comes from.', 'Setting up'];
         $_karCards[] = ['voiceprog', $_num('Announcer progress'), 'How many songs are ready per singer.', 'Setting up'];
+        // Written to the reader, in the first person of whoever looks after their Cantoria (the owner,
+        // 2026-10-08: "I am telling people the way it is going to be"). Technical section only.
+        $_karCards[] = ['macset',     $_num('Setting up your Mac'),               'How to set it, whether or not you want my help.', 'Looking after your Mac'];
+        $_karCards[] = ['remotehelp', $_num('Letting me help from a distance'),   'What it is, what I can and cannot do, and how to stop it.', 'Looking after your Mac'];
+        $_karCards[] = ['calls',      $_num('If something goes wrong'),           'What to tell me and what I will check.', 'Looking after your Mac'];
+        $_karCards[] = ['flow',       $_num('How songs and updates reach you'),   'Your songs, new versions, and what is never touched.', 'How it works'];
+        $_karCards[] = ['quality',    $_num('How song quality works'),            'Three scores out of 10, and who decides.', 'How it works'];
+        $_karCards[] = ['ipad',       $_num('Cantoria on the iPad'),              'A simple version that works offline, with your pitch already in each song.', 'How it works'];
         // casAI edition only: the cards for running the Macs live in cantoria_help.php, which is NOT
         // part of the published bundle (it names the Macs). Same numbering as every other card.
         if (!$KAR_LOCAL && is_file(__DIR__ . '/cantoria_help.php')) {
@@ -1290,7 +1298,7 @@ if ($KAR_LOCAL) {
         // Grouped, because a flat grid of cards is a wall (the owner, 2026-09-13). The numbers run
         // 1..N inside each section, because he refers to cards by number out loud.
         $_userGroups = ['Using it', 'At a party'];
-        $_techOrder  = ['Setting up' => 0, 'Running the Macs' => 1];
+        $_techOrder  = ['Setting up' => 0, 'Looking after your Mac' => 1, 'How it works' => 2, 'Running the Macs' => 3];
         $_cardsUser = []; $_cardsTech = [];
         foreach ($_karCards as $_c) { if (in_array($_c[3], $_userGroups, true)) $_cardsUser[] = $_c; else $_cardsTech[] = $_c; }
         usort($_cardsTech, function ($a, $b) use ($_techOrder) { return ($_techOrder[$a[3]] ?? 9) <=> ($_techOrder[$b[3]] ?? 9); });   // usort is stable on PHP 8
@@ -1310,6 +1318,108 @@ if ($KAR_LOCAL) {
 
       <!-- ── the sections themselves. Grey text, gold only for headings and things you click ── -->
       <div id="kar-guide-body" style="display:none;margin-top:14px;border-top:1px solid #334155;padding-top:14px;color:#cbd5e1;font-size:13.5px;line-height:1.8">
+
+        <div class="kar-gs" id="kar-gs-macset" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Setting up your Mac</h3>
+          <p style="margin:0 0 10px;color:#cbd5e1">Cantoria is meant to sit on a Mac and simply be there when the music starts. How you set that Mac depends on one choice that is entirely yours: <b>do you want me to be able to help you from a distance, or not?</b> Either answer is fine. Cantoria works the same way.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">If you would like me to be able to help</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>The Mac <b>never goes to sleep</b>, and <b>starts by itself after a power cut</b>.</li>
+            <li>It <b>logs in automatically</b>, so Cantoria is running before anyone touches it. (If the Mac is also your own desk computer, leave this off.)</li>
+            <li><b>Automatic macOS upgrades are off.</b> Security fixes can stay on. A big macOS upgrade should happen when you choose, with a song played afterwards to prove it still works.</li>
+            <li>Your songs are <b>stored on the Mac</b>, not left online-only in Google Drive.</li>
+            <li>Cantoria is on the newest version, and you have followed <i>Letting me help from a distance</i>.</li>
+          </ul>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">If you would rather nobody looks at your Mac</h4>
+          <p style="margin:0 0 10px;color:#cbd5e1">Then I never will. Nothing on your Mac depends on me.</p>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>You keep <b>your own copy of the songs</b> and your own settings. I have no key to your Mac, no access to your files and no way to see your screen.</li>
+            <li>You press the gold <b>&#11014;&#65038; Update</b> button when I tell you a new version is ready. Your songs, singer lists and saved pitches are never touched; only the program is replaced.</li>
+            <li>The settings above are still worth making, but they are yours to make, and I can only suggest them.</li>
+            <li>If you ever need help, you tell me what you see and I give you plain steps or a single line to paste into the Terminal. You run it and tell me what happened.</li>
+          </ul>
+          <p style="margin:6px 0 0;color:#94a3b8;font-size:12.5px">You can change your mind at any time, in either direction.</p>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-remotehelp" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Letting me help from a distance</h3>
+          <p style="margin:0 0 10px;color:#cbd5e1">This is optional. If you turn it on, I can look at your Mac and fix a problem without having to come to you. I do it only when you ask for help.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">What it needs</h4>
+          <ol style="margin:0 0 10px;padding-left:22px">
+            <li>A free program called <b>Tailscale</b> on your Mac. It makes a private link between your Mac and mine that nobody else can use.</li>
+            <li>The Mac&rsquo;s own <b>Remote Login</b> switched on (<i>System Settings &rarr; General &rarr; Sharing</i>), for your own user only.</li>
+            <li>One line pasted into your Terminal, which I will give you. It lets my computer in, and only mine.</li>
+          </ol>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">What I can do</h4>
+          <p style="margin:0 0 10px;color:#cbd5e1">Check that Cantoria is running and which version it is, restart it, read its logs, install an update, look at free space, the song folder, sleep and power settings, and the sound output. I tell you what I am about to change before I change it.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">What I cannot do</h4>
+          <p style="margin:0 0 10px;color:#cbd5e1">I cannot type your password, click a permission box, open System Settings for you, or sign in to anything of yours. When one of those is needed, I tell you the exact button to press. I do not browse your files, and I keep to Cantoria and the health of the Mac.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">Stopping it</h4>
+          <p style="margin:0;color:#cbd5e1">Switch <b>Remote Login</b> off, or quit Tailscale, and I am locked out at once. To remove my key entirely, delete the line that ends in <code style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:2px 7px;font-size:12.5px;color:#e2e8f0">remote-help</code> from the file <code style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:2px 7px;font-size:12.5px;color:#e2e8f0">~/.ssh/authorized_keys</code>. Nothing else of mine stays on your Mac.</p>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-calls" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">If something goes wrong</h3>
+          <p style="margin:0 0 10px;color:#cbd5e1">Call me and tell me, in your own words, what you see or hear: &ldquo;there is no sound&rdquo;, &ldquo;the song will not start&rdquo;, &ldquo;the words are on the wrong side&rdquo;. You do not need technical words.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">What I check first</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>Is your Mac on and awake, and is Cantoria answering?</li>
+            <li>Which version of Cantoria it is, and whether a newer one is waiting.</li>
+            <li>Free space, and whether the song folder is all there.</li>
+            <li>The record of what Cantoria has been doing, for error messages.</li>
+            <li>The sound output and the volume, and where the words window sits.</li>
+          </ul>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">Things you can try yourself first</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>Press the gold <b>&#11014;&#65038; Update</b> button if it is showing.</li>
+            <li>Reload the page: Chrome <b>&#8984;&#8679;R</b>; in Safari <b>&#8997;&#8984;R</b> (plain &#8984;&#8679;R opens Safari&rsquo;s reader view, which is not what you want).</li>
+            <li>No sound: check the Mac&rsquo;s volume and which speaker it is sending to.</li>
+            <li>The words window in the wrong place: drag it to where you want it. Cantoria remembers.</li>
+          </ul>
+          <p style="margin:0;color:#94a3b8;font-size:12.5px">Anything that needs your Mac&rsquo;s password, a permission box, System Settings or a cable, I will walk you through step by step.</p>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-flow" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">How songs and updates reach you</h3>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">Your songs</h4>
+          <p style="margin:0 0 10px;color:#cbd5e1">Your songs live in a folder on your own Mac, and Cantoria plays them from there. It does not upload them anywhere and never moves or changes what is in that folder. <b>Only the songs are ever shared</b>, and only between Macs that are set up to read the same folder. Your singer lists and the keys you saved belong to your Mac alone.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">New versions of Cantoria</h4>
+          <p style="margin:0 0 10px;color:#cbd5e1">I build and test each new version before anyone receives it. When one is ready, a gold <b>&#11014;&#65038; Update</b> button appears next to <b>Guide</b>. Press it once; the new version installs and the page reloads. <b>Nothing is sent to your Mac without you pressing it.</b> Your songs, singer lists, saved pitches and settings are kept; only the program is replaced.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">What is never touched</h4>
+          <p style="margin:0;color:#cbd5e1">Your songs, your lists, your saved pitches, your window position and your settings. An update cannot take any of them away.</p>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-quality" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">How song quality works</h3>
+          <p style="margin:0 0 10px;color:#cbd5e1">A karaoke video from the internet is sometimes too fast, a little out of tune, or distorted. So I measure the songs in my library, and Cantoria shows you what I found. It never changes a song on its own.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">The three scores</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li><b>Speed</b> &mdash; does the song play at its true speed? I compare its length with the original recording. A track that is shorter or longer than the original is running fast or slow.</li>
+            <li><b>Pitch</b> &mdash; is the song in tune with itself and steady from start to finish? The <b>key does not matter</b>: you set the key you sing in on your own list, so a version in a different key is never a fault.</li>
+            <li><b>Sound</b> &mdash; is the audio clean, without distortion?</li>
+          </ul>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">Where you see them</h4>
+          <p style="margin:0 0 10px;color:#cbd5e1">The gold <b>Now playing</b> bar shows a <b>QUALITY</b> box with the three scores for the song that is playing. Click it and each score explains itself. A score below <b>8 turns amber</b> and below <b>6 red</b>. A song of yours that I have not measured simply shows no score.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">What I do about a weak song</h4>
+          <p style="margin:0;color:#cbd5e1">Every night I look for a better version of any song scoring below 8, and I measure each candidate before choosing. I check that it is really the same song, and <b>I decide</b>; nothing is replaced without my say-so. A new version is measured again before it goes in, and the old one is kept. This happens in the main song library I look after.</p>
+        </div>
+
+        <div class="kar-gs" id="kar-gs-ipad" style="display:none">
+          <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Cantoria on the iPad</h3>
+          <p style="margin:0 0 10px;color:#cbd5e1">The iPad has a deliberately <b>simple Cantoria of its own</b>: choose a singer, choose a song, sing. Once the songs are on the iPad it needs no internet, so you can take it to someone else&rsquo;s party.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">Your pitch is already in the song</h4>
+          <p style="margin:0 0 10px;color:#cbd5e1">An iPad cannot change a song&rsquo;s key as well as a Mac can, so I do it beforehand. For each singer, every song on their <b>List A</b> that has a saved pitch is recorded again <b>in that key</b>, as its own file. You just play it, and it is already where you sing. Every one of those files is measured to make sure the speed is exactly right and the pitch is exact, and a file that fails is not used.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">How the songs get there</h4>
+          <p style="margin:0 0 10px;color:#cbd5e1">I prepare the songs in one central place and keep them ready for your iPad. When you tap <b>Check for new songs</b> on the iPad, it downloads what is new, fetches what has been replaced and clears what has been removed. It never changes by itself; you choose when.</p>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">Getting your iPad started</h4>
+          <ol style="margin:0 0 10px;padding-left:22px">
+            <li>I give you a link made for your iPad. It works once, for 15 minutes.</li>
+            <li>Open it in <b>Safari</b> on the iPad and choose <b>Add to Home Screen</b>.</li>
+            <li>Open the new <b>icon</b> (not Safari). From now on, use only the icon.</li>
+            <li>Tap <b>Download songs</b>. Set the iPad&rsquo;s <b>Auto-Lock to Never</b> while it runs, because a locked screen pauses the download. If it stops, tap Download songs again and it carries on where it left off. The first download takes a while.</li>
+          </ol>
+          <p style="margin:0;color:#94a3b8;font-size:12.5px">Your iPad receives a pass that can fetch songs and nothing else. I can cancel it at any time, and the songs already on the iPad stay.</p>
+        </div>
 
         <?php if (!$KAR_LOCAL && function_exists('cantoria_help_body')) cantoria_help_body($pdo ?? null, is_file('/var/www/your-server/CANTORIA_VERSION') ? trim((string)@file_get_contents('/var/www/your-server/CANTORIA_VERSION')) : ''); ?>
 
