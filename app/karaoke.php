@@ -1066,9 +1066,13 @@ if ($KAR_LOCAL) {
       </div>
       <?php endif; ?>
       <div class="kar-mb-menu" data-for="help">
-        <button type="button" class="kar-mb-item" id="kar-mb-guide" onclick="karMb(function(){karGuideToggle()})">Guide</button>
+        <button type="button" class="kar-mb-item" id="kar-mb-guide" onclick="karMb(function(){karGuideToggle()})">User guide<small>How to use Cantoria</small></button>
+        <button type="button" class="kar-mb-item" id="kar-mb-tech" onclick="karMb(function(){karGuideTech()})">Technical<small>Installing, updates, configuration<?= $KAR_LOCAL ? '' : ', the Macs and remote help' ?></small></button>
+        <?php if (!$KAR_LOCAL): ?>
         <div class="kar-mb-sep"></div>
-        <button type="button" class="kar-mb-item" onclick="karMb(function(){karSetCompact(false)})">Classic layout</button>
+        <a class="kar-mb-item" href="/song_health.php" style="display:block;text-decoration:none">Song health</a>
+        <a class="kar-mb-item" href="/pocket_devices.php" style="display:block;text-decoration:none">Family iPads</a>
+        <?php endif; ?>
       </div>
     </div>
     <!-- ONE row of pills, every control the same height. the owner, 2026-09-18, looking at the two
@@ -1234,7 +1238,7 @@ if ($KAR_LOCAL) {
     <div id="kar-upnext" role="button" tabindex="0" onclick="karQToggle()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();karQToggle();}" title="Open or close the singing queue" style="display:none;align-items:center;gap:14px;margin-top:6px;padding:4px 12px;background:#161c28;border:1px solid rgba(148,163,184,.2);border-radius:8px;cursor:pointer;font-size:12.5px;line-height:1.3;transition:border-color .2s, background .2s;overflow:hidden;white-space:nowrap"></div>
     <div id="kar-guide-panel" style="display:none;margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:16px 22px;max-height:calc(100vh - 220px);overflow-y:auto">
       <div style="display:flex;align-items:center;gap:10px">
-        <h2 style="margin:0;font-size:16px;font-weight:800;color:#f3f4f6">🎤 Cantoria Guide</h2>
+        <h2 id="kar-guide-title" style="margin:0;font-size:16px;font-weight:800;color:#f3f4f6">🎤 Cantoria — User guide</h2>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
       </div>
       <!-- Rebuilt 2026-09-08 on the owner's own reading of it: "very busy, unorganized… too
@@ -1253,7 +1257,7 @@ if ($KAR_LOCAL) {
         // Numbered by a counter, not by hand: the two editions do not carry the same set of
         // cards, and hand-typed numbers went wrong the moment one was inserted or moved.
         $_n = 0;
-        $_num = function ($t) use (&$_n) { return (++$_n) . ' · ' . $t; };
+        $_num = function ($t) { return $t; };   // numbered per section when drawn (User guide 1..n, Technical 1..m)
         if ($KAR_LOCAL) $_karCards[] = ['setup', $_num('Installing Cantoria'), 'One-time installation, the songs folder and the player.', 'Setting up'];
         else            $_karCards[] = ['setup', $_num('Installing Cantoria'), 'One-time installation, choosing the Mac and the songs folder.', 'Setting up'];
         // How it is put together comes before how it is used — this is the card someone
@@ -1275,23 +1279,39 @@ if ($KAR_LOCAL) {
         $_karCards[] = ['guestqr',   $_num('Guest QR'),  'Song requests from guests\' phones.', 'At a party'];
         $_karCards[] = ['credits',   $_num('Credits'),  'Where the announcer voice comes from.', 'Setting up'];
         $_karCards[] = ['voiceprog', $_num('Announcer progress'), 'How many songs are ready per singer.', 'Setting up'];
-        // Grouped, because ten cards in one flat grid is a wall (the owner, 2026-09-13). The
-        // heading spans the whole grid row; the numbers still run 1..N in reading order,
-        // because he refers to cards by number out loud.
-        $_grp = '';
-        foreach ($_karCards as [$_k, $_t, $_d, $_g]):
-          if ($_g !== $_grp): $_grp = $_g; ?>
-        <div class="kar-ghdr" style="grid-column:1/-1;color:#8ea2bd;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-top:1px solid rgba(148,163,184,.22);padding-top:9px;margin:<?= $_grp === 'Setting up' ? '2px' : '14px' ?> 0 0"><?= h($_grp) ?></div>
+        // casAI edition only: the cards for running the Macs live in cantoria_help.php, which is NOT
+        // part of the published bundle (it names the Macs). Same numbering as every other card.
+        if (!$KAR_LOCAL && is_file(__DIR__ . '/cantoria_help.php')) {
+            require_once __DIR__ . '/cantoria_help.php';
+            foreach ($_cHelpCards as [$_ck, $_ct, $_cd, $_cg]) $_karCards[] = [$_ck, $_num($_ct), $_cd, $_cg];
+        }
+        // Two sections (the owner, 2026-10-08): the USER GUIDE teaches people how to use Cantoria;
+        // TECHNICAL holds installing, updates, configuration, remote help and the support material.
+        // Grouped, because a flat grid of cards is a wall (the owner, 2026-09-13). The numbers run
+        // 1..N inside each section, because he refers to cards by number out loud.
+        $_userGroups = ['Using it', 'At a party'];
+        $_techOrder  = ['Setting up' => 0, 'Running the Macs' => 1];
+        $_cardsUser = []; $_cardsTech = [];
+        foreach ($_karCards as $_c) { if (in_array($_c[3], $_userGroups, true)) $_cardsUser[] = $_c; else $_cardsTech[] = $_c; }
+        usort($_cardsTech, function ($a, $b) use ($_techOrder) { return ($_techOrder[$a[3]] ?? 9) <=> ($_techOrder[$b[3]] ?? 9); });   // usort is stable on PHP 8
+        foreach (['user' => $_cardsUser, 'tech' => $_cardsTech] as $_sect => $_list):
+          $_grp = ''; $_cn = 0;
+          foreach ($_list as [$_k, $_t, $_d, $_g]):
+            $_cn++;
+            if ($_g !== $_grp): $_grp = $_g; ?>
+        <div class="kar-ghdr" data-sect="<?= $_sect ?>" style="grid-column:1/-1;color:#8ea2bd;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;border-top:1px solid rgba(148,163,184,.22);padding-top:9px;margin:<?= $_cn === 1 ? '2px' : '14px' ?> 0 0<?= $_sect === 'tech' ? ';display:none' : '' ?>"><?= h($_grp) ?></div>
         <?php endif; ?>
-        <button type="button" id="kar-gc-<?= $_k ?>" onclick="karGuideOpen('<?= $_k ?>')" style="font-family:inherit;text-align:left;background:#1a2130;border:1px solid #334155;border-radius:9px;padding:11px 13px;cursor:pointer">
-          <span style="display:block;color:#D2AD6C;font-size:13.5px;font-weight:800"><?= h($_t) ?></span>
+        <button type="button" id="kar-gc-<?= $_k ?>" data-sect="<?= $_sect ?>" onclick="karGuideOpen('<?= $_k ?>')" style="font-family:inherit;text-align:left;background:#1a2130;border:1px solid #334155;border-radius:9px;padding:11px 13px;cursor:pointer<?= $_sect === 'tech' ? ';display:none' : '' ?>">
+          <span style="display:block;color:#D2AD6C;font-size:13.5px;font-weight:800"><?= $_cn ?> · <?= h($_t) ?></span>
           <span style="display:block;color:#94a3b8;font-size:12px;line-height:1.5;margin-top:3px"><?= h($_d) ?></span>
         </button>
-        <?php endforeach; ?>
+        <?php endforeach; endforeach; ?>
       </div>
 
       <!-- ── the sections themselves. Grey text, gold only for headings and things you click ── -->
       <div id="kar-guide-body" style="display:none;margin-top:14px;border-top:1px solid #334155;padding-top:14px;color:#cbd5e1;font-size:13.5px;line-height:1.8">
+
+        <?php if (!$KAR_LOCAL && function_exists('cantoria_help_body')) cantoria_help_body($pdo ?? null, is_file('/var/www/your-server/CANTORIA_VERSION') ? trim((string)@file_get_contents('/var/www/your-server/CANTORIA_VERSION')) : ''); ?>
 
         <div class="kar-gs" id="kar-gs-setup" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Installing Cantoria on another Mac</h3>
@@ -1642,7 +1662,7 @@ if ($KAR_LOCAL) {
         <div class="kar-gs" id="kar-gs-update" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Software updates</h3>
           <div class="kar-gs-body" style="display:grid;gap:9px">        <div><b style="color:#D2AD6C">This Mac</b> — the development machine. Changes are made here directly and released from here, so there is nothing to retrieve and no update button on this copy.</div>
-        <div><b style="color:#D2AD6C">Every other Mac</b> — opens its own <b>📖 Guide → Software updates</b> and presses <b style="color:#6ee7b7">⬆︎ Cantoria Software Update</b>. Each machine installs the release itself; nothing is sent to it from here.</div>
+        <div><b style="color:#D2AD6C">Every other Mac</b> — opens its own <b>Help → Technical → Software updates</b> and presses <b style="color:#6ee7b7">⬆︎ Cantoria Software Update</b>. Each machine installs the release itself; nothing is sent to it from here.</div>
         <div><b style="color:#D2AD6C">What is preserved</b> — on those machines the songs, settings, Singer lists and saved pitch settings are kept. Only the program is replaced.</div>
         <?php
           // ⚠ ONE FILE. Written ONLY by publish_karaoke.php, on the server, outside the
@@ -3729,7 +3749,36 @@ function karPickFolder(){
       return true;
           try { karFitList(); } catch(e){}
     }
-    function karGuideToggle(){ karPanelShow('kar-guide-panel'); }
+    // Two sections in one panel: 'user' (how to use Cantoria) and 'tech' (installing, updates,
+    // configuration, remote help). Each card and heading carries data-sect; the mode shows one set.
+    var karGuideMode = 'user';
+    function karGuideApplyMode(m){
+      karGuideMode = m;
+      try { karGuideBack(); } catch (e) {}
+      var els = document.querySelectorAll('#kar-guide-cards [data-sect]');
+      for (var i = 0; i < els.length; i++) els[i].style.display = (els[i].getAttribute('data-sect') === m) ? '' : 'none';
+      var t = document.getElementById('kar-guide-title');
+      if (t) t.textContent = m === 'tech' ? '\uD83C\uDFA4 Cantoria \u2014 Technical' : '\uD83C\uDFA4 Cantoria \u2014 User guide';
+      var gp = document.getElementById('kar-guide-panel'); if (gp) gp.scrollTop = 0;
+    }
+    function karGuideShow(m){
+      var p = document.getElementById('kar-guide-panel');
+      var open = !!p && p.style.display !== 'none';
+      if (open && karGuideMode === m) { karPanelClose(); return; }
+      if (!open) karPanelShow('kar-guide-panel');
+      karGuideApplyMode(m);
+    }
+    function karGuideToggle(){ karGuideShow('user'); }
+    function karGuideTech(){ karGuideShow('tech'); }
+    // Opens the panel straight at one card, in whichever section that card belongs to.
+    function karGuideGoto(key){
+      var b = document.getElementById('kar-gc-' + key);
+      var m = b ? b.getAttribute('data-sect') : 'user';
+      var p = document.getElementById('kar-guide-panel');
+      if (!p || p.style.display === 'none') karPanelShow('kar-guide-panel');
+      if (karGuideMode !== m) karGuideApplyMode(m);
+      if (karGuideOpenKey !== key) karGuideOpen(key);
+    }
     function karDlToggle(){
       if (!karPanelShow('kar-dl-panel')) return;
       karDlRefresh();
@@ -5034,7 +5083,9 @@ function karMbIpadFill(d){
 function karMbPanelOpen(id){ var p = document.getElementById(id); return !!p && p.style.display !== 'none'; }
 function karMbOpened(name){
   var qi = document.getElementById('kar-mb-q-open'); if (qi) qi.firstChild.textContent = karMbPanelOpen('kar-q-panel') ? 'Close the full queue' : 'Open the full queue';
-  var gi = document.getElementById('kar-mb-guide'); if (gi) gi.textContent = karMbPanelOpen('kar-guide-panel') ? 'Close the Guide' : 'Guide';
+  var gOpen = karMbPanelOpen('kar-guide-panel');
+  var gi = document.getElementById('kar-mb-guide'); if (gi) gi.firstChild.textContent = (gOpen && karGuideMode === 'user') ? 'Close the User guide' : 'User guide';
+  var ti = document.getElementById('kar-mb-tech'); if (ti) ti.firstChild.textContent = (gOpen && karGuideMode === 'tech') ? 'Close Technical' : 'Technical';
   if (name === 'qr') { var b = document.getElementById('kar-mb-qr-win'); if (b) b.textContent = karQrOnScreen ? 'Turn the QR code off' : 'Turn the QR code on'; }
   else if (name === 'ipad' && typeof karIpadAsk === 'function') karIpadAsk('status').then(karMbIpadFill).catch(function(){});
   else if (name === 'queue') { karMbQFill(); if (typeof karQFetch === 'function') karQFetch(); }
