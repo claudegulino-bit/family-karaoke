@@ -1269,7 +1269,7 @@ if ($KAR_LOCAL) {
         $_karCards[] = ['update', $_num('Software updates'), $KAR_LOCAL ? 'Installing the latest version.' : 'How the other Macs receive a release.', 'Setting up'];
         $_karCards[] = ['sing',  $_num('Play a song'),          'Search, playback and pitch.', 'Using it'];
         $_karCards[] = ['while', $_num('While it is playing'),  'Live controls: pitch, speed, restart and stop.', 'Using it'];
-        $_karCards[] = ['songs', $_num('Managing songs'),       'Singer lists, new arrivals, renaming and removal.', 'Using it'];
+        $_karCards[] = ['songs', $_num('Managing songs'),       'Lists A, B and C, each singer\'s key and photo, and how songs reach the iPad.', 'Using it'];
         $_karCards[] = ['party', $_num('Party controls'),       'The singing queue, guest requests and downloads.', 'At a party'];
         // The three party panels each get a card of their own. Their words live HERE and
         // nowhere else — the floating "?" beside each panel borrows this same text rather
@@ -1485,15 +1485,54 @@ if ($KAR_LOCAL) {
 
         <div class="kar-gs" id="kar-gs-songs" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Managing songs</h3>
-          <ul style="margin:0;padding-left:20px">
-            <li><b>⭐ Singer lists</b> — one per person. The dropdown at the top is that list: its menu names every person with the number of songs they have, and selecting a name opens their list. <b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu.</li>
-            <li><b>Adding to a list</b> — with the person selected, click <b>⭐</b> on a song's row to add it, and again to remove it. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
-            <li><b>🆕 New Songs</b> — every song added in the last 5 days. The <b>Duplicate</b> column flags songs that appear to match one already in the library.</li>
-            <li><b>Click a song’s name</b> to rename it. The same box has <b>🗑 Delete file</b>, which removes the song from Cantoria after asking: the file is moved to a Deleted folder, not destroyed, and can be restored. The <b>✕</b> beside A B C only takes a song off the selected singer’s list.</li>
-            <li><b>Licensing.</b> These songs are for private use at home. For commercial use — a restaurant, a hall, a ticketed event — point Cantoria at a licensed song library. The songs folder is a setting — see <a href="#" onclick="karGuideOpen('setup');return false" style="color:#D2AD6C">Installing Cantoria</a>.</li>
-          </ul>
-        </div>
+          <p style="margin:0 0 10px;color:#cbd5e1">Everyone who sings has <b>their own list</b>, split into three: <b>A</b>, <b>B</b> and <b>C</b>. Their key, their photo and their announcer name belong to them too.</p>
 
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">Singer lists</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>The <b>Singer:</b> dropdown at the top <b>is</b> the list. It names every person with the number of songs they have; choose a name to open their list.</li>
+            <li><b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
+            <li>Every song's row has three small buttons, <b>A</b>, <b>B</b> and <b>C</b>. With a person selected, click one to put the song on that list. The letter lights up. Click the lit letter again to take the song off. A song is on <b>one</b> of the three at a time; clicking another letter moves it.</li>
+            <li><b>Show: All / A / B / C</b> at the top of a singer's list chooses which of their songs you see. The list on screen does not jump while you work.</li>
+            <li><b>What the letters do:</b> <b>A</b> is the list that goes to the iPad, and the one the <b>Save</b> button puts a song on. <b>B</b> and <b>C</b> are two further lists to keep songs apart however you like; they do not go to the iPad with their key.</li>
+            <li>Lists belong to the Mac they were made on. Only the songs themselves are shared between Macs.</li>
+          </ul>
+
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">A singer's key (pitch)</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li><b>On a singer's own list</b> the <b>Pitch</b> box on each row sets that singer's key for that song, in steps up or down. It is saved for that singer only, and the song starts in that key every time they play it.</li>
+            <li><b>On Song Database and New Songs</b> the Pitch box always starts at 0 and is <b>never saved</b>. It changes only the song you are about to play.</li>
+            <li><b>Changing it while the song plays:</b> use <b>PITCH</b> on the gold Now playing bar. It takes effect at once and is for tonight only.</li>
+            <li><b>Save</b> (beside PITCH on the gold bar) keeps what you just found: it saves that key for the singer chosen in the dropdown <b>and puts the song on their A list</b>, wherever it was before.</li>
+            <li>New songs are named without a pitch number. The key lives in Cantoria, per singer, not in the file name.</li>
+          </ul>
+
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">How a song's key reaches the Mac and the iPad</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li><b>On the Mac:</b> the player changes the key live, as it plays. Nothing is stored in the song; the saved key is simply applied.</li>
+            <li><b>On the iPad:</b> an iPad cannot change a key as well as a Mac, so the key is built into the file beforehand. For every singer, each <b>A-list song with a saved key other than 0</b> is recorded again in that key as its own file. A-list songs at 0 are copied as they are.</li>
+            <li><b>B and C songs</b> are on the iPad too, but they play in the <b>original key</b>; the iPad shows the saved key but does not apply it.</li>
+            <li><b>Every recorded copy is measured</b> for exact speed and exact pitch. A copy that fails is not used.</li>
+            <li><b>To get a new key onto the iPad:</b> save it (so the song is on that singer's A list), let the nightly preparation run, then tap <b>Check for new songs</b> on the iPad. The <b>iPad</b> menu on the casAI Cantoria can prepare it straight away.</li>
+          </ul>
+
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">The singer's photo and name</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li>Open <b>Singer details and photo</b> (the Singer: chip, or the Singer menu). Enter the <b>full name</b> as the announcer should say it, choose <b>Man or Woman</b>, and add a <b>photo</b>.</li>
+            <li>To add the photo, <b>drop it onto the picture box</b> from Finder, or use <b>Choose photo&hellip;</b>. <b>Remove photo</b> takes it away.</li>
+            <li>When the singer is called up (<b>Next singer</b>), their <b>photo and name</b> appear on screen with applause and the announcer; then the song starts.</li>
+            <li>With no photo yet, the crowd video plays and the announcer still says the name.</li>
+            <li>The announcer's introduction for each singer and song is prepared in the background. <b>Announcer progress</b> (Technical) shows how many are ready.</li>
+          </ul>
+
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">New songs, renaming and removal</h4>
+          <ul style="margin:0 0 10px;padding-left:20px">
+            <li><b>🆕 New Songs</b> lists every song added in the last 5 days. The <b>Duplicate</b> column flags a song that appears to match one already in the library.</li>
+            <li><b>Click a song's name</b> to rename it. The same box has <b>🗑 Delete file</b>: after asking, the file is moved to a Deleted folder, not destroyed, and can be restored. Deleting also takes it off every list.</li>
+            <li>The <b>✕</b> beside A B C only takes the song off the selected singer's list. The song itself stays.</li>
+          </ul>
+
+          <p style="margin:6px 0 0;color:#cbd5e1"><b>Licensing.</b> These songs are for private use at home. For commercial use &mdash; a restaurant, a hall, a ticketed event &mdash; point Cantoria at a licensed song library. The songs folder is a setting; see <a href="#" onclick="karGuideOpen('setup');return false" style="color:#D2AD6C">Installing Cantoria</a>.</p>
+        </div>
 
         <div class="kar-gs" id="kar-gs-upnext" style="display:none">
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Singing Queue</h3>
