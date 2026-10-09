@@ -1497,22 +1497,23 @@ if ($KAR_LOCAL) {
             <li>Lists belong to the Mac they were made on. Only the songs themselves are shared between Macs.</li>
           </ul>
 
-          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">A singer's key (pitch)</h4>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">Changing a song's key: where you do it decides how long it lasts</h4>
           <ul style="margin:0 0 10px;padding-left:20px">
-            <li><b>On a singer's own list</b> the <b>Pitch</b> box on each row sets that singer's key for that song, in steps up or down. It is saved for that singer only, and the song starts in that key every time they play it.</li>
-            <li><b>On Song Database and New Songs</b> the Pitch box always starts at 0 and is <b>never saved</b>. It changes only the song you are about to play.</li>
-            <li><b>Changing it while the song plays:</b> use <b>PITCH</b> on the gold Now playing bar. It takes effect at once and is for tonight only.</li>
-            <li><b>Save</b> (beside PITCH on the gold bar) keeps what you just found: it saves that key for the singer chosen in the dropdown <b>and puts the song on their A list</b>, wherever it was before.</li>
+            <li><b>In Song Database or New Songs: one play only.</b> The Pitch box there always starts at 0. Whatever you set applies to the song you play or queue next, and then it goes <b>back to 0</b>. Nothing is saved.</li>
+            <li><b>On a singer's own list: it stays.</b> Choose the person in the Singer: dropdown and change the Pitch box on the song's row. That key is saved <b>for that singer</b>, and the song starts in it every time they play it, until they change it again. Another singer's key for the same song is not affected.</li>
+            <li><b>While a song is playing:</b> <b>PITCH</b> on the gold Now playing bar moves the key at once, for tonight only. When you have found the right key, press <b>Save</b> beside it. Save keeps that key for the singer in the dropdown <b>and puts the song on their A list</b>, wherever it was before.</li>
             <li>New songs are named without a pitch number. The key lives in Cantoria, per singer, not in the file name.</li>
           </ul>
 
-          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">How a song's key reaches the Mac and the iPad</h4>
+          <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">A-list songs go to the iPad with their key built in, automatically</h4>
           <ul style="margin:0 0 10px;padding-left:20px">
-            <li><b>On the Mac:</b> the player changes the key live, as it plays. Nothing is stored in the song; the saved key is simply applied.</li>
-            <li><b>On the iPad:</b> an iPad cannot change a key as well as a Mac, so the key is built into the file beforehand. For every singer, each <b>A-list song with a saved key other than 0</b> is recorded again in that key as its own file. A-list songs at 0 are copied as they are.</li>
-            <li><b>B and C songs</b> are on the iPad too, but they play in the <b>original key</b>; the iPad shows the saved key but does not apply it.</li>
-            <li><b>Every recorded copy is measured</b> for exact speed and exact pitch. A copy that fails is not used.</li>
-            <li><b>To get a new key onto the iPad:</b> save it (so the song is on that singer's A list), let the nightly preparation run, then tap <b>Check for new songs</b> on the iPad. The <b>iPad</b> menu on the casAI Cantoria can prepare it straight away.</li>
+            <li><b>The rule:</b> any song on a singer's <b>A list</b> whose saved key is <b>not 0</b> is prepared for the iPad in that key. You do not ask for it and nobody has to be named.</li>
+            <li><b>How:</b> overnight (and whenever songs are replaced or removed), the song is recorded again <b>in the singer's key</b> as its own file. The picture is left untouched; only the sound is shifted. Every file is measured for exact speed and exact pitch, and one that fails is not used.</li>
+            <li><b>Then the iPad collects it:</b> on the iPad, tap <b>Check for new songs</b>. The song is there, already in the singer's key. The iPad needs no pitch control, because there is nothing left to change.</li>
+            <li><b>If you change the key again,</b> the next preparation records it again in the new key. <b>If the song leaves the A list, or goes back to 0,</b> the prepared copy is retired and the iPad plays the original.</li>
+            <li><b>A-list songs at 0</b> go to the iPad as they are. <b>B and C songs</b> are on the iPad too, but play in the <b>original key</b>; the iPad shows the saved key and does not apply it.</li>
+            <li><b>On the Mac</b> nothing is recorded: the player applies the singer's key live, every time.</li>
+            <li>The <b>iPad</b> menu on the casAI Cantoria can start the preparation immediately instead of waiting for the night.</li>
           </ul>
 
           <h4 style="margin:16px 0 6px;font-size:13px;font-weight:800;color:#D2AD6C">The singer's photo and name</h4>
