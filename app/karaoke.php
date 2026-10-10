@@ -1499,7 +1499,7 @@ if ($KAR_LOCAL) {
             <li><b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
             <li>Every song's row has three small buttons, <b>A</b>, <b>B</b> and <b>C</b>. With a person selected, click one to put the song on that list. The letter lights up. Click the lit letter again to take the song off. A song is on <b>one</b> of the three at a time; clicking another letter moves it.</li>
             <li><b>Show: All / A / B / C</b> at the top of a singer's list chooses which of their songs you see. The list on screen does not jump while you work.</li>
-            <li><b>Your own order.</b> With one list showing (<b>Show: A</b>, <b>B</b> or <b>C</b>), every song has three small buttons at the end of its row: <b>&#10514;</b> moves it to the very top, <b>&#9650;</b> up one place and <b>&#9660;</b> down one place. Put your most important songs first; the <b>Seq Number</b> follows your order, and the header reads <i>my order</i>. A song newly added to a list goes to the <b>bottom</b>, and a song moved to another list goes to the bottom of that one. The arrows are hidden while you search, sort by name or show <b>All</b>, because then your order cannot be shown. The iPad shows each singer's lists in the same order.</li>
+            <li><b>Your own order.</b> With one list showing (<b>Show: A</b>, <b>B</b> or <b>C</b>), every song has three small buttons at the end of its row: <b>&#9650;</b> up, <b>&#9660;</b> down and <b>&#10514;</b> to the very top. <b>Click &#9650; or &#9660; as many times as you like: the row stays where it is and only its number changes</b> (22 &rarr; 21 &rarr; 20 &hellip;), so the arrow never moves from under your mouse. About two seconds after your last click, the song moves, once, to the number it shows. <b>&#10514;</b> acts at once. The <b>Seq Number</b> follows your order and the header reads <i>my order</i>. A song newly added to a list goes to the <b>bottom</b>, and a song moved to another list goes to the bottom of that one. The arrows are hidden while you search, sort by name or show <b>All</b>, because then your order cannot be shown. The iPad shows each singer's lists in the same order.</li>
             <li><b>What the letters do:</b> <b>A</b> is the list that goes to the iPad, and the one the <b>Save</b> button puts a song on. <b>B</b> and <b>C</b> are two further lists to keep songs apart however you like; they do not go to the iPad with their key.</li>
             <li>Lists belong to the Mac they were made on. Only the songs themselves are shared between Macs.</li>
           </ul>
@@ -2307,48 +2307,75 @@ if ($KAR_LOCAL) {
     // C"). KAR_DATA.best is left as it is until the view or singer next changes, so every
     // other row's data-i still points at the same song.
     // ---- His own order within a list (2026-10-10) ----------------------------------------------
-    // The arrows change the order IN THE PAGE at once, then send the whole order of that list to be saved. Sends go one at a time, in
-    // the order he clicked, so a quick run of clicks can never be saved out of order. If a save fails the list goes back and he is told.
+    // HOW THE ARROWS WORK (the owner's own design, 2026-10-10): the row does NOT move while he clicks. Each click on ▲ or ▼ only changes the
+    // NUMBER shown on that row (22, 21, 20, 19 ...), so the arrow stays under the mouse however far he wants to go. About two seconds after the
+    // last click the song moves, once, to the number it shows. (An earlier version moved the row at every click and scrolled the list after it;
+    // in his browser the mouse still ended up over the neighbour, and the next click swapped them back.)  ⤒ moves at once.
+    // Saves go one at a time, in the order made, so quick work can never be saved out of order; a failed save puts the list back and says so.
     var karOrdQ = Promise.resolve();
+    var karPend = null, karPendT = null;                 // {who, tier, song, from, to}
+    function karTierNames(who, tier){ return (KAR_BEST_BY[who] || []).filter(function(pr){ return pr[1] === tier; }).map(function(pr){ return pr[0]; }); }
+    // Show the pending number on the row without re-drawing the list (the row must not move).
+    function karPendPaint(){
+      var l = document.getElementById('kar-list'); if (!l || !karPend) return;
+      var ix = KAR_DATA.best.indexOf(karPend.song);
+      var mv = ix >= 0 ? l.querySelector('.kar-mv[data-i="' + ix + '"]') : null;
+      var row = mv && mv.closest ? mv.closest('.kar-row') : null;
+      if (!row) return;
+      var n = row.querySelector('.kar-num');
+      var total = karTierNames(karPend.who, karPend.tier).length;
+      if (n) { n.textContent = karPend.to === karPend.from ? String(karPend.from) : (karPend.from + ' \u2192 ' + karPend.to); n.style.color = '#D2AD6C'; n.style.fontWeight = '800'; }
+      row.style.outline = '1px solid #D2AD6C';
+      [].forEach.call(row.querySelectorAll('.kar-mv'), function(b){
+        var d = b.getAttribute('data-dir');
+        b.disabled = ((d === 'up' || d === 'top') && karPend.to <= 1) || (d === 'down' && karPend.to >= total);
+      });
+    }
+    function karFlushPending(){
+      if (karPendT) { clearTimeout(karPendT); karPendT = null; }
+      if (!karPend) return;
+      var p = karPend; karPend = null;
+      if (p.to === p.from) { if (karWho === p.who) { var l0 = document.getElementById('kar-list'), s0 = l0 ? l0.scrollTop : 0; karRender(); if (l0) l0.scrollTop = s0; } return; }
+      karApplyMove(p.who, p.tier, p.song, p.to - 1, false);
+    }
+    // dir: 'up' | 'down' | 'top'
     function karMoveSong(song, dir){
       if (!song || !karWho) return;
-      var arr = KAR_BEST_BY[karWho] || [];
+      if (karPend && (karPend.song !== song || karPend.who !== karWho)) karFlushPending();
       var tier = 0;
-      arr.forEach(function(pr){ if (pr[0] === song) tier = pr[1]; });
+      (KAR_BEST_BY[karWho] || []).forEach(function(pr){ if (pr[0] === song) tier = pr[1]; });
       if (!tier) return;
-      var names = arr.filter(function(pr){ return pr[1] === tier; }).map(function(pr){ return pr[0]; });
-      var i = names.indexOf(song);
-      var j = dir === 'top' ? 0 : (dir === 'up' ? i - 1 : i + 1);
-      if (i < 0 || j < 0 || j >= names.length || j === i) return;
+      var names = karTierNames(karWho, tier), i = names.indexOf(song);
+      if (i < 0) return;
+      if (dir === 'top') { if (karPend) karFlushPending(); if (i > 0) karApplyMove(karWho, tier, song, 0, true); return; }
+      if (!karPend) karPend = { who: karWho, tier: tier, song: song, from: i + 1, to: i + 1 };
+      karPend.to = Math.max(1, Math.min(names.length, karPend.to + (dir === 'up' ? -1 : 1)));
+      karPendPaint();
+      if (karPendT) clearTimeout(karPendT);
+      karPendT = setTimeout(karFlushPending, 1800);
+    }
+    // Do the move: put `song` at index toIdx of its list, show the new order, and save it.
+    function karApplyMove(who, tier, song, toIdx, goTop){
+      var arr = KAR_BEST_BY[who] || [];
+      var names = karTierNames(who, tier), i = names.indexOf(song);
+      if (i < 0 || toIdx < 0 || toIdx >= names.length || toIdx === i) return;
       var before = arr.map(function(pr){ return pr.slice(); });
-      // Where the moved row sits on screen NOW, measured from the top of the list box, so it can be put back at the very same spot afterwards -
-      // the arrow he just clicked then stays under the mouse and he can keep clicking (the owner, 2026-10-10: "the arrow stays there").
-      var lbox = document.getElementById('kar-list'), relBefore = null;
-      try {
-        var oldBtn = lbox ? lbox.querySelector('.kar-mv[data-i="' + KAR_DATA.best.indexOf(song) + '"]') : null;
-        var oldRow = oldBtn && oldBtn.closest ? oldBtn.closest('.kar-row') : null;
-        if (oldRow) relBefore = oldRow.getBoundingClientRect().top - lbox.getBoundingClientRect().top;
-      } catch (e) { }
-      names.splice(i, 1); names.splice(j, 0, song);
+      names.splice(i, 1); names.splice(toIdx, 0, song);
       var k = 0;
       for (var q = 0; q < arr.length; q++) { if (arr[q][1] === tier) arr[q] = [names[k++], tier]; }
-      karRebuildBest();
-      var l = document.getElementById('kar-list'), st = l ? l.scrollTop : 0;
-      karRender();
-      if (l) l.scrollTop = st;
-      try {   // keep the moved row exactly where it was on screen, so the same arrow can be clicked again and again
-        var nowI = KAR_DATA.best.indexOf(song);
-        var mv = l ? l.querySelector('.kar-mv[data-i="' + nowI + '"]') : null;
-        var rowEl = mv && mv.closest ? mv.closest('.kar-row') : null;
-        if (rowEl && l) {
-          if (dir === 'top') l.scrollTop = 0;                                   // to the very top: show the top of the list
-          else if (relBefore !== null) {
-            var relAfter = rowEl.getBoundingClientRect().top - l.getBoundingClientRect().top;
-            l.scrollTop += (relAfter - relBefore);                              // scroll by exactly how far the row moved
-          } else if (rowEl.scrollIntoView) rowEl.scrollIntoView({block: 'nearest'});
-        }
-      } catch (e) { }
-      var who = karWho, send = names.slice();
+      if (karWho === who) {
+        karRebuildBest();
+        var l = document.getElementById('kar-list'), st = l ? l.scrollTop : 0;
+        karRender();
+        if (l) l.scrollTop = st;
+        try {   // bring the song to where it now lives, so he sees it land
+          var mv = l ? l.querySelector('.kar-mv[data-i="' + KAR_DATA.best.indexOf(song) + '"]') : null;
+          var rowEl = mv && mv.closest ? mv.closest('.kar-row') : null;
+          if (goTop && l) l.scrollTop = 0;
+          else if (rowEl && rowEl.scrollIntoView) rowEl.scrollIntoView({block: 'center'});
+        } catch (e) { }
+      }
+      var send = names.slice();
       karOrdQ = karOrdQ.then(function(){
         var fd = new FormData();
         fd.append('form_type', 'karaoke_best_order');
@@ -2642,11 +2669,13 @@ if ($KAR_LOCAL) {
         rowNo++;
         // His own order (2026-10-10): with ONE list on screen, no search and no name-sorting, every row carries move arrows.
         var ord = '';
+        var pendHere = !!(karPend && karPend.song === full && karPend.who === karWho && karPend.tier === karTierShow);
+        var atNo = pendHere ? karPend.to : rowNo;
         if (canOrder) {
           ord = '<span class="kar-ord">'
-            + '<button type="button" class="kar-mv" data-dir="top" data-i="' + i + '" title="Move to the very top of this list"' + (rowNo === 1 ? ' disabled' : '') + '>\u2912</button>'
-            + '<button type="button" class="kar-mv" data-dir="up" data-i="' + i + '" title="Move up one place"' + (rowNo === 1 ? ' disabled' : '') + '>\u25B2</button>'
-            + '<button type="button" class="kar-mv" data-dir="down" data-i="' + i + '" title="Move down one place"' + (rowNo === tierN ? ' disabled' : '') + '>\u25BC</button>'
+            + '<button type="button" class="kar-mv" data-dir="top" data-i="' + i + '" title="Move to the very top of this list"' + (atNo === 1 ? ' disabled' : '') + '>\u2912</button>'
+            + '<button type="button" class="kar-mv" data-dir="up" data-i="' + i + '" title="Up one place. Click again to keep going: the number changes, and the song moves about 2 seconds after your last click."' + (atNo === 1 ? ' disabled' : '') + '>\u25B2</button>'
+            + '<button type="button" class="kar-mv" data-dir="down" data-i="' + i + '" title="Down one place. Click again to keep going: the number changes, and the song moves about 2 seconds after your last click."' + (atNo === tierN ? ' disabled' : '') + '>\u25BC</button>'
             + '</span>';
         }
         var name = full.replace(/\.[a-z0-9]{2,4}$/i,'');
@@ -2698,9 +2727,9 @@ if ($KAR_LOCAL) {
           // Nothing but the row's place in the list on screen, counted fresh on every render —
           // sort, search or switch list and it starts at 1 again. It is a way to say "play 129"
           // out loud, not an identity: it deliberately has no tie to the song or the database.
-          + '<span class="kar-num" style="flex:0 0 auto;width:54px;text-align:center;font-size:13px;'
+          + '<span class="kar-num" style="flex:0 0 auto;width:54px;text-align:center;font-size:13px;white-space:nowrap;'
           + 'font-variant-numeric:tabular-nums;color:' + (playing ? '#D2AD6C' : '#94a3b8') + '">'
-          + rowNo + '</span>'
+          + (pendHere ? (karPend.from + ' \u2192 ' + karPend.to) : rowNo) + '</span>'
           // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
           // characters, 90% ≤66); the long ones wrap to a second line rather than pushing
           // the Duplicate column out to the far right where it read as stranded.
