@@ -589,9 +589,9 @@ if ($KAR_LOCAL) {
   /* Order arrows on a singer's list (2026-10-10): top / up / down, shown only when ONE list (A, B or C) is on screen in his own order. */
   .kar-ord { flex:0 0 auto; display:inline-flex; gap:3px; margin-left:8px; align-items:center; }
   .kar-mv { appearance:none; -webkit-appearance:none; font-family:inherit; width:26px; height:24px; padding:0; border-radius:6px; cursor:pointer;
-            font-size:12px; line-height:1; background:rgba(210,173,108,.10); border:1px solid #475569; color:#D2AD6C; }
-  .kar-mv:hover:not(:disabled) { border-color:#D2AD6C; background:rgba(210,173,108,.22); }
-  .kar-mv:disabled { opacity:.25; cursor:default; }
+            font-size:11px; line-height:1; background:transparent; border:1px solid transparent; color:#64748b; }
+  .kar-mv:hover:not(:disabled) { color:#D2AD6C; background:rgba(210,173,108,.12); }
+  .kar-mv:disabled { opacity:.18; cursor:default; }
   .kar-sectgap { flex: 0 0 auto; width: 28px; }
   .kar-pgrp { display: inline-flex; align-items: center; flex: 0 0 auto; width: 84px;
     background: #121620; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
@@ -2728,8 +2728,8 @@ if ($KAR_LOCAL) {
           // sort, search or switch list and it starts at 1 again. It is a way to say "play 129"
           // out loud, not an identity: it deliberately has no tie to the song or the database.
           + '<span class="kar-seq" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:4px">' + upB
-          + '<span class="kar-num" style="flex:0 0 auto;width:40px;text-align:center;font-size:13px;white-space:nowrap;'
-          + 'font-variant-numeric:tabular-nums;color:' + (pendHere ? '#D2AD6C;font-weight:800' : (playing ? '#D2AD6C' : '#94a3b8')) + '">'
+          + '<span class="kar-num" style="flex:0 0 auto;width:40px;text-align:center;font-size:17px;font-weight:700;white-space:nowrap;'
+          + 'font-variant-numeric:tabular-nums;color:' + (pendHere ? '#D2AD6C;font-weight:800' : (playing ? '#D2AD6C' : '#e2e8f0')) + '">'
           + (pendHere ? karPend.to : rowNo) + '</span>' + dnB + '</span>'
           // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
           // characters, 90% ≤66); the long ones wrap to a second line rather than pushing
