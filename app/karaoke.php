@@ -2321,6 +2321,14 @@ if ($KAR_LOCAL) {
       var j = dir === 'top' ? 0 : (dir === 'up' ? i - 1 : i + 1);
       if (i < 0 || j < 0 || j >= names.length || j === i) return;
       var before = arr.map(function(pr){ return pr.slice(); });
+      // Where the moved row sits on screen NOW, measured from the top of the list box, so it can be put back at the very same spot afterwards -
+      // the arrow he just clicked then stays under the mouse and he can keep clicking (the owner, 2026-10-10: "the arrow stays there").
+      var lbox = document.getElementById('kar-list'), relBefore = null;
+      try {
+        var oldBtn = lbox ? lbox.querySelector('.kar-mv[data-i="' + KAR_DATA.best.indexOf(song) + '"]') : null;
+        var oldRow = oldBtn && oldBtn.closest ? oldBtn.closest('.kar-row') : null;
+        if (oldRow) relBefore = oldRow.getBoundingClientRect().top - lbox.getBoundingClientRect().top;
+      } catch (e) { }
       names.splice(i, 1); names.splice(j, 0, song);
       var k = 0;
       for (var q = 0; q < arr.length; q++) { if (arr[q][1] === tier) arr[q] = [names[k++], tier]; }
@@ -2328,11 +2336,17 @@ if ($KAR_LOCAL) {
       var l = document.getElementById('kar-list'), st = l ? l.scrollTop : 0;
       karRender();
       if (l) l.scrollTop = st;
-      try {   // keep the song he just moved on screen, so he can click again
+      try {   // keep the moved row exactly where it was on screen, so the same arrow can be clicked again and again
         var nowI = KAR_DATA.best.indexOf(song);
         var mv = l ? l.querySelector('.kar-mv[data-i="' + nowI + '"]') : null;
         var rowEl = mv && mv.closest ? mv.closest('.kar-row') : null;
-        if (rowEl && rowEl.scrollIntoView) rowEl.scrollIntoView({block: 'nearest'});
+        if (rowEl && l) {
+          if (dir === 'top') l.scrollTop = 0;                                   // to the very top: show the top of the list
+          else if (relBefore !== null) {
+            var relAfter = rowEl.getBoundingClientRect().top - l.getBoundingClientRect().top;
+            l.scrollTop += (relAfter - relBefore);                              // scroll by exactly how far the row moved
+          } else if (rowEl.scrollIntoView) rowEl.scrollIntoView({block: 'nearest'});
+        }
       } catch (e) { }
       var who = karWho, send = names.slice();
       karOrdQ = karOrdQ.then(function(){
