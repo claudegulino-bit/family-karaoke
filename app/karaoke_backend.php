@@ -611,6 +611,13 @@ function kar_play(string $song, int $pitch, string $singer = ''): array {
         // the night. Sent both ways, so unticking takes effect on the next song too.
         kar_mpv_send(['set_property', 'ontop', kar_words_on_top()]);
         kar_mpv_send(['loadfile', $path, 'replace']);
+        // ⚠ AFTER A SONG HAS ENDED the player (keep-open=always) sits paused at its last frame, and
+        // that pause sticks to the next file: the first click loaded the song but left it held at
+        // 0:00, and a SECOND click was needed to start it (the owner, Kitchen Mac, 2026-10-10 — reproduced
+        // with a throwaway mpv: after the click, pause=true, time-pos=0). Setting pause=false before
+        // the load is not enough, so release it again AFTER the load — except when this play is
+        // meant to be held for an announcement.
+        if (!($mc && $crowd === '')) kar_mpv_send(['set_property', 'pause', false]);
         // Speed persists across loads — every song starts at normal tempo.
         kar_mpv_send(['set_property', 'speed', 1.0]);
         // Through the lua script so the on-screen UP/DOWN counter stays in step.
