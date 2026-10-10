@@ -1499,7 +1499,7 @@ if ($KAR_LOCAL) {
             <li><b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
             <li>Every song's row has three small buttons, <b>A</b>, <b>B</b> and <b>C</b>. With a person selected, click one to put the song on that list. The letter lights up. Click the lit letter again to take the song off. A song is on <b>one</b> of the three at a time; clicking another letter moves it.</li>
             <li><b>Show: All / A / B / C</b> at the top of a singer's list chooses which of their songs you see. The list on screen does not jump while you work.</li>
-            <li><b>Your own order.</b> With one list showing (<b>Show: A</b>, <b>B</b> or <b>C</b>), every song has three small buttons at the end of its row: <b>&#9650;</b> up, <b>&#9660;</b> down and <b>&#10514;</b> to the very top. <b>Click &#9650; or &#9660; as many times as you like: the row stays where it is and only its number changes</b> (22 &rarr; 21 &rarr; 20 &hellip;), so the arrow never moves from under your mouse. About two seconds after your last click, the song moves, once, to the number it shows. <b>&#10514;</b> acts at once. The <b>Seq Number</b> follows your order and the header reads <i>my order</i>. A song newly added to a list goes to the <b>bottom</b>, and a song moved to another list goes to the bottom of that one. The arrows are hidden while you search, sort by name or show <b>All</b>, because then your order cannot be shown. The iPad shows each singer's lists in the same order.</li>
+            <li><b>Your own order.</b> With one list showing (<b>Show: A</b>, <b>B</b> or <b>C</b>), each song has a <b>&#9650;</b> to the left of its number and a <b>&#9660;</b> to the right. <b>Click one as many times as you like: the row stays where it is and only its number changes</b> (it turns gold), so you can watch it count 22, 21, 20&hellip; with your mouse in the same place. About two seconds after your last click, the song moves, once, to the number it shows. The <b>Seq Number</b> follows your order and the header reads <i>my order</i>. A song newly added to a list goes to the <b>bottom</b>, and a song moved to another list goes to the bottom of that one. The arrows are hidden while you search, sort by name or show <b>All</b>, because then your order cannot be shown. The iPad shows each singer's lists in the same order.</li>
             <li><b>What the letters do:</b> <b>A</b> is the list that goes to the iPad, and the one the <b>Save</b> button puts a song on. <b>B</b> and <b>C</b> are two further lists to keep songs apart however you like; they do not go to the iPad with their key.</li>
             <li>Lists belong to the Mac they were made on. Only the songs themselves are shared between Macs.</li>
           </ul>
@@ -2025,7 +2025,7 @@ if ($KAR_LOCAL) {
       <span id="kar-h-add" style="flex:0 0 auto;width:58px;text-align:center" title="Adds the song to the singing queue, for the singer picked in the dropdown, at the pitch shown">Queue</span>
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
       <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
-      <span id="kar-h-seq" style="flex:0 0 auto;width:54px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Singer list and it counts again from 1.">Seq<br>Number</span>
+      <span id="kar-h-seq" style="flex:0 0 auto;width:100px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Singer list and it counts again from 1.">Seq<br>Number</span>
       <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it (or delete the file, with 🗑 in the same box). Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
       <span id="kar-h-chk" style="flex:0 0 auto;width:96px;display:none" title="Once you have checked a song, take it off this list. It stays in the song database — nothing is deleted.">Checked</span>
@@ -2307,7 +2307,7 @@ if ($KAR_LOCAL) {
     // C"). KAR_DATA.best is left as it is until the view or singer next changes, so every
     // other row's data-i still points at the same song.
     // ---- His own order within a list (2026-10-10) ----------------------------------------------
-    // HOW THE ARROWS WORK (the owner's own design, 2026-10-10): the row does NOT move while he clicks. Each click on ▲ or ▼ only changes the
+    // HOW THE ARROWS WORK (the owner's own design, 2026-10-10): the row does NOT move while he clicks. Each click on ▲ or ▼ (they sit either side of the row's number) only changes the
     // NUMBER shown on that row (22, 21, 20, 19 ...), so the arrow stays under the mouse however far he wants to go. About two seconds after the
     // last click the song moves, once, to the number it shows. (An earlier version moved the row at every click and scrolled the list after it;
     // in his browser the mouse still ended up over the neighbour, and the next click swapped them back.)  ⤒ moves at once.
@@ -2324,11 +2324,11 @@ if ($KAR_LOCAL) {
       if (!row) return;
       var n = row.querySelector('.kar-num');
       var total = karTierNames(karPend.who, karPend.tier).length;
-      if (n) { n.textContent = karPend.to === karPend.from ? String(karPend.from) : (karPend.from + ' \u2192 ' + karPend.to); n.style.color = '#D2AD6C'; n.style.fontWeight = '800'; }
+      if (n) { n.textContent = String(karPend.to); n.style.color = '#D2AD6C'; n.style.fontWeight = '800'; }
       row.style.outline = '1px solid #D2AD6C';
       [].forEach.call(row.querySelectorAll('.kar-mv'), function(b){
         var d = b.getAttribute('data-dir');
-        b.disabled = ((d === 'up' || d === 'top') && karPend.to <= 1) || (d === 'down' && karPend.to >= total);
+        b.disabled = (d === 'up' && karPend.to <= 1) || (d === 'down' && karPend.to >= total);
       });
     }
     function karFlushPending(){
@@ -2668,15 +2668,15 @@ if ($KAR_LOCAL) {
         }
         rowNo++;
         // His own order (2026-10-10): with ONE list on screen, no search and no name-sorting, every row carries move arrows.
-        var ord = '';
         var pendHere = !!(karPend && karPend.song === full && karPend.who === karWho && karPend.tier === karTierShow);
         var atNo = pendHere ? karPend.to : rowNo;
+        // ▲ sits left of the number and ▼ right of it (the owner, 2026-10-10: "so I do not have to go all the way to the right"). Where ordering is not
+        // possible the two slots stay EMPTY, so the columns line up the same in every view.
+        var upB = '<span style="flex:0 0 26px;width:26px"></span>', dnB = upB;
         if (canOrder) {
-          ord = '<span class="kar-ord">'
-            + '<button type="button" class="kar-mv" data-dir="top" data-i="' + i + '" title="Move to the very top of this list"' + (atNo === 1 ? ' disabled' : '') + '>\u2912</button>'
-            + '<button type="button" class="kar-mv" data-dir="up" data-i="' + i + '" title="Up one place. Click again to keep going: the number changes, and the song moves about 2 seconds after your last click."' + (atNo === 1 ? ' disabled' : '') + '>\u25B2</button>'
-            + '<button type="button" class="kar-mv" data-dir="down" data-i="' + i + '" title="Down one place. Click again to keep going: the number changes, and the song moves about 2 seconds after your last click."' + (atNo === tierN ? ' disabled' : '') + '>\u25BC</button>'
-            + '</span>';
+          var mvTip = ' the number changes as you click; the song moves about 2 seconds after your last click.';
+          upB = '<button type="button" class="kar-mv" data-dir="up" data-i="' + i + '" title="Up one place;' + mvTip + '"' + (atNo === 1 ? ' disabled' : '') + '>\u25B2</button>';
+          dnB = '<button type="button" class="kar-mv" data-dir="down" data-i="' + i + '" title="Down one place;' + mvTip + '"' + (atNo === tierN ? ' disabled' : '') + '>\u25BC</button>';
         }
         var name = full.replace(/\.[a-z0-9]{2,4}$/i,'');
         // Three direct buttons, A B C (the owner, 2026-09-28: "I click on the A if I want a song
@@ -2727,9 +2727,10 @@ if ($KAR_LOCAL) {
           // Nothing but the row's place in the list on screen, counted fresh on every render —
           // sort, search or switch list and it starts at 1 again. It is a way to say "play 129"
           // out loud, not an identity: it deliberately has no tie to the song or the database.
-          + '<span class="kar-num" style="flex:0 0 auto;width:54px;text-align:center;font-size:13px;white-space:nowrap;'
-          + 'font-variant-numeric:tabular-nums;color:' + (playing ? '#D2AD6C' : '#94a3b8') + '">'
-          + (pendHere ? (karPend.from + ' \u2192 ' + karPend.to) : rowNo) + '</span>'
+          + '<span class="kar-seq" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:4px">' + upB
+          + '<span class="kar-num" style="flex:0 0 auto;width:40px;text-align:center;font-size:13px;white-space:nowrap;'
+          + 'font-variant-numeric:tabular-nums;color:' + (pendHere ? '#D2AD6C;font-weight:800' : (playing ? '#D2AD6C' : '#94a3b8')) + '">'
+          + (pendHere ? karPend.to : rowNo) + '</span>' + dnB + '</span>'
           // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
           // characters, 90% ≤66); the long ones wrap to a second line rather than pushing
           // the Duplicate column out to the far right where it read as stranded.
@@ -2739,7 +2740,6 @@ if ($KAR_LOCAL) {
           + 'style="flex:0 0 auto;width:460px;word-break:break-word;font-size:13px;cursor:text;color:' + (playing ? '#D2AD6C;font-weight:700' : '#e2e8f0') + '">' + karEsc(name) + '</span>'
           // 🆕 New is the review bench, so it gets its own Duplicate column — what this
           // song looked like when it came down, side by side with the name.
-          + ord
           + (karView === 'new' ? karDupCell(full) + karChkCell(i) : '')
           + '</span>'                                   // end SING
           + '</div>');
