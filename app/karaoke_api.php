@@ -275,8 +275,9 @@ try {
         if ($person === '' || mb_strlen($person) > 40 || strpbrk($person, '/\\') !== false) kj(['ok'=>false,'error'=>'bad person name']);
         if (!kar_ok_name($song) || !kar_known($song)) kj(['ok'=>false,'error'=>'unknown song']);
         if ($tier > 0) {
+            // A song moving to ANOTHER list goes to the bottom of it; staying on the same list keeps its place.
             $db->prepare('INSERT INTO karaoke_best (person, filename, tier) VALUES (?,?,?)
-                          ON CONFLICT(person, filename) DO UPDATE SET tier=excluded.tier')->execute([$person, $song, $tier]);
+                          ON CONFLICT(person, filename) DO UPDATE SET pos = CASE WHEN tier <> excluded.tier THEN 999999 ELSE pos END, tier = excluded.tier')->execute([$person, $song, $tier]);
             // An add cancels an older removal, or the other Mac would keep taking it away.
             $db->prepare('DELETE FROM karaoke_removals WHERE kind=? AND k1=? AND k2=?')->execute(['best', $person, $song]);
         } else {
@@ -285,6 +286,17 @@ try {
         }
         try { kar_sync($db, true); } catch (Throwable $e) { }
         kj(['ok'=>true, 'error'=>'', 'tier'=>$tier]);
+    }
+
+    // The singer's order within one list (A, B or C): the page sends the names in the order he wants them.
+    case 'karaoke_best_order': {
+        $person = trim((string)($_POST['person'] ?? ''));
+        $tier   = max(1, min(3, (int)($_POST['tier'] ?? 1)));
+        $order  = json_decode((string)($_POST['order'] ?? '[]'), true);
+        if ($person === '' || mb_strlen($person) > 40 || strpbrk($person, '/\\') !== false) kj(['ok'=>false,'error'=>'bad person name']);
+        if (!is_array($order) || count($order) > 5000) kj(['ok'=>false,'error'=>'bad order']);
+        try { $final = kar_best_reorder($db, $person, $tier, $order); } catch (Throwable $e) { kj(['ok'=>false,'error'=>'not saved']); }
+        kj(['ok'=>true, 'error'=>'', 'count'=>count($final)]);
     }
 
     case 'karaoke_best_clear_tier': {

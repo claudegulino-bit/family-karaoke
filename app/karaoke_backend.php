@@ -306,6 +306,10 @@ const KAR_ADD_COLUMNS = [
     // "not reasonable" to pick a song from - ① his favorites, ② ③ progressively wider. Every
     // existing row defaults to 1, same as casAI's matching ALTER TABLE.
     "ALTER TABLE karaoke_best ADD COLUMN tier INTEGER NOT NULL DEFAULT 1",
+    // Order within a list (the owner, 2026-10-10: "I would like to decide which is number one, number two... with
+    // an arrow up and an arrow down"). A song nobody has placed keeps 999999 so it sits at the BOTTOM, alphabetical among
+    // its equals - which is exactly how every existing list already reads until he moves something.
+    "ALTER TABLE karaoke_best ADD COLUMN pos INTEGER NOT NULL DEFAULT 999999",
 ];
 
 function kar_db(): PDO {
@@ -2380,11 +2384,31 @@ function kar_best_seed(?PDO $db = null): array {
 
 /** Each entry is [filename, tier] - tier 1/2/3 (the owner, 2026-09-27), so a singer's own Best
  *  list can be narrowed to just their favorites instead of searching everything at once. */
+/**
+ * Put one singer's list (one tier) in the order he chose. $order is the names IN THE ORDER he wants them, as the page shows
+ * them. Anything on that list the page did not mention (a song this Mac hides because its file is not in this library) keeps
+ * its relative place, after the named ones - nothing is ever lost. Returns the final order of the whole tier.
+ */
+function kar_best_reorder(PDO $db, string $person, int $tier, array $order): array {
+    $st = $db->prepare('SELECT filename FROM karaoke_best WHERE person = ? AND tier = ? ORDER BY pos, filename');
+    $st->execute([$person, $tier]);
+    $have = $st->fetchAll(PDO::FETCH_COLUMN);
+    $haveSet = array_flip($have);
+    $final = []; $seen = [];
+    foreach ($order as $f) { $f = (string)$f; if (isset($haveSet[$f]) && !isset($seen[$f])) { $final[] = $f; $seen[$f] = true; } }
+    foreach ($have as $f) { if (!isset($seen[$f])) { $final[] = $f; $seen[$f] = true; } }
+    $up = $db->prepare('UPDATE karaoke_best SET pos = ? WHERE person = ? AND filename = ? AND tier = ?');
+    $db->beginTransaction();
+    try { foreach ($final as $i => $f) $up->execute([$i + 1, $person, $f, $tier]); $db->commit(); }
+    catch (Throwable $e) { $db->rollBack(); throw $e; }
+    return $final;
+}
+
 function kar_best_lists(PDO $db): array {
     $out = [];
     foreach (kar_best_seed($db) as $person) $out[(string)$person] = [];
     try {
-        foreach ($db->query("SELECT person, filename, tier FROM karaoke_best ORDER BY person, filename") as $r) {
+        foreach ($db->query("SELECT person, filename, tier FROM karaoke_best ORDER BY person, tier, pos, filename") as $r) {
             $out[$r['person']][] = [$r['filename'], (int)($r['tier'] ?: 1)];
         }
     } catch (Throwable $e) { /* table missing → empty lists, page still works */ }

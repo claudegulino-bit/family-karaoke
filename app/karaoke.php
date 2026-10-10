@@ -586,6 +586,12 @@ if ($KAR_LOCAL) {
     background: rgba(148,163,184,.10); border: 1px solid rgba(148,163,184,.10); border-radius: 8px; }
   .kar-sect-a { flex: 0 0 auto; }
   .kar-sect-b { flex: 1; min-width: 0; }
+  /* Order arrows on a singer's list (2026-10-10): top / up / down, shown only when ONE list (A, B or C) is on screen in his own order. */
+  .kar-ord { flex:0 0 auto; display:inline-flex; gap:3px; margin-left:8px; align-items:center; }
+  .kar-mv { appearance:none; -webkit-appearance:none; font-family:inherit; width:26px; height:24px; padding:0; border-radius:6px; cursor:pointer;
+            font-size:12px; line-height:1; background:rgba(210,173,108,.10); border:1px solid #475569; color:#D2AD6C; }
+  .kar-mv:hover:not(:disabled) { border-color:#D2AD6C; background:rgba(210,173,108,.22); }
+  .kar-mv:disabled { opacity:.25; cursor:default; }
   .kar-sectgap { flex: 0 0 auto; width: 28px; }
   .kar-pgrp { display: inline-flex; align-items: center; flex: 0 0 auto; width: 84px;
     background: #121620; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
@@ -1493,6 +1499,7 @@ if ($KAR_LOCAL) {
             <li><b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
             <li>Every song's row has three small buttons, <b>A</b>, <b>B</b> and <b>C</b>. With a person selected, click one to put the song on that list. The letter lights up. Click the lit letter again to take the song off. A song is on <b>one</b> of the three at a time; clicking another letter moves it.</li>
             <li><b>Show: All / A / B / C</b> at the top of a singer's list chooses which of their songs you see. The list on screen does not jump while you work.</li>
+            <li><b>Your own order.</b> With one list showing (<b>Show: A</b>, <b>B</b> or <b>C</b>), every song has three small buttons at the end of its row: <b>&#10514;</b> moves it to the very top, <b>&#9650;</b> up one place and <b>&#9660;</b> down one place. Put your most important songs first; the <b>Seq Number</b> follows your order, and the header reads <i>my order</i>. A song newly added to a list goes to the <b>bottom</b>, and a song moved to another list goes to the bottom of that one. The arrows are hidden while you search, sort by name or show <b>All</b>, because then your order cannot be shown. The iPad shows each singer's lists in the same order.</li>
             <li><b>What the letters do:</b> <b>A</b> is the list that goes to the iPad, and the one the <b>Save</b> button puts a song on. <b>B</b> and <b>C</b> are two further lists to keep songs apart however you like; they do not go to the iPad with their key.</li>
             <li>Lists belong to the Mac they were made on. Only the songs themselves are shared between Macs.</li>
           </ul>
@@ -2299,6 +2306,48 @@ if ($KAR_LOCAL) {
     // (the owner, 2026-09-28: "the view should not change... song one A, song two B, song three
     // C"). KAR_DATA.best is left as it is until the view or singer next changes, so every
     // other row's data-i still points at the same song.
+    // ---- His own order within a list (2026-10-10) ----------------------------------------------
+    // The arrows change the order IN THE PAGE at once, then send the whole order of that list to be saved. Sends go one at a time, in
+    // the order he clicked, so a quick run of clicks can never be saved out of order. If a save fails the list goes back and he is told.
+    var karOrdQ = Promise.resolve();
+    function karMoveSong(song, dir){
+      if (!song || !karWho) return;
+      var arr = KAR_BEST_BY[karWho] || [];
+      var tier = 0;
+      arr.forEach(function(pr){ if (pr[0] === song) tier = pr[1]; });
+      if (!tier) return;
+      var names = arr.filter(function(pr){ return pr[1] === tier; }).map(function(pr){ return pr[0]; });
+      var i = names.indexOf(song);
+      var j = dir === 'top' ? 0 : (dir === 'up' ? i - 1 : i + 1);
+      if (i < 0 || j < 0 || j >= names.length || j === i) return;
+      var before = arr.map(function(pr){ return pr.slice(); });
+      names.splice(i, 1); names.splice(j, 0, song);
+      var k = 0;
+      for (var q = 0; q < arr.length; q++) { if (arr[q][1] === tier) arr[q] = [names[k++], tier]; }
+      karRebuildBest();
+      var l = document.getElementById('kar-list'), st = l ? l.scrollTop : 0;
+      karRender();
+      if (l) l.scrollTop = st;
+      try {   // keep the song he just moved on screen, so he can click again
+        var nowI = KAR_DATA.best.indexOf(song);
+        var mv = l ? l.querySelector('.kar-mv[data-i="' + nowI + '"]') : null;
+        var rowEl = mv && mv.closest ? mv.closest('.kar-row') : null;
+        if (rowEl && rowEl.scrollIntoView) rowEl.scrollIntoView({block: 'nearest'});
+      } catch (e) { }
+      var who = karWho, send = names.slice();
+      karOrdQ = karOrdQ.then(function(){
+        var fd = new FormData();
+        fd.append('form_type', 'karaoke_best_order');
+        fd.append('person', who); fd.append('tier', String(tier)); fd.append('order', JSON.stringify(send));
+        return fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
+          if (!d.ok) throw new Error(d.error || 'not saved');
+        });
+      }).catch(function(e){
+        KAR_BEST_BY[who] = before;
+        if (karWho === who) { karRebuildBest(); karRender(); }
+        alert('The new order was not saved' + (e && e.message ? ' (' + e.message + ')' : '') + '. The list is back as it was.');
+      });
+    }
     function karTierSend(song, name, nextTier, grp){
       var fd = new FormData();
       fd.append('form_type', 'karaoke_best_toggle');
@@ -2311,7 +2360,8 @@ if ($KAR_LOCAL) {
         var ix = -1;
         for (var q = 0; q < a.length; q++) { if (a[q][0] === song) { ix = q; break; } }
         if (nextTier > 0) {
-          if (ix === -1) a.push([song, nextTier]); else a[ix][1] = nextTier;
+          if (ix === -1) a.push([song, nextTier]);
+          else if (a[ix][1] !== nextTier) { a.splice(ix, 1); a.push([song, nextTier]); }   // another list: the bottom of it, as the server does
         } else if (ix !== -1) {
           a.splice(ix, 1);
         }
@@ -2554,8 +2604,11 @@ if ($KAR_LOCAL) {
         });
       }
       var hs = document.getElementById('kar-h-song');
-      if (hs) hs.textContent = 'Song Filename' + (karSort === 'az' ? '  ▲' : karSort === 'za' ? '  ▼' : '');
+      if (hs) hs.textContent = 'Song Filename' + (karSort === 'az' ? '  ▲' : karSort === 'za' ? '  ▼' : (karView === 'best' && karTierShow ? '  · my order' : ''));
 
+      var canOrder = (karView === 'best' && !!karWho && !!karTierShow && !q && karSort === '');
+      var tierN = 0;
+      if (canOrder) (KAR_BEST_BY[karWho] || []).forEach(function(pr){ if (pr[1] === karTierShow) tierN++; });
       var out = [];
       var rowNo = 0;      // a plain count of what is on screen — the top row is always 1
       for (var k = 0; k < order.length; k++) {
@@ -2573,6 +2626,15 @@ if ($KAR_LOCAL) {
           if ((KAR_BEST_SET[nameF] || 0) !== karTierShow) continue;
         }
         rowNo++;
+        // His own order (2026-10-10): with ONE list on screen, no search and no name-sorting, every row carries move arrows.
+        var ord = '';
+        if (canOrder) {
+          ord = '<span class="kar-ord">'
+            + '<button type="button" class="kar-mv" data-dir="top" data-i="' + i + '" title="Move to the very top of this list"' + (rowNo === 1 ? ' disabled' : '') + '>\u2912</button>'
+            + '<button type="button" class="kar-mv" data-dir="up" data-i="' + i + '" title="Move up one place"' + (rowNo === 1 ? ' disabled' : '') + '>\u25B2</button>'
+            + '<button type="button" class="kar-mv" data-dir="down" data-i="' + i + '" title="Move down one place"' + (rowNo === tierN ? ' disabled' : '') + '>\u25BC</button>'
+            + '</span>';
+        }
         var name = full.replace(/\.[a-z0-9]{2,4}$/i,'');
         // Three direct buttons, A B C (the owner, 2026-09-28: "I click on the A if I want a song
         // to go to A... we don't have to move up and down"). None lit = not on this singer's
@@ -2634,6 +2696,7 @@ if ($KAR_LOCAL) {
           + 'style="flex:0 0 auto;width:460px;word-break:break-word;font-size:13px;cursor:text;color:' + (playing ? '#D2AD6C;font-weight:700' : '#e2e8f0') + '">' + karEsc(name) + '</span>'
           // 🆕 New is the review bench, so it gets its own Duplicate column — what this
           // song looked like when it came down, side by side with the name.
+          + ord
           + (karView === 'new' ? karDupCell(full) + karChkCell(i) : '')
           + '</span>'                                   // end SING
           + '</div>');
@@ -3135,6 +3198,9 @@ if ($KAR_LOCAL) {
     // One delegated listener for Play and Reset — rows themselves carry no handlers (People-tab DOM lesson).
     document.getElementById('kar-list').addEventListener('click', function(ev){
       var src = KAR_DATA[karRenderedView] || [];
+      // ▲ ▼ ⤒ : move a song within the list on screen (his own order).
+      var mvB = ev.target.closest ? ev.target.closest('.kar-mv') : null;
+      if (mvB) { if (!mvB.disabled) karMoveSong(src[parseInt(mvB.getAttribute('data-i'), 10)], mvB.getAttribute('data-dir')); return; }
       // ✓ Checked: this song leaves the 🆕 New review bench. Nothing is deleted — the file,
       // its name, its key and its place on every Best list are all untouched; only a timestamp
       // is written, so undoing it is one UPDATE.
