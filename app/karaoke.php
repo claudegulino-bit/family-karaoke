@@ -2763,6 +2763,12 @@ if ($KAR_LOCAL) {
         cntEl.style.cssText = 'margin-top:10px;color:#64748b;font-size:11.5px;'
           + 'display:flex;align-items:center;gap:12px;flex-wrap:wrap';
         cntEl.innerHTML = '<span>' + out.length + ' of ' + src.length + ' songs in ' + karEsc(lbl) + '</span>'
+          // Why there are no order arrows (they only exist with ONE list showing, in his own order) - said in plain words on screen.
+          + (karView === 'best' && src.length && !karTierShow
+             ? '<span style="color:#D2AD6C;font-weight:700">To put songs in your own order, choose Show: A, B or C.</span>'
+             : (karView === 'best' && src.length && karTierShow && karSort
+                ? '<span style="color:#D2AD6C;font-weight:700">Sorted by name \u2014 click the Song Filename heading again to get your own order back.</span>'
+                : ''))
           + (karView === 'new' && src.length
              ? '<button type="button" id="kar-chk-all" onclick="karCheckedAll()" '
                + 'title="Take every song off this list at once. They all stay in the song database — nothing is deleted." '
