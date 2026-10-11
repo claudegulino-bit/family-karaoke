@@ -2440,11 +2440,11 @@ if ($KAR_LOCAL) {
         var l = document.getElementById('kar-list'), st = l ? l.scrollTop : 0;
         karRender();
         if (l) l.scrollTop = st;
-        try {   // bring the song to where it now lives, so he sees it land
-          var mv = l ? l.querySelector('.kar-mv[data-i="' + KAR_DATA.best.indexOf(song) + '"]') : null;
-          var rowEl = mv && mv.closest ? mv.closest('.kar-row') : null;
-          if (goTop && l) l.scrollTop = 0;
-          else if (rowEl && rowEl.scrollIntoView) rowEl.scrollIntoView({block: 'center'});
+        // THE SCREEN STAYS WHERE IT IS (the owner, 2026-10-10: "when I let it go it just jumps - the screen should stay so that I know where I am").
+        // The list is put back at exactly the scroll position it had; a short note says where the song went instead.
+        try {
+          var nm = song.replace(/\.[a-z0-9]{2,4}$/i, ''); if (nm.length > 60) nm = nm.slice(0, 57) + '\u2026';
+          karToast('\u201C' + nm + '\u201D is now number ' + (toIdx + 1) + ' on ' + who + '\u2019s list ' + ({1:'A',2:'B',3:'C'})[tier] + '.', true);
         } catch (e) { }
       }
       var send = names.slice();
