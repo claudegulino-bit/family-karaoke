@@ -2324,7 +2324,7 @@ if ($KAR_LOCAL) {
       if (!row) return;
       var n = row.querySelector('.kar-num');
       var total = karTierNames(karPend.who, karPend.tier).length;
-      if (n) { n.textContent = String(karPend.to); n.style.color = '#D2AD6C'; n.style.fontWeight = '800'; }
+      if (n) { n.textContent = String(karPend.to); n.style.color = '#D2AD6C'; }          // gold = still waiting; normal weight, like the rest of the row
       row.style.outline = '1px solid #D2AD6C';
       [].forEach.call(row.querySelectorAll('.kar-mv'), function(b){
         var d = b.getAttribute('data-dir');
@@ -2728,8 +2728,8 @@ if ($KAR_LOCAL) {
           // sort, search or switch list and it starts at 1 again. It is a way to say "play 129"
           // out loud, not an identity: it deliberately has no tie to the song or the database.
           + '<span class="kar-seq" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:4px">' + upB
-          + '<span class="kar-num" style="flex:0 0 auto;width:40px;text-align:center;font-size:15px;font-weight:600;white-space:nowrap;'
-          + 'font-variant-numeric:tabular-nums;color:' + (pendHere ? '#D2AD6C;font-weight:800' : (playing ? '#D2AD6C' : '#e2e8f0')) + '">'
+          + '<span class="kar-num" style="flex:0 0 auto;width:40px;text-align:center;font-size:14px;font-weight:400;white-space:nowrap;'
+          + 'font-variant-numeric:tabular-nums;color:' + ((pendHere || playing) ? '#D2AD6C' : '#e2e8f0') + '">'
           + (pendHere ? karPend.to : rowNo) + '</span>' + dnB + '</span>'
           // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
           // characters, 90% ≤66); the long ones wrap to a second line rather than pushing
