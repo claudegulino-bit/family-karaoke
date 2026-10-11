@@ -588,10 +588,10 @@ if ($KAR_LOCAL) {
   .kar-sect-b { flex: 1; min-width: 0; }
   /* Order arrows on a singer's list (2026-10-10): top / up / down, shown only when ONE list (A, B or C) is on screen in his own order. */
   .kar-ord { flex:0 0 auto; display:inline-flex; gap:3px; margin-left:8px; align-items:center; }
-  .kar-mv { appearance:none; -webkit-appearance:none; font-family:inherit; width:26px; height:24px; padding:0; border-radius:6px; cursor:pointer;
-            font-size:13px; line-height:1; background:rgba(148,163,184,.08); border:1px solid #3b4a63; color:#a8b4c6; }
-  .kar-mv:hover:not(:disabled) { color:#D2AD6C; border-color:#D2AD6C; background:rgba(210,173,108,.14); }
-  .kar-mv:disabled { opacity:.3; cursor:default; }
+  .kar-mv { appearance:none; -webkit-appearance:none; font-family:inherit; width:26px; height:24px; padding:0; cursor:pointer;
+            font-size:17px; line-height:1; font-weight:400; background:none; border:0; border-radius:6px; color:#7d8ba1; }
+  .kar-mv:hover:not(:disabled) { color:#D2AD6C; }
+  .kar-mv:disabled { opacity:.22; cursor:default; }
   .kar-sectgap { flex: 0 0 auto; width: 28px; }
   .kar-pgrp { display: inline-flex; align-items: center; flex: 0 0 auto; width: 84px;
     background: #121620; border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
@@ -1499,7 +1499,7 @@ if ($KAR_LOCAL) {
             <li><b>＋ Add a person</b> and <b>− Remove a person</b> are at the foot of the same menu. Removing a person keeps a copy of their list in the log, so it can be restored.</li>
             <li>Every song's row has three small buttons, <b>A</b>, <b>B</b> and <b>C</b>. With a person selected, click one to put the song on that list. The letter lights up. Click the lit letter again to take the song off. A song is on <b>one</b> of the three at a time; clicking another letter moves it.</li>
             <li><b>Show: All / A / B / C</b> at the top of a singer's list chooses which of their songs you see. The list on screen does not jump while you work.</li>
-            <li><b>Your own order.</b> With one list showing (<b>Show: A</b>, <b>B</b> or <b>C</b>), each song has a <b>&#9650;</b> to the left of its number and a <b>&#9660;</b> to the right. <b>Click one as many times as you like: the row stays where it is and only its number changes</b> (it turns gold), so you can watch it count 22, 21, 20&hellip; with your mouse in the same place. About two seconds after your last click, the song moves, once, to the number it shows. The <b>Seq Number</b> follows your order and the header reads <i>my order</i>. A song newly added to a list goes to the <b>bottom</b>, and a song moved to another list goes to the bottom of that one. The arrows are hidden while you search, sort by name or show <b>All</b>, because then your order cannot be shown. The iPad shows each singer's lists in the same order.</li>
+            <li><b>Your own order.</b> With one list showing (<b>Show: A</b>, <b>B</b> or <b>C</b>), each song has a <b>&#8593;</b> to the left of its number and a <b>&#8595;</b> to the right. <b>Click one as many times as you like: the row stays where it is and only its number changes</b> (it turns gold), so you can watch it count 22, 21, 20&hellip; with your mouse in the same place. About two seconds after your last click, the song moves, once, to the number it shows. The <b>Seq Number</b> follows your order and the header reads <i>my order</i>. A song newly added to a list goes to the <b>bottom</b>, and a song moved to another list goes to the bottom of that one. The arrows are hidden while you search, sort by name or show <b>All</b>, because then your order cannot be shown. The iPad shows each singer's lists in the same order.</li>
             <li><b>What the letters do:</b> <b>A</b> is the list that goes to the iPad, and the one the <b>Save</b> button puts a song on. <b>B</b> and <b>C</b> are two further lists to keep songs apart however you like; they do not go to the iPad with their key.</li>
             <li>Lists belong to the Mac they were made on. Only the songs themselves are shared between Macs.</li>
           </ul>
@@ -2675,8 +2675,8 @@ if ($KAR_LOCAL) {
         var upB = '<span style="flex:0 0 26px;width:26px"></span>', dnB = upB;
         if (canOrder) {
           var mvTip = ' the number changes as you click; the song moves about 2 seconds after your last click.';
-          upB = '<button type="button" class="kar-mv" data-dir="up" data-i="' + i + '" title="Up one place;' + mvTip + '"' + (atNo === 1 ? ' disabled' : '') + '>\u25B2</button>';
-          dnB = '<button type="button" class="kar-mv" data-dir="down" data-i="' + i + '" title="Down one place;' + mvTip + '"' + (atNo === tierN ? ' disabled' : '') + '>\u25BC</button>';
+          upB = '<button type="button" class="kar-mv" data-dir="up" data-i="' + i + '" title="Up one place;' + mvTip + '"' + (atNo === 1 ? ' disabled' : '') + '>\u2191</button>';
+          dnB = '<button type="button" class="kar-mv" data-dir="down" data-i="' + i + '" title="Down one place;' + mvTip + '"' + (atNo === tierN ? ' disabled' : '') + '>\u2193</button>';
         }
         var name = full.replace(/\.[a-z0-9]{2,4}$/i,'');
         // Three direct buttons, A B C (the owner, 2026-09-28: "I click on the A if I want a song
@@ -2728,7 +2728,7 @@ if ($KAR_LOCAL) {
           // sort, search or switch list and it starts at 1 again. It is a way to say "play 129"
           // out loud, not an identity: it deliberately has no tie to the song or the database.
           + '<span class="kar-seq" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:4px">' + upB
-          + '<span class="kar-num" style="flex:0 0 auto;width:40px;text-align:center;font-size:15px;font-weight:700;white-space:nowrap;'
+          + '<span class="kar-num" style="flex:0 0 auto;width:40px;text-align:center;font-size:15px;font-weight:600;white-space:nowrap;'
           + 'font-variant-numeric:tabular-nums;color:' + (pendHere ? '#D2AD6C;font-weight:800' : (playing ? '#D2AD6C' : '#e2e8f0')) + '">'
           + (pendHere ? karPend.to : rowNo) + '</span>' + dnB + '</span>'
           // 460px fits 9 of every 10 real filenames on one line (measured: half are ≤45
