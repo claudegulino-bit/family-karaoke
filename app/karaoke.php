@@ -588,8 +588,8 @@ if ($KAR_LOCAL) {
   .kar-sect-b { flex: 1; min-width: 0; }
   /* Order arrows on a singer's list (2026-10-10): top / up / down, shown only when ONE list (A, B or C) is on screen in his own order. */
   .kar-ord { flex:0 0 auto; display:inline-flex; gap:3px; margin-left:8px; align-items:center; }
-  .kar-mv { appearance:none; -webkit-appearance:none; font-family:inherit; width:26px; height:24px; padding:0; cursor:pointer;
-            font-size:17px; line-height:1; font-weight:400; background:none; border:0; border-radius:6px; color:#7d8ba1; }
+  .kar-mv { appearance:none; -webkit-appearance:none; font-family:inherit; width:26px; height:20px; padding:0; cursor:pointer;
+            font-size:12px; line-height:1; font-weight:400; background:none; border:0; border-radius:6px; color:#7d8ba1; }
   .kar-mv:hover:not(:disabled) { color:#D2AD6C; }
   .kar-mv:disabled { opacity:.22; cursor:default; }
   .kar-sectgap { flex: 0 0 auto; width: 28px; }
