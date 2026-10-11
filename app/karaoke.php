@@ -1500,6 +1500,7 @@ if ($KAR_LOCAL) {
             <li>Every song's row has three small buttons, <b>A</b>, <b>B</b> and <b>C</b>. With a person selected, click one to put the song on that list. The letter lights up. Click the lit letter again to take the song off. A song is on <b>one</b> of the three at a time; clicking another letter moves it.</li>
             <li><b>Show: All / A / B / C</b> at the top of a singer's list chooses which of their songs you see. The list on screen does not jump while you work.</li>
             <li><b>Your own order.</b> With one list showing (<b>Show: A</b>, <b>B</b> or <b>C</b>), each song has a <b>&#8593;</b> to the left of its number and a <b>&#8595;</b> to the right. <b>Click one as many times as you like: the row stays where it is and only its number changes</b> (it turns gold), so you can watch it count 22, 21, 20&hellip; with your mouse in the same place. About two seconds after your last click, the song moves, once, to the number it shows. The <b>Seq Number</b> follows your order and the header reads <i>my order</i>. A song newly added to a list goes to the <b>bottom</b>, and a song moved to another list goes to the bottom of that one. The arrows are hidden while you search, sort by name or show <b>All</b>, because then your order cannot be shown. The iPad shows each singer's lists in the same order.</li>
+            <li><b>Play a whole list.</b> With one list showing (<b>Show: A</b>, <b>B</b> or <b>C</b>), click the <b>Play</b> heading above the songs (it turns gold and underlined). The songs play one after another, in your order, each at that singer&rsquo;s saved key, with a short pause between them. A bar above the list shows where you are, with <b>Next song</b> and <b>Stop list</b>. Closing the player window, or playing a song yourself, also ends it. Keep this page open while it runs.</li>
             <li><b>What the letters do:</b> <b>A</b> is the list that goes to the iPad, and the one the <b>Save</b> button puts a song on. <b>B</b> and <b>C</b> are two further lists to keep songs apart however you like; they do not go to the iPad with their key.</li>
             <li>Lists belong to the Mac they were made on. Only the songs themselves are shared between Macs.</li>
           </ul>
@@ -2001,6 +2002,7 @@ if ($KAR_LOCAL) {
       </div>
     </div>
     <div id="kar-songs-area">
+    <div id="kar-runbar" style="display:none;margin-top:10px;align-items:center;gap:12px;flex-wrap:wrap;background:rgba(210,173,108,.10);border:1px solid rgba(210,173,108,.45);border-radius:8px;padding:7px 12px;font-size:13px;color:#f3d9a4"></div>
     <div id="kar-count" style="margin-top:10px;color:#64748b;font-size:11.5px"></div>
     <!-- Two group headings over the row: the left half is about setting a song up, the right half
          about singing it. These are hand-aligned to the controls below, so the numbers must stay in
@@ -2024,7 +2026,7 @@ if ($KAR_LOCAL) {
       <span class="kar-sect kar-sect-b">
       <span id="kar-h-add" style="flex:0 0 auto;width:58px;text-align:center" title="Adds the song to the singing queue, for the singer picked in the dropdown, at the pitch shown">Queue</span>
       <span id="kar-h-qmidi" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song in QMidi, at the pitch shown in the Pitch box">Play<br>QMidi</span>
-      <span id="kar-h-casai" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
+      <span id="kar-h-casai" onclick="karPlayAllClick()" style="flex:0 0 auto;width:58px;text-align:center" title="Plays the song with casAI's own player, at the pitch shown in the Pitch box. Press Q on the Mac keyboard to close its window">Play<br>casAI</span>
       <span id="kar-h-seq" style="flex:0 0 auto;width:100px;text-align:center" title="Just a count of the list you are looking at — the top song is always 1. Sort it differently, search it, or switch to a Singer list and it counts again from 1.">Seq<br>Number</span>
       <span id="kar-h-song" onclick="karSortToggle()" style="flex:0 0 auto;width:460px;cursor:pointer;user-select:none" title="Click a song&#39;s name to rename it (or delete the file, with 🗑 in the same box). Click THIS heading to sort — A→Z, then Z→A, then back to the normal order">Song Filename</span>
       <span id="kar-h-dup" style="flex:0 0 auto;width:300px;display:none" title="Songs already in your library that this one looked like when it came down. Play both, keep the better one, remove the other with ✕">Duplicate</span>
@@ -2306,6 +2308,76 @@ if ($KAR_LOCAL) {
     // (the owner, 2026-09-28: "the view should not change... song one A, song two B, song three
     // C"). KAR_DATA.best is left as it is until the view or singer next changes, so every
     // other row's data-i still points at the same song.
+    // ---- PLAY ALL: the Play heading plays the whole list on screen, one song after another (the owner, 2026-10-10) ----------------
+    // "Sometimes, Mike or me alone, I want to sing everything on list A": click the Play heading with ONE list showing (Show: A, B or C) and the
+    // songs run in his own order, each at that singer's saved key. The page already watches the player once a second; when the song it started has
+    // reached its end (held on the last frame), it waits a moment and starts the next. Works the same on casAI and on a Mac's own Cantoria.
+    // Closing the player window, pressing Stop list, or playing a song by hand ends the run - it never fights him.
+    var karRun = null;       // {who, tier, label, songs[], idx, advancing}
+    function karRunEligible(){ return karView === 'best' && !!karWho && !!karTierShow && !(document.getElementById('kar-search').value || ''); }
+    function karRunBarPaint(){
+      var bar = document.getElementById('kar-runbar'); if (!bar) return;
+      if (!karRun) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+      bar.style.display = 'flex';
+      bar.innerHTML = '<span>\u25B6 Playing <b>' + karEsc(karRun.who) + '\u2019s list ' + karRun.label + '</b> \u2014 song <b>' + (karRun.idx + 1) + '</b> of ' + karRun.songs.length + '</span>'
+        + '<button type="button" onclick="karRunNext()" style="font-family:inherit;cursor:pointer;font-size:12.5px;font-weight:700;padding:4px 12px;border-radius:999px;background:none;border:1px solid #D2AD6C;color:#D2AD6C">Next song \u23ED</button>'
+        + '<button type="button" onclick="karRunStop(\'The list has stopped. The song that is playing will finish.\')" style="font-family:inherit;cursor:pointer;font-size:12.5px;font-weight:700;padding:4px 12px;border-radius:999px;background:none;border:1px solid #64748b;color:#cbd5e1">Stop list</button>';
+    }
+    function karRunHeaderPaint(){
+      var hp = document.getElementById('kar-h-casai'); if (!hp) return;
+      if (hp.getAttribute('data-t0') === null) hp.setAttribute('data-t0', hp.title || '');
+      var ok = !!karRun || karRunEligible();
+      hp.style.cursor = ok ? 'pointer' : '';
+      hp.style.color = ok ? '#D2AD6C' : '';
+      hp.style.textDecoration = ok ? 'underline' : '';
+      hp.title = ok ? (karRun ? 'A whole list is playing. Use Stop list above the songs to end it.' : 'Click to play EVERY song on this list, one after another, in your order.') : hp.getAttribute('data-t0');
+    }
+    function karPlayAllClick(){
+      if (karRun) { karToast('A whole list is already playing. Use Stop list to end it.', true); return; }
+      if (!karRunEligible()) { karToast('To play a whole list: choose a singer, then Show: A, B or C (with nothing typed in the search box).', false); return; }
+      var songs = (KAR_BEST_BY[karWho] || []).filter(function(pr){ return pr[1] === karTierShow; }).map(function(pr){ return pr[0]; });
+      if (!songs.length) { karToast('That list is empty.', false); return; }
+      if (karPend) karFlushPending();
+      karRun = { who: karWho, tier: karTierShow, label: ({1:'A',2:'B',3:'C'})[karTierShow], songs: songs, idx: 0, advancing: false };
+      karRunPlay(0);
+    }
+    function karRunPlay(i){
+      var r = karRun; if (!r) return;
+      if (i >= r.songs.length) { karRunStop('End of list ' + r.label + ' \u2014 that was the last song.'); return; }
+      r.idx = i; r.advancing = true; karRunBarPaint();
+      var song = r.songs[i];
+      var pb = (KAR_PITCH_BY[r.who] || {})[song];
+      var pitch = (typeof pb === 'number') ? pb : (typeof KAR_PITCH[song] === 'number' ? KAR_PITCH[song] : 0);
+      var fd = new FormData();
+      fd.append('form_type', 'karaoke_play'); fd.append('mac', karMac());
+      fd.append('song', song); fd.append('pitch_once', String(pitch)); fd.append('player', 'mpv');
+      fetch(KAR_API, {method:'POST', body: fd}).then(function(x){ return x.json(); }).then(function(d){
+        if (karRun !== r) return;
+        if (!d.ok) { karRunStop(); alert('The list stopped: could not play that song. ' + karWhyFail(d.error)); return; }
+        karNowPlaying = song; karNowStarted(); karNowPlayingPlayer = 'mpv';
+        karLivePitch = pitch; karLiveTempo = 100; karNowSave(); karTempoPaint(100); karNowBar();
+        r.advancing = false;
+        var l = document.getElementById('kar-list'), st = l ? l.scrollTop : 0;
+        karRender(); if (l) l.scrollTop = st;
+        try { var pr = l && l.querySelector('.kar-row-playing'); if (pr && pr.scrollIntoView) pr.scrollIntoView({block: 'nearest'}); } catch (e) { }
+      }).catch(function(){ if (karRun === r) { karRunStop(); alert('Network error \u2014 the list stopped.'); } });
+    }
+    function karRunNext(){ if (karRun && !karRun.advancing) karRunPlay(karRun.idx + 1); }
+    function karRunStop(msg){
+      var had = !!karRun; karRun = null;
+      karRunBarPaint(); karRunHeaderPaint();
+      if (had && msg) karToast(msg, true);
+    }
+    // Called every second by the player poll: has the song THIS run started reached its end?
+    function karRunWatch(st){
+      var r = karRun; if (!r || r.advancing) return;
+      if (st.file !== r.songs[r.idx]) return;
+      if (st.dur > 0 && st.pos >= st.dur - 1.2 && st.paused) {
+        r.advancing = true;
+        setTimeout(function(){ if (karRun === r) karRunPlay(r.idx + 1); }, 2500);     // a breath between songs
+      }
+    }
+
     // ---- His own order within a list (2026-10-10) ----------------------------------------------
     // HOW THE ARROWS WORK (the owner's own design, 2026-10-10): the row does NOT move while he clicks. Each click on ▲ or ▼ (they sit either side of the row's number) only changes the
     // NUMBER shown on that row (22, 21, 20, 19 ...), so the arrow stays under the mouse however far he wants to go. About two seconds after the
@@ -2648,6 +2720,7 @@ if ($KAR_LOCAL) {
       if (hs) hs.textContent = 'Song Filename' + (karSort === 'az' ? '  ▲' : karSort === 'za' ? '  ▼' : (karView === 'best' && karTierShow ? '  · my order' : ''));
 
       var canOrder = (karView === 'best' && !!karWho && !!karTierShow && !q && karSort === '');
+      try { karRunHeaderPaint(); karRunBarPaint(); } catch (e) { }
       var tierN = 0;
       if (canOrder) (KAR_BEST_BY[karWho] || []).forEach(function(pr){ if (pr[1] === karTierShow) tierN++; });
       var out = [];
@@ -3103,10 +3176,11 @@ if ($KAR_LOCAL) {
           // and never inside the first 15 s after a play was sent; then three quiet reads in a
           // row = the song ended or the window was closed.
           if (!karNowArmed || Date.now() - karNowSentAt < 15000) return;
-          if (++karNowGone >= 3) { karNowPlaying = null; karNowSave(); karNowBar(); karPauseLabel(false); var l = document.getElementById('kar-list'); var t = l.scrollTop; karRender(); l.scrollTop = t; }
+          if (++karNowGone >= 3) { if (karRun) karRunStop('The player was closed, so the list has stopped.'); karNowPlaying = null; karNowSave(); karNowBar(); karPauseLabel(false); var l = document.getElementById('kar-list'); var t = l.scrollTop; karRender(); l.scrollTop = t; }
           return;
         }
         karNowGone = 0; karNowArmed = true;
+        karRunWatch(st);
         karNowDur = st.dur || 0;
         var pr = document.getElementById('kar-prog'); pr.style.display = 'flex';
         document.getElementById('kar-time-dur').textContent = karFmt(karNowDur);
@@ -3431,6 +3505,7 @@ if ($KAR_LOCAL) {
           // it stays lit until another song is played. Re-render rebuilds everything from
           // state, which also brings a guest-reset pitch box back to the saved pitch;
           // scroll position is preserved.
+          if (karRun) karRunStop();                 // playing a song by hand ends a whole-list run
           karNowPlaying = song; karNowStarted();
           karNowPlayingPlayer = player;
           karLivePitch = pitch;
