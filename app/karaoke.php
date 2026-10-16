@@ -1008,7 +1008,10 @@ if ($KAR_LOCAL) {
       #karaoke-page.kar-compact #kar-compact-on{display:none!important}
       /* the two bars, compact: smaller buttons, no section captions, tighter spacing */
       #karaoke-page.kar-compact .kar-chip,#karaoke-page.kar-compact .kar-smode,#karaoke-page.kar-compact .kar-tool,#karaoke-page.kar-compact .kar-ref{height:28px!important;padding:0 9px!important;font-size:12.5px!important;border-radius:7px!important;gap:5px!important}
-      #karaoke-page.kar-compact #kar-guide-btn,#karaoke-page.kar-compact #kar-q-btn,#karaoke-page.kar-compact #kar-qr-btn,#karaoke-page.kar-compact #kar-ipad-btn,#karaoke-page.kar-compact [onclick^="karTierClearShow"],#karaoke-page.kar-compact #kar-singer-btn{display:none!important}
+      #karaoke-page.kar-compact #kar-guide-btn,#karaoke-page.kar-compact #kar-q-btn,#karaoke-page.kar-compact #kar-qr-btn,#karaoke-page.kar-compact #kar-ipad-btn,#karaoke-page.kar-compact [onclick^="karTierClearShow"]{display:none!important}
+      /* The singer's photo button stays beside the drop-down (the owner, 2026-10-16): pick a name, click the little photo, see the details. */
+      #karaoke-page.kar-compact #kar-singer-btn{display:inline-flex!important;align-items:center;justify-content:center;width:30px;height:30px;min-height:30px;padding:0!important;border-radius:50%;flex:0 0 30px}
+      #kar-singer-av{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:50%;object-fit:cover;display:none}
       #karaoke-page.kar-compact #kar-who{padding-left:31px!important;padding-right:22px!important;background-position:8px center, right 7px center!important;background-size:17px 15px, 8px 5px!important}   /* the two-people icon is a background image: the text must clear it */
       /* the right end of the playing bar, evenly spaced: the 100% control, Restart and Stop, then Refresh - a bigger round icon with its name written underneath */
       #karaoke-page.kar-compact #kar-sec-q{display:none!important}
@@ -1122,7 +1125,7 @@ if ($KAR_LOCAL) {
                Song files are never touched; this only removes the Best-list rows. -->
           <button type="button" class="kar-tierclear-btn" onclick="karTierClearShow(this)" title="Choose a list (A, B or C) to empty — song files are never touched, only taken off that list">🗑 Clear</button>
         <!-- The singer window: full name for the announcer, Man/Woman, photo (2026-09-26). -->
-        <button type="button" id="kar-singer-btn" class="kar-chip" onclick="karSingerOpen(karWho)" title="This singer: full name for the announcer, Man or Woman, and the photo shown when they are called up" style="padding:0 11px;position:relative"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg><span id="kar-singer-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px"></span></button>
+        <button type="button" id="kar-singer-btn" class="kar-chip" onclick="karSingerOpen(karWho)" title="This singer: full name for the announcer, Man or Woman, and the photo shown when they are called up" style="padding:0 11px;position:relative"><svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><path d="M4 7.5h3l1.6-2.2h6.8L17 7.5h3a1.5 1.5 0 011.5 1.5v9A1.5 1.5 0 0120 19.5H4A1.5 1.5 0 012.5 18V9A1.5 1.5 0 014 7.5z" fill="none" stroke="#86CAFA" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="#86CAFA" stroke-width="1.7"/></svg><img id="kar-singer-av" alt="" onload="this.style.display='block'" onerror="this.style.display='none'"><span id="kar-singer-badge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;font-size:10px;font-weight:800;line-height:16px;text-align:center;padding:0 3px"></span></button>
       </div>
       <!-- ⚠ flex-basis, NOT min-width, decides where a flex row breaks a line. With a 320px
            basis the row wrapped at 1440px even though the field could legally shrink to 255 —
@@ -2115,8 +2118,18 @@ if ($KAR_LOCAL) {
     // Everything that follows a tier change EXCEPT the row list itself: the lookup that lights
     // A/B/C, the dropdown's count and the Show: counts. Kept apart from karRebuildBest so a
     // click can refresh these without reshuffling KAR_DATA.best under the rows on screen.
+    var karAvFor = null;
+    function karSingerAvatar(force){
+      var im = document.getElementById('kar-singer-av'); if (!im) return;
+      if (!karWho) { im.style.display = 'none'; karAvFor = null; return; }
+      if (!force && karAvFor === karWho) return;
+      karAvFor = karWho;
+      im.style.display = 'none';
+      im.src = KAR_API + (KAR_LOCAL ? '?singer_photo=' : '?karaoke_singer_photo=') + encodeURIComponent(karWho) + '&_=' + Math.floor(Date.now() / 60000);
+    }
     function karBestCounts(){
       var pairs = KAR_BEST_BY[karWho] || [];
+      try { karSingerAvatar(false); } catch(e){}
       KAR_BEST_SET = {};
       pairs.forEach(function(pair){ KAR_BEST_SET[pair[0].replace(/\.[a-z0-9]{2,4}$/i,'')] = pair[1]; });
       // The dropdown IS the Best-of box now (the owner, 2026-09-13: "why do I need to click on
@@ -5139,7 +5152,7 @@ function karPickFolder(){
       document.getElementById('kar-sw-test').style.display = (!KAR_LOCAL && d.intro === 'ready') ? '' : 'none';
     }).catch(function(){ document.getElementById('kar-sw-status').textContent = 'Could not reach Cantoria.'; });
   }
-  function karSingerClose(){ document.getElementById('kar-singer-win').style.display = 'none'; }
+  function karSingerClose(){ document.getElementById('kar-singer-win').style.display = 'none'; try { karSingerAvatar(true); } catch(e){} }
   function karSingerPreview(url){
     var p = document.getElementById('kar-sw-prev');
     p.style.backgroundImage = url ? 'url("' + url + '")' : 'none';
