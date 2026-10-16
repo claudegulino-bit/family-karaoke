@@ -395,7 +395,7 @@ $_db = $tokenOk ? kar_catalog() : [];
     var out = [];
     for (var n = 0; n < show.length; n++) {
       var i = show[n], h = G_HITS[i];
-      out.push('<div onclick="gPick(' + i + ')" style="display:flex;gap:9px;align-items:center;padding:7px 4px;border-top:1px solid #1e293b;cursor:pointer">'
+      out.push('<div id="g-hit-' + i + '" class="g-hit" onclick="gPick(' + i + ')" style="display:flex;gap:9px;align-items:center;padding:7px 4px;border-top:1px solid #1e293b;cursor:pointer">'
         + '<img src="' + gEsc(h.thumb) + '" alt="" style="flex:0 0 64px;width:64px;height:36px;object-fit:cover;border-radius:5px;background:#1e293b">'
         + '<div style="flex:1;min-width:0">'
         + '<div style="color:#e2e8f0;font-size:12.5px;font-weight:600;line-height:1.35">' + gEsc(h.title) + '</div>'
@@ -411,6 +411,14 @@ $_db = $tokenOk ? kar_catalog() : [];
   function gPick(i){
     var h = G_HITS[i]; if (!h) return;
     var box = document.getElementById('g-confirm'); if (!box) return;
+    // The confirm used to sit at the END of the results — on a phone, screens below the song you tapped, so the tap
+    // looked dead (the owner, 2026-10-16: "she clicked on the song and it was dead"). It now opens right UNDER the tapped song.
+    var rowEl = document.getElementById('g-hit-' + i);
+    if (rowEl && rowEl.parentNode) {
+      var all = rowEl.parentNode.querySelectorAll('.g-hit'); for (var q = 0; q < all.length; q++) all[q].style.background = '';
+      rowEl.style.background = 'rgba(210,173,108,.12)';
+      rowEl.parentNode.insertBefore(box, rowEl.nextSibling);
+    }
     var html = '<div style="margin-top:10px;background:#121620;border:1px solid #334155;border-radius:10px;padding:11px 12px">'
       + '<div style="color:#e2e8f0;font-size:13px;font-weight:700;line-height:1.35">' + gEsc(h.title) + '</div>'
       + '<div style="color:#64748b;font-size:11px;margin-bottom:9px">' + gEsc(h.chan) + (h.len ? ' · ' + gEsc(h.len) : '') + '</div>';
@@ -422,6 +430,7 @@ $_db = $tokenOk ? kar_catalog() : [];
       html += '<button type="button" onclick="gGetIt(' + i + ')" style="width:100%;font-family:inherit;background:#166534;border:1px solid #16a34a;color:#fff;cursor:pointer;font-size:13.5px;font-weight:700;padding:10px 0;border-radius:9px">🎁 Get this one</button>';
     }
     box.innerHTML = html + '</div>';
+    try { box.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { try { box.scrollIntoView(); } catch (e2) {} }
   }
 
   function gGetIt(i){
