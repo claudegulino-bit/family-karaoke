@@ -1927,10 +1927,11 @@ if ($KAR_LOCAL) {
           <option value="qmidi">plays in QMidi</option>
           <option value="mpv">plays in casAI player</option>
         </select>
-        <label style="display:flex;align-items:center;gap:6px;color:#94a3b8;font-size:12.5px;font-weight:600;cursor:pointer" title="With this on, ▶ Next singer picks whoever has sung the LEAST tonight — everyone sings one song before anyone sings a second, two before anyone's third, and so on">
+        <label style="display:flex;align-items:center;gap:6px;color:#94a3b8;font-size:12.5px;font-weight:600;cursor:pointer" title="With this on, every new request is placed so everyone sings one song before anyone sings a second (counting only the last 12 hours). The queue below shows the real order and Next singer always plays the top one. You can still move any request up or down.">
           <input type="checkbox" id="kar-q-fair" onchange="try{localStorage.setItem('kar_q_fair',this.checked?'1':'')}catch(e){}">
           Scheduling fairness
         </label>
+        <button type="button" onclick="karQArrange()" title="Re-sequence the waiting requests so everyone sings once before anyone sings twice. You can still move any request up or down afterwards." style="font-family:inherit;background:none;border:1px solid #334155;color:#cbd5e1;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">&#9878; Arrange fairly</button>
 
         <button type="button" onclick="karQClear()" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">Clear the queue</button>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
@@ -3362,6 +3363,7 @@ if ($KAR_LOCAL) {
         fdQ.append('singer', karWho);
         fdQ.append('song', songQ);
         fdQ.append('pitch', String(pv));
+        try { if (document.getElementById('kar-q-fair').checked) fdQ.append('fair', '1'); } catch(e){}
         qb.textContent = '…';
         karQPost(fdQ).then(function(d){
           if (!d.ok) { qb.textContent = '➕'; alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
@@ -4739,23 +4741,9 @@ function karPickFolder(){
     function karQNext(){
       var waiting = karQ.filter(function(e){ return e.status === 'Waiting'; });
       if (!waiting.length) { alert('The queue is empty — add a request first: pick the singer in the dropdown, then click ➕ on a song.'); return; }
-      var singingE = karQ.filter(function(e){ return e.status === 'Singing'; })[0];
-      var lastSinger = singingE ? singingE.singer : null;
+      // The queue IS the order (the owner, 2026-10-16): Next singer plays the top request. Scheduling fairness no longer
+      // picks someone else here - it re-sequences the list you can see (on each add, or Arrange fairly), and you can still move any request.
       var pick = waiting[0];
-      if (document.getElementById('kar-q-fair').checked) {
-        // FULL ROTATION (the owner, 2026-09-06): nobody sings a 2nd song until everyone
-        // waiting has sung their 1st — and nobody a 3rd until everyone their 2nd.
-        // Pick = whoever has sung the LEAST tonight; ties go to queue order, except that
-        // the person who just sang goes last among equals (no back-to-back on a tie).
-        var bestCnt = null, bestJust = null;
-        for (var i = 0; i < waiting.length; i++) {
-          var cnt = karQSung[waiting[i].singer] || 0;
-          var just = (lastSinger && waiting[i].singer === lastSinger) ? 1 : 0;
-          if (bestCnt === null || cnt < bestCnt || (cnt === bestCnt && just < bestJust)) {
-            pick = waiting[i]; bestCnt = cnt; bestJust = just;
-          }
-        }
-      }
       var player = document.getElementById('kar-q-player').value === 'mpv' ? 'mpv' : 'qmidi';
       var fd = new FormData();
       fd.append('form_type', 'karaoke_q_play'); fd.append('mac', karMac());
@@ -4775,6 +4763,10 @@ function karPickFolder(){
         karRender();
         listEl.scrollTop = st;
       }).catch(function(){ alert('Network error — the play was not sent.'); });
+    }
+    function karQArrange(){
+      var fd = new FormData(); fd.append('form_type', 'karaoke_q_arrange');
+      karQPost(fd).catch(function(){ alert('Network error.'); });
     }
     function karQClear(){
       if (!confirm('Clear the whole singing queue?\n\nOnly the requests list empties — songs, pitches and Singer lists are untouched.')) return;

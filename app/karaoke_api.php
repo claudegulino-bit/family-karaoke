@@ -366,6 +366,7 @@ try {
     case 'karaoke_q_remove':
     case 'karaoke_q_move':
     case 'karaoke_q_play':
+    case 'karaoke_q_arrange':
     case 'karaoke_q_clear': {
         $qState = function () use ($db) {
             $rows = [];
@@ -379,13 +380,7 @@ try {
             return $rows;
         };
         // Songs each person has sung tonight — feeds Fair turns (full rotation).
-        $qSung = function () use ($db) {
-            $m = [];
-            foreach ($db->query("SELECT singer, COUNT(*) c FROM karaoke_sing_queue WHERE status IN ('Singing','Done') GROUP BY singer") as $r) {
-                $m[$r['singer']] = (int)$r['c'];
-            }
-            return $m;
-        };
+        $qSung = function () use ($db) { return kar_q_sung_counts($db); };
         // WHEN THE SONG ENDS, THE SINGER IS DONE (the owner, 2026-09-13: "the song was finished,
         // sang already... I don't understand why that needs to stay there"). An entry used to
         // sit at "Singing" until the NEXT singer was started, so after the last song of the
@@ -393,25 +388,7 @@ try {
         // this same Mac, so the question is simply whether it is still running - with 25
         // seconds of grace for it to open and the announcement to run. It never starts the
         // next singer; someone still has to walk to the microphone.
-        $qAutoFinish = function () use ($db) {
-            try {
-                if (!(int)$db->query("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Singing'")->fetchColumn()) return;
-                $since = (int)$db->query("SELECT v FROM karaoke_settings WHERE k='singing_since'")->fetchColumn();
-                if (!$since || time() < $since + 25) return;
-                // The player is deliberately kept open between songs (--idle=yes --keep-open=always),
-                // so "is mpv running" is true all evening and can never tell us a song ended — which
-                // is exactly why the last singer of the night stayed on the panel. Ask what the player
-                // is DOING instead: at the end of a file mpv parks with eof-reached true, while
-                // mid-song — even PAUSED — it is false. core-idle looks equivalent and is a trap: it
-                // goes true on a pause, so a singer who stopped to talk would be marked Done and
-                // dropped off the panel. Measured on two Macs, 14 Sep 2026.
-                if (function_exists('kar_mpv_alive') && kar_mpv_alive()) {
-                    $eof = json_decode((string)kar_mpv_send(['get_property', 'eof-reached']), true);
-                    if (!is_array($eof) || ($eof['data'] ?? null) !== true) return;   // still on the song
-                }
-                $db->exec("UPDATE karaoke_sing_queue SET status='Done' WHERE status='Singing'");
-            } catch (Throwable $e) { /* never break the panel over this */ }
-        };
+        $qAutoFinish = function () use ($db) { kar_q_auto_finish($db); };
         try {
             $qAutoFinish();
             if ($ft === 'karaoke_q_state') { try { kar_sync($db); } catch (Throwable $e) { } }
@@ -425,6 +402,7 @@ try {
                 $pos = (int)$db->query('SELECT COALESCE(MAX(position),0) FROM karaoke_sing_queue')->fetchColumn() + 1;
                 $db->prepare("INSERT INTO karaoke_sing_queue (singer, filename, pitch, status, position)
                               VALUES (?,?,?, 'Waiting', ?)")->execute([$singer, $song, $pitch, $pos]);
+                if ((string)($_POST['fair'] ?? '') === '1') kar_q_arrange($db);   // Scheduling fairness ticked: the queue is re-sequenced, so what you SEE is the order
             } elseif ($ft === 'karaoke_q_remove') {
                 $db->prepare("DELETE FROM karaoke_sing_queue WHERE id = ? AND status = 'Waiting'")->execute([(int)($_POST['id'] ?? 0)]);
             } elseif ($ft === 'karaoke_q_move') {
@@ -458,6 +436,8 @@ try {
                 // The singer's name goes with the play, and that is what turns it into an
                 // introduction. A plain ▶ Play from the song list passes no name and is unchanged.
                 else                                                    kar_play($row['filename'], (int)$row['pitch'], (string)$row['singer']);
+            } elseif ($ft === 'karaoke_q_arrange') {
+                kar_q_arrange($db);
             } elseif ($ft === 'karaoke_q_clear') {
                 $db->exec('DELETE FROM karaoke_sing_queue');
             }

@@ -487,6 +487,92 @@ function kar_mpv_alive(): bool {
     return $r !== null && strpos($r, '"success"') !== false;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// THE SINGING LINE — "tonight" and "the song is over" (the owner, 2026-10-16, a third Mac:
+// "the next singer is always one off ... when I stop the song he doesn't go off right away").
+// Two causes, both fixed here, in functions so they can be tested without a player:
+//  1. Scheduling fairness counted EVERY request still in the table, so Wednesday's songs
+//     counted as "tonight's" (the table is only emptied by Clear the queue). Now only
+//     requests made in the last 12 hours count — a party, even one past midnight.
+//  2. A singer was marked Done only when the song reached its END. Press Stop mid-song and
+//     the player parks with nothing loaded (idle-active), the song never "ended", and the
+//     singer stayed on top as "singing" — and counted as "who just sang". Now an empty
+//     player also ends the turn (after the same 25 s grace for a song to open).
+// ─────────────────────────────────────────────────────────────────────────────
+function kar_q_sung_counts(PDO $db): array {
+    $cut = date('Y-m-d H:i:s', time() - 12 * 3600);
+    $m = [];
+    $st = $db->prepare("SELECT singer, COUNT(*) c FROM karaoke_sing_queue WHERE status IN ('Singing','Done') AND created_at >= ? GROUP BY singer");
+    $st->execute([$cut]);
+    foreach ($st as $r) $m[$r['singer']] = (int)$r['c'];
+    return $m;
+}
+
+/** $mpv lets a test stand in for the player: ['alive'=>bool, 'idle'=>bool|null, 'eof'=>bool|null]. */
+function kar_q_auto_finish(PDO $db, ?array $mpv = null): bool {
+    try {
+        if (!(int)$db->query("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Singing'")->fetchColumn()) return false;
+        $since = (int)$db->query("SELECT v FROM karaoke_settings WHERE k='singing_since'")->fetchColumn();
+        if (!$since || time() < $since + 25) return false;
+        if ($mpv === null) {
+            $alive = function_exists('kar_mpv_alive') && kar_mpv_alive();
+            $idle = $eof = null;
+            if ($alive) {
+                $i = json_decode((string)kar_mpv_send(['get_property', 'idle-active']), true);
+                $idle = is_array($i) ? ($i['data'] ?? null) : null;
+                $e = json_decode((string)kar_mpv_send(['get_property', 'eof-reached']), true);
+                $eof = is_array($e) ? ($e['data'] ?? null) : null;
+            }
+        } else { $alive = !empty($mpv['alive']); $idle = $mpv['idle'] ?? null; $eof = $mpv['eof'] ?? null; }
+        if ($alive) {
+            // Stopped (nothing loaded) = turn over. At the natural end mpv parks on the last frame
+            // (eof-reached). Mid-song — even PAUSED — neither is true, and the singer stays.
+            if ($idle !== true && $eof !== true) return false;
+        }
+        $db->exec("UPDATE karaoke_sing_queue SET status='Done' WHERE status='Singing'");
+        return true;
+    } catch (Throwable $e) { return false; }
+}
+
+/** SCHEDULING FAIRNESS BY ARRANGING THE QUEUE (the owner, 2026-10-16: "massage the queue ... so I can
+ *  actually see the sequence ... and when I play next, I already know who is next ... I can do
+ *  manual adjustments"). Pure: takes the waiting requests in their current order, [['id'=>..,'singer'=>..],..],
+ *  how many songs each singer has had tonight, and who sang last; returns the ids in the fair order.
+ *  A request's ROUND = songs that singer has already had tonight + how many of their requests sit
+ *  ahead of it in the queue. Everyone's round 0 first, then round 1, and so on; inside a round the
+ *  current queue order is kept, except that the person who just sang goes last among equals. */
+function kar_q_fair_order(array $waiting, array $sung, ?string $lastSinger = null): array {
+    $seen = []; $rows = [];
+    foreach ($waiting as $i => $w) {
+        $s = (string)$w['singer'];
+        $k = $seen[$s] ?? 0; $seen[$s] = $k + 1;
+        $round = (int)($sung[$s] ?? 0) + $k;
+        $just = ($lastSinger !== null && $s === $lastSinger) ? 1 : 0;
+        $rows[] = [$round, $just, $i, (int)$w['id']];
+    }
+    usort($rows, function ($a, $b) { return [$a[0], $a[1], $a[2]] <=> [$b[0], $b[1], $b[2]]; });
+    return array_map(function ($r) { return $r[3]; }, $rows);
+}
+
+/** Re-sequence the Waiting requests fairly (see above). Returns true if anything moved. */
+function kar_q_arrange(PDO $db): bool {
+    $w = $db->query("SELECT id, singer, position FROM karaoke_sing_queue WHERE status='Waiting' ORDER BY position ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
+    if (count($w) < 2) return false;
+    $last = $db->query("SELECT singer FROM karaoke_sing_queue WHERE status='Singing' ORDER BY id DESC LIMIT 1")->fetchColumn();
+    if ($last === false) {      // nobody on now: the last one to finish — but only tonight's, never a song from days ago
+        $q = $db->prepare("SELECT singer FROM karaoke_sing_queue WHERE status='Done' AND created_at >= ? ORDER BY id DESC LIMIT 1");
+        $q->execute([date('Y-m-d H:i:s', time() - 12 * 3600)]);
+        $last = $q->fetchColumn();
+    }
+    $ids = kar_q_fair_order($w, kar_q_sung_counts($db), $last === false ? null : (string)$last);
+    $cur = array_map(function ($r) { return (int)$r['id']; }, $w);
+    if ($ids === $cur) return false;
+    $pos = array_map(function ($r) { return (int)$r['position']; }, $w); sort($pos);
+    $u = $db->prepare('UPDATE karaoke_sing_queue SET position = ? WHERE id = ?');
+    foreach ($ids as $n => $id) $u->execute([$pos[$n] ?? ($n + 1), $id]);
+    return true;
+}
+
 function kar_lua_path(): string {
     // Shipped beside the page in a standalone bundle; falls back to the casAI
     // scripts folder on a machine that already has the full system.
