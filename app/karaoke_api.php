@@ -368,6 +368,7 @@ try {
     case 'karaoke_q_play':
     case 'karaoke_q_arrange':
     case 'karaoke_q_fair':
+    case 'karaoke_q_newparty':
     case 'karaoke_q_clear': {
         $qState = function () use ($db) {
             $rows = [];
@@ -400,6 +401,7 @@ try {
                 if ($singer === '' || mb_strlen($singer) > 40 || strpbrk($singer, '/\\') !== false) throw new Exception('bad singer name');
                 if ($pitch < -12 || $pitch > 12) $pitch = 0;
                 if (!kar_ok_name($song) || !kar_known($song)) throw new Exception('unknown song');
+                kar_q_before_add($db);   // a quiet gap of 3 h (or the first request ever) starts a new party
                 $pos = (int)$db->query('SELECT COALESCE(MAX(position),0) FROM karaoke_sing_queue')->fetchColumn() + 1;
                 $db->prepare("INSERT INTO karaoke_sing_queue (singer, filename, pitch, status, position)
                               VALUES (?,?,?, 'Waiting', ?)")->execute([$singer, $song, $pitch, $pos]);
@@ -439,6 +441,9 @@ try {
                 else                                                    kar_play($row['filename'], (int)$row['pitch'], (string)$row['singer']);
             } elseif ($ft === 'karaoke_q_arrange') {
                 kar_q_arrange($db);
+            } elseif ($ft === 'karaoke_q_newparty') {
+                kar_q_party_new($db);
+                if (kar_q_fair_on($db)) kar_q_arrange($db);
             } elseif ($ft === 'karaoke_q_fair') {
                 kar_q_fair_set($db, (string)($_POST['on'] ?? '') === '1');
                 if (kar_q_fair_on($db)) kar_q_arrange($db);
@@ -448,9 +453,9 @@ try {
             // A singer joining the queue with a photo but no intro yet: start it now, so it is
             // most likely ready by their turn. Cheap no-op when it is ready or already running.
             if ($ft === 'karaoke_q_add' && !empty($singer)) { try { kar_intro_spawn($singer); } catch (Throwable $e) { } try { kar_cb_kick(); } catch (Throwable $e) { } }
-            kj(['ok'=>true, 'error'=>'', 'queue'=>$qState(), 'sung'=>(object)$qSung(), 'fair'=>kar_q_fair_on($db)]);
+            kj(['ok'=>true, 'error'=>'', 'queue'=>$qState(), 'sung'=>(object)$qSung(), 'fair'=>kar_q_fair_on($db), 'party'=>kar_q_party_info($db)]);
         } catch (Throwable $qe) {
-            kj(['ok'=>false, 'error'=>$qe->getMessage(), 'queue'=>$qState(), 'sung'=>(object)$qSung(), 'fair'=>kar_q_fair_on($db)]);
+            kj(['ok'=>false, 'error'=>$qe->getMessage(), 'queue'=>$qState(), 'sung'=>(object)$qSung(), 'fair'=>kar_q_fair_on($db), 'party'=>kar_q_party_info($db)]);
         }
     }
 

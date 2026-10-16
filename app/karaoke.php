@@ -1935,6 +1935,8 @@ if ($KAR_LOCAL) {
           Scheduling fairness
         </label>
         <button type="button" onclick="karQArrange()" title="Re-sequence the waiting requests so everyone sings once before anyone sings twice. You can still move any request up or down afterwards." style="font-family:inherit;background:none;border:1px solid #334155;color:#cbd5e1;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">&#9878; Arrange fairly</button>
+        <span id="kar-q-party" title="Fairness counts songs from when the party started. A party starts with the first request after 3 quiet hours, or when you press New party." style="color:#94a3b8;font-size:12px;font-weight:600"></span>
+        <button type="button" onclick="karQNewParty()" title="Start a new party: everyone's song count goes back to zero. The requests waiting in the queue stay." style="font-family:inherit;background:none;border:1px solid #334155;color:#cbd5e1;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">&#127881; New party</button>
 
         <button type="button" onclick="karQClear()" style="margin-left:auto;font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">Clear the queue</button>
         <button type="button" onclick="karPanelClose()" title="Close this panel (or press Esc)" style="font-family:inherit;background:none;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">✕ Close</button>
@@ -4712,6 +4714,7 @@ function karPickFolder(){
     function karQPost(fd){
       return fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (d.queue) { karQ = d.queue; karQSung = d.sung || {}; karQRender(); }
+        if (d.party) { var pe = document.getElementById('kar-q-party'); if (pe) pe.textContent = !d.party.start ? 'No party yet' : (d.party.active ? 'Party started ' + d.party.at : 'Last party started ' + d.party.at + ' — the next request starts a new one'); }
         if (typeof d.fair !== 'undefined') { var fb = document.getElementById('kar-q-fair'); if (fb && fb.checked !== !!d.fair) fb.checked = !!d.fair; }
         return d;
       });
@@ -4750,6 +4753,11 @@ function karPickFolder(){
       }
       document.getElementById('kar-q-list').innerHTML = out.length ? out.join('')
         : '<p style="color:#64748b;font-size:12.5px;margin:8px 0 0">The queue is empty — pick a singer in the dropdown and click ➕ on a song.</p>';
+    }
+    function karQNewParty(){
+      if (!confirm('Start a new party?\n\nEveryone’s song count goes back to zero, so fairness starts fresh from now. The requests waiting in the queue stay.')) return;
+      var fd = new FormData(); fd.append('form_type', 'karaoke_q_newparty');
+      karQPost(fd).catch(function(){ alert('Network error.'); });
     }
     function karQFairSet(on){
       var fd = new FormData(); fd.append('form_type', 'karaoke_q_fair'); fd.append('on', on ? '1' : '0');

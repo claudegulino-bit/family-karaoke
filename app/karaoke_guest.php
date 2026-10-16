@@ -143,6 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mine->execute([$name]);
             if ((int)$mine->fetchColumn() >= 3) throw new Exception('You already have 3 songs waiting — sing one first!');
             if ((int)$pdo->query("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Waiting'")->fetchColumn() >= 50) throw new Exception('The queue is full right now — try again in a little while.');
+            kar_q_before_add($pdo);   // a quiet gap of 3 h (or the first request ever) starts a new party
             $pos = (int)$pdo->query("SELECT COALESCE(MAX(position),0) FROM karaoke_sing_queue")->fetchColumn() + 1;
             // Guests sing at the original key (pitch 0) — the host can adjust live during the song.
             $pdo->prepare("INSERT INTO karaoke_sing_queue (singer, filename, pitch, status, position) VALUES (?,?,0,'Waiting',?)")->execute([$name, $song, $pos]);
@@ -185,7 +186,13 @@ $_db = $tokenOk ? kar_catalog() : [];
   <p style="color:#f87171;font-size:14px;margin-top:14px">This link isn't active. Scan the QR code on the karaoke screen to get in — and if you already did, ask the host to show the code again (it may have been renewed).</p>
 <?php else: ?>
   <p style="color:#94a3b8;font-size:12.5px;margin:0 0 12px">Song requests — type your first name, find your song, tap Request, and you'll see your place in the queue.</p>
-  <input id="g-name" type="text" placeholder="Your first name" maxlength="20" autocomplete="given-name" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:15px;padding:11px 13px">
+  <input id="g-name" type="text" list="g-names" placeholder="Your first name" maxlength="20" autocomplete="given-name" style="width:100%;background:#121620;border:1px solid #334155;border-radius:10px;color:#e2e8f0;font-size:15px;padding:11px 13px">
+<?php
+  $gKnown = [];
+  try { foreach ($pdo->query("SELECT name FROM karaoke_singers ORDER BY name") as $r) $gKnown[$r['name']] = 1; } catch (Throwable $e) {}
+  try { foreach ($pdo->query("SELECT DISTINCT person FROM karaoke_best ORDER BY person") as $r) { if (!in_array($r['person'], ['Dance','Warm-Up'], true)) $gKnown[$r['person']] = 1; } } catch (Throwable $e) {}
+?>
+  <datalist id="g-names"><?php foreach (array_keys($gKnown) as $gk): ?><option value="<?= gh($gk) ?>"><?php endforeach; ?></datalist>
   <div id="g-initial-row" style="display:none;margin-top:8px;background:rgba(210,173,108,.08);border:1px solid rgba(210,173,108,.35);border-radius:10px;padding:10px 12px">
     <p id="g-initial-msg" style="margin:0 0 7px;color:#D2AD6C;font-size:12.5px"></p>
     <div style="display:flex;gap:8px">
