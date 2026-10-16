@@ -146,6 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pos = (int)$pdo->query("SELECT COALESCE(MAX(position),0) FROM karaoke_sing_queue")->fetchColumn() + 1;
             // Guests sing at the original key (pitch 0) — the host can adjust live during the song.
             $pdo->prepare("INSERT INTO karaoke_sing_queue (singer, filename, pitch, status, position) VALUES (?,?,0,'Waiting',?)")->execute([$name, $song, $pos]);
+            kar_q_after_add($pdo);   // fairness on: a guest's request is placed fairly too (a guest once sang twice in a row)
         }
         echo json_encode(['ok' => true, 'error' => '', 'queue' => $qState(), 'dls' => $dlState($gName)], JSON_UNESCAPED_UNICODE);
     } catch (Throwable $e) {

@@ -1931,7 +1931,7 @@ if ($KAR_LOCAL) {
           <option value="mpv">plays in casAI player</option>
         </select>
         <label style="display:flex;align-items:center;gap:6px;color:#94a3b8;font-size:12.5px;font-weight:600;cursor:pointer" title="With this on, every new request is placed so everyone sings one song before anyone sings a second (counting only the last 12 hours). The queue below shows the real order and Next singer always plays the top one. You can still move any request up or down.">
-          <input type="checkbox" id="kar-q-fair" onchange="try{localStorage.setItem('kar_q_fair',this.checked?'1':'')}catch(e){}">
+          <input type="checkbox" id="kar-q-fair" onchange="karQFairSet(this.checked)">
           Scheduling fairness
         </label>
         <button type="button" onclick="karQArrange()" title="Re-sequence the waiting requests so everyone sings once before anyone sings twice. You can still move any request up or down afterwards." style="font-family:inherit;background:none;border:1px solid #334155;color:#cbd5e1;cursor:pointer;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px">&#9878; Arrange fairly</button>
@@ -3376,7 +3376,6 @@ if ($KAR_LOCAL) {
         fdQ.append('singer', karWho);
         fdQ.append('song', songQ);
         fdQ.append('pitch', String(pv));
-        try { if (document.getElementById('kar-q-fair').checked) fdQ.append('fair', '1'); } catch(e){}
         qb.textContent = '…';
         karQPost(fdQ).then(function(d){
           if (!d.ok) { qb.textContent = '➕'; alert('Not added' + (d.error ? ': ' + d.error : '') + '.'); return; }
@@ -4713,6 +4712,7 @@ function karPickFolder(){
     function karQPost(fd){
       return fetch(KAR_API, {method:'POST', body: fd}).then(function(r){ return r.json(); }).then(function(d){
         if (d.queue) { karQ = d.queue; karQSung = d.sung || {}; karQRender(); }
+        if (typeof d.fair !== 'undefined') { var fb = document.getElementById('kar-q-fair'); if (fb && fb.checked !== !!d.fair) fb.checked = !!d.fair; }
         return d;
       });
     }
@@ -4751,7 +4751,19 @@ function karPickFolder(){
       document.getElementById('kar-q-list').innerHTML = out.length ? out.join('')
         : '<p style="color:#64748b;font-size:12.5px;margin:8px 0 0">The queue is empty — pick a singer in the dropdown and click ➕ on a song.</p>';
     }
+    function karQFairSet(on){
+      var fd = new FormData(); fd.append('form_type', 'karaoke_q_fair'); fd.append('on', on ? '1' : '0');
+      karQPost(fd).catch(function(){ alert('Network error — the fairness switch was not saved.'); });
+    }
     function karQNext(){
+      // Fairness on: re-sequence what is waiting right now (guests may have added since the last refresh), THEN play the top.
+      var fb = document.getElementById('kar-q-fair');
+      if (fb && fb.checked) {
+        var fa = new FormData(); fa.append('form_type', 'karaoke_q_arrange');
+        karQPost(fa).then(karQNextGo).catch(karQNextGo);
+      } else { karQNextGo(); }
+    }
+    function karQNextGo(){
       var waiting = karQ.filter(function(e){ return e.status === 'Waiting'; });
       if (!waiting.length) { alert('The queue is empty — add a request first: pick the singer in the dropdown, then click ➕ on a song.'); return; }
       // The queue IS the order (the owner, 2026-10-16): Next singer plays the top request. Scheduling fairness no longer
@@ -4916,7 +4928,6 @@ function karPickFolder(){
     // With the QMidi button hidden, ▶ Next singer follows to the casAI player too — and
     // the picker itself is hidden by karApplyQmidiVis(), which runs after this line.
     if (!karShowQmidi) document.getElementById('kar-q-player').value = 'mpv';
-    try { if (localStorage.getItem('kar_q_fair') === '1') document.getElementById('kar-q-fair').checked = true; } catch(e){}
     try { KAR_YT_ONLY = localStorage.getItem('kar_yt_only') !== '0';
           document.getElementById('kar-yt-only').checked = KAR_YT_ONLY; } catch(e){}
     karQFetch();
