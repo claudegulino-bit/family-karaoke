@@ -256,6 +256,19 @@ if ($job === 'mcvoice') {
             // make the player itself stumble.
             $singing = (int)kar_db()->query("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Singing'")->fetchColumn();
             if ($singing > 0) break;
+            // THE BACKLOG ONLY RUNS WHEN THE MAC HAS BEEN QUIET (the owner, 2026-10-16, a third Mac, 8 GB: "gets stuck,
+            // delays, doesn't respond, then comes back"). Rendering with the voice model fills memory and swaps, and
+            // the "not while a song is playing" test above is true for only the moments BETWEEN songs - so a party
+            // stalled in every gap. Now: nothing waiting in the queue, and no song started in the last 20 minutes.
+            $waitingN = (int)kar_db()->query("SELECT COUNT(*) FROM karaoke_sing_queue WHERE status='Waiting'")->fetchColumn();
+            if ($waitingN > 0) break;
+            $lastStart = (int)kar_get_setting('singing_since');
+            if ($lastStart > 0 && time() - $lastStart < 20 * 60) break;
+            // A plain ▶ Play from the song list never touches the queue, so also ask the player itself: a file loaded = someone is listening.
+            if (function_exists('kar_mpv_alive') && kar_mpv_alive()) {
+                $ia = json_decode((string)kar_mpv_send(['get_property', 'idle-active']), true);
+                if (!is_array($ia) || ($ia['data'] ?? false) !== true) break;
+            }
             $jobs = kar_cb_everyone_jobs($ref);
             if (!$jobs) $jobs = kar_cb_backlog_jobs($ref, $crowdv);
             if (!$jobs) break;
