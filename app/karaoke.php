@@ -2162,6 +2162,7 @@ if ($KAR_LOCAL) {
       if (karView !== 'best') karSwitch('best', document.getElementById('kar-who'));
     }
     function karWhoChange(sel){
+      if (sel.value !== '__add__' && sel.value !== '__remove__') karClearSearch(false);   // choosing another singer ends the search
       if (sel.value === '__add__') {
         var nn = prompt('Name of the new singer:');
         sel.value = karWho;  // put the select back first, in case they cancel
@@ -2294,6 +2295,7 @@ if ($KAR_LOCAL) {
       if (_ts >= 0 && _ts <= 3) karTierShow = _ts;
     } catch(e){}
     function karTierFilterToggle(t){
+      karClearSearch(false);   // picking A/B/C/All ends the search
       karTierShow = t;
       try { localStorage.setItem('kar_tier_show', String(t)); } catch(e){}
       karRebuildBest();
@@ -2676,6 +2678,7 @@ if ($KAR_LOCAL) {
         + '<b style="color:#D2AD6C;font-size:11px">⚠ You may already have this</b><br>' + karEsc(d) + '</span>';
     }
     function karSortToggle(){
+      karClearSearch(false);
       karSort = (karSort === '') ? 'az' : (karSort === 'az') ? 'za' : '';
       karRender();
     }
