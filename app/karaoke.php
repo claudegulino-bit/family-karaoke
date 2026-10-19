@@ -1455,7 +1455,7 @@ if ($KAR_LOCAL) {
           <h3 style="margin:0 0 8px;font-size:14.5px;font-weight:800;color:#D2AD6C">Play a song</h3>
           <ul style="margin:0;padding-left:20px">
             <li><b>Choose a list.</b> The three boxes under <b>Songs and singers</b> select what the page shows: <b>Song Database</b> (everything), <b>New Songs</b> (added in the last 5 days) and <b>Singer:</b> (one person's songs — the dropdown chooses who). The one on a shaded background is the list currently on screen.</li>
-            <li><b>Search</b> — filters the list on screen by title, artist or singer's name. Esc clears it.</li>
+            <li><b>Search</b> — finds songs by title, artist or singer's name. On a singer's list it shows that singer's own matches first, then every other matching song in the whole database, so you never have to change lists to find something. Esc clears it.</li>
             <li><b>Seq Number</b> — the song's position in the list as currently displayed; the first song is always 1. A singer can request a song by number. Sorting the list or opening a Singer list renumbers it from 1.</li>
             <li><b>▶ Play</b> — plays the song on the Mac. On that Mac, <b>F</b> or a <b>double-click</b> switches full screen on and off; <b>Q</b> or the window's red <b>✕</b> closes the player.</li>
             <li><b>Pitch</b> — the pitch the song starts at. Use − and + to transpose by semitones. On <b>Song Database</b> and <b>New Songs</b> it always starts at 0 and is never saved — a one-time change for whatever gets played or queued next. On a <b>singer's own list</b>, it saves as that singer's own pitch for the song.</li>
@@ -2708,6 +2708,15 @@ if ($KAR_LOCAL) {
       var q = (document.getElementById('kar-search').value || '').toLowerCase();
       var src = KAR_DATA[karView] || [];
       karRenderedView = karView;
+      // A SEARCH LOOKS EVERYWHERE (the owner, 2026-10-18: "whenever you go to a search, it means you want to find a song anywhere in the library;
+      // if you don't find it, then you go to YouTube"). On a singer's list, typed words search that singer's songs (his order, all of A/B/C)
+      // FIRST and then the whole song database. The combined list is its own entry, 'bestq', so every row button (Play, A/B/C, pitch)
+      // still resolves its data-i against the list actually on screen. Nothing typed = the singer's list exactly as before.
+      if (karView === 'best' && karWho && q) {
+        var _mine = {}; (KAR_DATA.best || []).forEach(function(n){ _mine[n] = 1; });
+        KAR_DATA.bestq = (KAR_DATA.best || []).concat((KAR_DATA.db || []).filter(function(n){ return !_mine[n]; }));
+        src = KAR_DATA.bestq; karRenderedView = 'bestq';
+      }
       var hd = document.getElementById('kar-h-dup');
       if (hd) hd.style.display = (karView === 'new') ? '' : 'none';
       var hc = document.getElementById('kar-h-chk');
