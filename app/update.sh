@@ -48,7 +48,7 @@ if [ -d "$SRC/announcer" ]; then
 fi
 # The settings file is yours. It is only ever created, never overwritten.
 [ -f "$DEST/karaoke_standalone.json" ] || cp "$SRC/karaoke_standalone.example.json" "$DEST/karaoke_standalone.json"
-chmod +x "$DEST/start.command" "$DEST/update.sh" 2>/dev/null || true
+chmod +x "$DEST/start.command" "$DEST/restart_server.sh" "$DEST/update.sh" 2>/dev/null || true
 
 # THE ANNOUNCER VOICE, added to an already-installed Mac by its own next update (2026-09-26).
 # Runs ONCE — the moment the voice engine is already working, this whole block is a single
@@ -111,24 +111,30 @@ if [ -d "$APP" ] && [ -f "$DEST/karaoke.icns" ] && ! cmp -s "$DEST/karaoke.icns"
 fi
 # THE ICON'S LAUNCHER follows the shipped one too (2026-09-29). Only the script inside the
 # existing Cantoria.app is replaced - same bundle, same place - so a Dock icon pointing at it
-# keeps working. Skipped once this Mac already has launcher v2.
-if [ -d "$APP" ] && ! osadecompile "$APP/Contents/Resources/Scripts/main.scpt" 2>/dev/null | grep -q "cantoria launcher v2"; then
+# keeps working. Skipped once this Mac already has launcher v3.
+if [ -d "$APP" ] && ! osadecompile "$APP/Contents/Resources/Scripts/main.scpt" 2>/dev/null | grep -q "cantoria launcher v3"; then
   PORT="$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("port","8899"))' "$DEST/karaoke_standalone.json" 2>/dev/null || echo 8899)"
   PHPBIN="$(command -v php || true)"
   [ -z "$PHPBIN" ] && [ -x /opt/homebrew/bin/php ] && PHPBIN=/opt/homebrew/bin/php
   [ -z "$PHPBIN" ] && [ -x /usr/local/bin/php ]    && PHPBIN=/usr/local/bin/php
   [ -z "$PHPBIN" ] && PHPBIN=php
   cat > "$TMP/launch.applescript" <<AS
--- cantoria launcher v2 (KEEP IN STEP with update.sh's copy in publish_karaoke.php)
+-- cantoria launcher v3 (KEEP IN STEP with update.sh's copy in publish_karaoke.php)
+on probe(theURL)
+	-- two looks, 8 seconds each: a server that is only BUSY must not be mistaken for a dead one
+	set code to do shell script "curl -s -o /dev/null -m 8 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
+	if code is not "200" then set code to do shell script "curl -s -o /dev/null -m 8 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
+	return code
+end probe
 on run
 	set theURL to "http://localhost:$PORT/karaoke.php"
-	set code to do shell script "curl -s -o /dev/null -m 5 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
+	set code to my probe(theURL)
 	if code is not "200" then
-		-- stdin, stdout and stderr all redirected, or this script waits on the server forever
-		-- and every later double-click only wakes the stuck copy (2026-09-26)
-		-- If this Mac has the start-by-itself service, wake THAT rather than starting a second
-		-- server beside it (two copies left the service failing every 10 s, 2026-09-29).
-		do shell script "launchctl kickstart gui/$(id -u)/com.familykaraoke.server 2>/dev/null || (cd $DEST && nohup $PHPBIN -S 0.0.0.0:$PORT -t . > $DEST/logs/server.log 2>&1 < /dev/null &)"
+		-- An old copy may still be running in the background (stuck, or left from yesterday) and holding the
+		-- port, so a second one fails with an error. restart_server.sh stops THAT old
+		-- copy first - only a PHP server on Cantoria's own port, never a song playing - and starts a fresh one.
+		-- stdin, stdout and stderr are redirected inside it, or this script waits on the server forever.
+		do shell script "/bin/bash " & quoted form of "$DEST/restart_server.sh" & " > /dev/null 2>&1 < /dev/null"
 		repeat 20 times
 			delay 1
 			set code to do shell script "curl -s -o /dev/null -m 5 -w '%{http_code}' " & quoted form of theURL & " 2>/dev/null || echo 000"
