@@ -2143,24 +2143,32 @@ function kar_yt_search(string $query, int $limit = 30, bool $wantKaraoke = true)
     $cfg = kar_cfg();
     $cookies = !empty($cfg['browser_cookies'])
         ? ' --cookies-from-browser ' . escapeshellarg((string)$cfg['browser_cookies']) : '';
+    // With the box ticked YouTube is asked TWICE in the same call - the words + "karaoke" and the words + "lyrics" -
+    // so lyric videos are no longer pushed out of the results (the person asked for both, 2026-10-23). Unticked = one plain search.
+    // The word added to the query is the bigger lever of the two; the page filter only hides what came back.
+    if ($wantKaraoke) {
+        $per = max(10, min(25, intdiv($limit * 2 + 2, 3)));
+        $searchArgs = escapeshellarg('ytsearch' . $per . ':' . $q . ' karaoke') . ' ' . escapeshellarg('ytsearch' . $per . ':' . $q . ' lyrics');
+    } else {
+        $searchArgs = escapeshellarg('ytsearch' . $limit . ':' . $q);
+    }
     $cmd = escapeshellarg(kar_tool('yt-dlp'))
          . ' --no-warnings --flat-playlist --skip-download'
-         . ' --print ' . escapeshellarg("%(id)s\t%(title)s\t%(duration)s\t%(channel)s")
-         . $cookies . ' ' . escapeshellarg('ytsearch' . $limit . ':' . $q
-             // The appended word is the bigger lever of the two: the filter only hides
-             // what came back, this decides what YouTube is asked for at all. Unticking
-             // the box has to turn BOTH off or the choice is cosmetic (the owner, 2026-09-14).
-             . ($wantKaraoke ? ' karaoke' : '')) . ' 2>/dev/null';
+         . ' --print ' . escapeshellarg("%(id)s\t%(title)s\t%(duration)s\t%(channel)s\t%(playlist_index)s")
+         . $cookies . ' ' . $searchArgs . ' 2>/dev/null';
     $out = (string)@shell_exec($cmd);
-    $rows = [];
+    $rows = []; $batches = [[]]; $prevIx = PHP_INT_MAX;   // one batch per search; yt-dlp restarts playlist_index at 1 for each
     foreach (explode("\n", $out) as $line) {
         $line = trim($line);
         if ($line === '') continue;
         $p = explode("\t", $line);
         if (count($p) < 2 || $p[0] === '' || $p[0] === 'NA') continue;
+        $ix = (isset($p[4]) && ctype_digit((string)$p[4])) ? (int)$p[4] : 0;
+        if ($ix && $ix <= $prevIx && !empty($batches[count($batches) - 1])) $batches[] = [];
+        if ($ix) $prevIx = $ix;
         $secs = (isset($p[2]) && is_numeric($p[2])) ? (int)$p[2] : 0;
         $chan = $p[3] ?? '';
-        $rows[] = [
+        $batches[count($batches) - 1][] = [
             'id'    => $p[0],
             'url'   => 'https://www.youtube.com/watch?v=' . $p[0],
             'title' => $p[1],
@@ -2176,6 +2184,11 @@ function kar_yt_search(string $query, int $limit = 30, bool $wantKaraoke = true)
             // the page can say how many it is holding back and reveal them on a click.
             'ok'    => kar_looks_karaoke($p[1], $chan),
         ];
+    }
+    $seen = [];                                  // merge the batches one-for-one (karaoke, lyrics, karaoke, lyrics...), each video once
+    $most = 0; foreach ($batches as $b) $most = max($most, count($b));
+    for ($k = 0; $k < $most; $k++) foreach ($batches as $b) {
+        if (isset($b[$k]) && !isset($seen[$b[$k]['id']])) { $seen[$b[$k]['id']] = 1; $rows[] = $b[$k]; }
     }
     return $rows;
 }
